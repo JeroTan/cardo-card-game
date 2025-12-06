@@ -1,0 +1,9 @@
+---
+import PagePlate from "@/layouts/PagePlate.astro";
+const locals = Astro.locals;
+locals.runtime;
+locals.runtime.env.CHAT_ROOM.newUniqueId();
+console.log("Cloudflare Runtime Context:", locals.runtime.env);
+---
+
+<PagePlate title="Hello World Website"> Hello Earth! </PagePlate>

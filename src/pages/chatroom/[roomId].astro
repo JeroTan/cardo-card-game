@@ -1,0 +1,210 @@
+---
+// This page is made by AI to simulate a chat room interface via websocket + durable object of Cloudflare Workers.
+import PagePlate from "@/layouts/PagePlate.astro";
+
+const { roomId } = Astro.params;
+const roomUrl = `${Astro.url.origin}/chatroom/${roomId}`;
+---
+
+<PagePlate title={`Chat Room: ${roomId}`}>
+	<input id="room-id" type="hidden" value={roomId} />
+	<div class="max-w-4xl mx-auto p-8">
+		<!-- Header -->
+		<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+			<div class="flex justify-between items-center">
+				<div>
+					<h1 class="text-3xl font-bold mb-2">Room: {roomId}</h1>
+					<p class="text-gray-600">Share this link with others to join</p>
+				</div>
+				<button
+					id="copyLink"
+					class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition"
+				>
+					Copy Link
+				</button>
+			</div>
+			<div class="mt-4 p-3 bg-gray-100 rounded border border-gray-300 break-all text-sm">
+				{roomUrl}
+			</div>
+		</div>
+
+		<!-- Chat Container -->
+		<div class="bg-white rounded-lg shadow-md p-6">
+			<!-- Status -->
+			<div id="status" class="mb-4 text-sm">
+				<span class="inline-block px-3 py-1 rounded-full bg-yellow-100 text-yellow-800"> Connecting... </span>
+			</div>
+
+			<!-- Messages -->
+			<div id="messages" class="h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 mb-4 space-y-2">
+				<p class="text-gray-500 text-center">No messages yet. Start chatting!</p>
+			</div>
+
+			<!-- Input -->
+			<div class="flex gap-2">
+				<input
+					type="text"
+					id="messageInput"
+					placeholder="Type a message..."
+					class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+					disabled
+				/>
+				<button
+					id="sendButton"
+					class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+					disabled
+				>
+					Send
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const roomId = (document.getElementById("room-id") as HTMLInputElement).value;
+		let ws: WebSocket | null = null;
+		const messagesDiv = document.getElementById("messages") as HTMLDivElement;
+		const messageInput = document.getElementById("messageInput") as HTMLInputElement;
+		const sendButton = document.getElementById("sendButton") as HTMLButtonElement;
+		const statusDiv = document.getElementById("status") as HTMLDivElement;
+
+		type StatusColor = "connecting" | "connected" | "disconnected";
+
+		function updateStatus(status: string, color: StatusColor): void {
+			const colorClasses: Record<StatusColor, string> = {
+				connecting: "bg-yellow-100 text-yellow-800",
+				connected: "bg-green-100 text-green-800",
+				disconnected: "bg-red-100 text-red-800",
+			};
+			statusDiv.innerHTML = `
+				<span class="inline-block px-3 py-1 rounded-full ${colorClasses[color]}">
+					${status}
+				</span>
+			`;
+		}
+
+		function addMessage(message: string, isOwn: boolean = false): void {
+			// Clear "no messages" text
+			if (messagesDiv.querySelector("p.text-gray-500")) {
+				messagesDiv.innerHTML = "";
+			}
+
+			const msgDiv = document.createElement("div");
+			msgDiv.className = `p-3 rounded-lg ${isOwn ? "bg-blue-100 ml-auto" : "bg-gray-100"} max-w-[80%] text-wrap break-all`;
+			msgDiv.textContent = message;
+			messagesDiv.appendChild(msgDiv);
+			messagesDiv.scrollTop = messagesDiv.scrollHeight;
+		}
+
+		function addSystemMessage(message: string): void {
+			// Clear "no messages" text
+			if (messagesDiv.querySelector("p.text-gray-500")) {
+				messagesDiv.innerHTML = "";
+			}
+
+			const msgDiv = document.createElement("div");
+			msgDiv.className =
+				"p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-center text-sm italic text-wrap break-all";
+			msgDiv.textContent = message;
+			messagesDiv.appendChild(msgDiv);
+			messagesDiv.scrollTop = messagesDiv.scrollHeight;
+		}
+
+		function connect(): void {
+			// Determine WebSocket protocol based on page protocol
+			const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+			const wsUrl = `${protocol}//${window.location.host}/api/chat/${roomId}`;
+
+			ws = new WebSocket(wsUrl);
+
+			ws.addEventListener("open", () => {
+				console.log("Connected to chat room");
+				updateStatus("Connected", "connected");
+				messageInput.disabled = false;
+				sendButton.disabled = false;
+				messageInput.focus();
+			});
+
+			ws.addEventListener("message", (event: MessageEvent) => {
+				console.log("Received:", event.data);
+
+				// Try to parse as JSON
+				try {
+					const data = JSON.parse(event.data as string);
+
+					// Check if it's a system message
+					if (data.system) {
+						addSystemMessage(data.system.message);
+						console.log("System message:", data.system);
+					} else {
+						// Regular message
+						addMessage(event.data as string, false);
+					}
+				} catch {
+					// Not JSON, treat as regular text message
+					addMessage(event.data as string, false);
+				}
+			});
+
+			ws.addEventListener("close", () => {
+				console.log("Disconnected from chat room");
+				updateStatus("Disconnected", "disconnected");
+				messageInput.disabled = true;
+				sendButton.disabled = true;
+
+				// Attempt to reconnect after 3 seconds
+				setTimeout(() => {
+					updateStatus("Reconnecting...", "connecting");
+					connect();
+				}, 3000);
+			});
+
+			ws.addEventListener("error", (error: Event) => {
+				console.error("WebSocket error:", error);
+				updateStatus("Connection error", "disconnected");
+			});
+		}
+
+		function sendMessage(): void {
+			const message = messageInput.value.trim();
+			if (message && ws && ws.readyState === WebSocket.OPEN) {
+				ws.send(message);
+				addMessage(message, true);
+				messageInput.value = "";
+			}
+		}
+
+		// Event listeners
+		sendButton.addEventListener("click", sendMessage);
+		messageInput.addEventListener("keypress", (e: KeyboardEvent) => {
+			if (e.key === "Enter") {
+				sendMessage();
+			}
+		});
+
+		// Copy link functionality
+		document.getElementById("copyLink")?.addEventListener("click", async () => {
+			const url = window.location.href;
+			try {
+				await navigator.clipboard.writeText(url);
+				const btn = document.getElementById("copyLink") as HTMLButtonElement;
+				const originalText = btn.textContent;
+				btn.textContent = "Copied!";
+				setTimeout(() => {
+					btn.textContent = originalText;
+				}, 2000);
+			} catch (err) {
+				console.error("Failed to copy:", err);
+				alert("Failed to copy link");
+			}
+		});
+
+		// Connect on page load
+		connect();
+
+		// Cleanup on page unload
+		window.addEventListener("beforeunload", () => {
+			if (ws) ws.close();
+		});
+	</script>
+</PagePlate>
