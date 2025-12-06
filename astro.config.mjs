@@ -50,7 +50,8 @@ export default defineConfig({
         },
         plugins: [tailwindcss()],
         resolve: {
-            alias: {
+            //@ts-ignore
+            alias: process?.env?.IN_DEV &&  {
                 "react-dom/server": "react-dom/server.edge",
             }
         }
