@@ -49,6 +49,9 @@ if(description && !description.fbAppId){
 
   </Fragment>
   <Fragment slot={`head-last`}>
+    {/* Not Indexed */}
+    <meta name="robots" content="noindex, nofollow">
+
     {/* Schema.org JSON-LD */}
     <PageSchema description={description} />
     {/* FB */}

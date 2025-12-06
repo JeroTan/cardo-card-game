@@ -1,0 +1,198 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table card {
+  id uuid [pk, not null]
+  name varchar [not null, unique]
+  rarity tinyint [not null]
+  atk tinyint 
+  def tinyint
+  description text
+  card_art varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (name)   // Search card by name
+  }
+
+  Note: "Card that is available in the game"
+}
+
+Table card_faction {
+  id uuid [pk, not null]
+  card_id uuid [not null]
+  faction CARD_FACTION [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (card_id)
+    (faction)
+  }
+
+  Note: "Stores card faction"
+}
+
+Table account {
+  id uuid [pk, not null]
+  name varchar [not null]
+  username varchar [not null, unique]
+  email varchar [not null, unique]
+  password_hash varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  google_id varchar [unique, note: 'Google account ID, nullable']
+
+  Note: "Playert account that will join the game"
+}
+
+Table admin_account {
+  id uuid [pk, not null]
+  email varchar [not null, unique]
+  password_hash varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table account_coin_log {
+  id uuid [pk]
+  account_id uuid [not null]
+  delta int [not null]          // +50, -100, etc.
+  reason varchar [not null]     // "match_reward", "purchase", etc."
+  created_at timestamp [not null]
+
+  Indexes {
+    (account_id)     // Fast balance lookup
+    (created_at)     // Useful for sorting logs
+  }
+
+  Note: "Ledger of all coin transactions"
+}
+
+Table card_pack{
+  id uuid [pk, not null]
+  status  CARD_PACK_STATUS [not null]
+  name varchar [not null]
+  price_per_card int [not null]
+  publish_start_date timestamp [not null]
+  publish_end_date timestamp [not null, note: "Developer's can do many logic here like if status is published but already expired then still do not show."]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (status)
+    (publish_start_date)
+    (publish_end_date)
+  }
+
+}
+
+Table card_pack_cards{
+  id uuid [pk, not null]
+  card_pack_id uuid [not null]
+  card_id uuid [not null]
+  drop_rate int [note: "int because the higher the number meaning it is common but lower means rarer"]
+
+  Indexes {
+    (card_pack_id)
+  }
+}
+
+Table account_pack_purchase {
+  id uuid [pk, not null]
+  account_id uuid [not null]
+  card_pack_id uuid [not null]
+  total_cards int [not null]  // number of cards purchased
+  total_cost int [not null]   // coins spent
+  created_at timestamp [not null]
+
+  Note: "Record of pack purchases to prevent cheating & track sales"
+}
+
+Table pack_opened_card {
+  id uuid [pk, not null]
+  purchase_id uuid [not null]
+  card_id uuid [not null]
+  account_cards_id uuid [not null] // the actual card instance they received
+  created_at timestamp [not null]
+
+  Note: "Cards obtained from opening a pack"
+}
+
+
+Table account_cards {
+  id uuid [pk, not null]
+  account_id uuid [not null]
+  card_id uuid [not null]
+  created_at timestamp [not null]
+
+  Indexes {
+    (account_id)     // Find user’s cards fast
+    (card_id)        // Reverse lookup (find owners of card)
+  }
+  
+  Note: "Cards own by the player"
+}
+
+Table deck {
+  id uuid [pk, not null]
+  account_id uuid [not null]
+  name varchar [not null]
+  description varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (account_id, name) [unique]  // deck name unique PER USER
+  }
+
+  Note: "User-defined deck profile of the user"
+}
+
+Table deck_cards {
+  id uuid [pk, not null]
+  deck_id uuid [not null]
+  account_cards_id uuid [not null]
+  created_at timestamp [not null]
+
+  Indexes {
+    (deck_id)            // Find cards inside a deck fast
+    (account_cards_id)   // For verifying ownership
+  }
+
+  Note: "Cards per deck of the player"
+}
+
+Enum CARD_FACTION {
+  Bayani
+  //Add More Later
+}
+
+Enum CARD_PACK_STATUS {
+  PUBLISHED
+  HIDDEN
+}
+
+// Foreign key reference
+Ref: card_faction.card_id > card.id [delete: cascade, update: cascade]
+Ref: account_cards.account_id > account.id [delete: cascade, update: cascade]
+Ref: account_cards.card_id > card.id [delete: cascade, update: cascade]
+Ref: card_pack_cards.card_pack_id > card_pack.id [delete: cascade, update: cascade]
+Ref: card_pack_cards.card_id > card.id [delete: cascade, update: cascade]
+Ref: deck.account_id > account.id [delete: cascade, update: cascade]
+Ref: deck_cards.deck_id > deck.id [delete: cascade, update: cascade]
+Ref: deck_cards.account_cards_id > account_cards.id [delete: cascade, update: cascade]
+Ref: account_coin_log.account_id > account.id [delete: cascade, update: cascade]
+Ref: account_pack_purchase.account_id > account.id [delete: cascade]
+Ref: account_pack_purchase.card_pack_id > card_pack.id [delete: cascade]
+Ref: pack_opened_card.purchase_id > account_pack_purchase.id [delete: cascade]
+Ref: pack_opened_card.card_id > card.id [delete: cascade]
+Ref: pack_opened_card.account_cards_id > account_cards.id [delete: cascade]
+
+// Enum CARD_TYPE {
+//   Spell
+//   Sentinel
+// }
+
+

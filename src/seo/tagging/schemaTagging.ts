@@ -3,7 +3,7 @@ import type { QuantitativeValue, WebPage } from "schema-dts";
 
 export function basicWebPageSchemaTags({
 	type,
-	title = "__PROJECT_NAME__",
+	title = "CARDO - The Card Game",
 	webUrl = "https://www.example.com",
 	description,
 	headline,
