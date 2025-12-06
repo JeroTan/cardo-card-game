@@ -1,4 +1,6 @@
 import { Users, Package, CreditCard, Settings, BarChart3, ShoppingBag } from "lucide-react";
+import DashboardQuickAction from "./DashboardQuickAction";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface DashboardStats {
   totalUsers: number;
@@ -78,13 +80,17 @@ export default function DashboardMenu({ stats }: Props) {
 
   return (
     <div className="w-full space-y-6 p-6">
+      <nav className="flex justify-end">
+        <DashboardQuickAction />
+      </nav>
+      
       {/* Header */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
         <p className="text-muted-foreground">
           Manage cards, packs, users, and game settings
         </p>
-      </div>
+      </div> */}
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -154,32 +160,7 @@ export default function DashboardMenu({ stats }: Props) {
       </div>
 
       {/* Quick Actions */}
-      <div className="rounded-lg border bg-card p-6">
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href="/admin/cards/add"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            <CreditCard className="h-4 w-4" />
-            Add New Card
-          </a>
-          <a
-            href="/admin/card-packs"
-            className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <Package className="h-4 w-4" />
-            Create Card Pack
-          </a>
-          <a
-            href="/admin/users"
-            className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <Users className="h-4 w-4" />
-            View All Users
-          </a>
-        </div>
-      </div>
+      
     </div>
   );
 }
