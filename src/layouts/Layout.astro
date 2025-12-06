@@ -4,6 +4,7 @@ import "@/styles/globals.css";
 //i18n
 import { getLangFromUrl } from "@/i18/utils";
 import type { HTMLAttributes } from "astro/types";
+import ThemeScript from "@/features/theme/ThemeScript.astro";
 
 interface Props {
 	title: string,
@@ -20,6 +21,7 @@ const currentLang = getLangFromUrl(Astro.url);
 ---
 
 <!doctype html>
+<ThemeScript />
 <html lang={currentLang} {...html}>
 	<head>
 		<slot name="head-first" />
