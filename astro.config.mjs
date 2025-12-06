@@ -49,6 +49,11 @@ export default defineConfig({
             external: ["node:buffer"],
         },
         plugins: [tailwindcss()],
+        resolve: {
+            alias: {
+                "react-dom/server": "react-dom/server.edge",
+            }
+        }
     },
     server: {
         port: 3001,
