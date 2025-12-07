@@ -1,5 +1,5 @@
+import { listTables } from "@/lib/querybuilder";
 import type { CardService } from "@/services/card";
-import type { Context } from "elysia";
 import type { ModContext } from "@/types/elysia/types";
 
 
@@ -8,10 +8,11 @@ export class CardController {
     public cardService: CardService,
   ){}
   
-  public getAllCards(request: ModContext){
-    
-    return {
-      hi: "Hello"
-    };
+  public getAllCards = async (request: ModContext) => {
+    // const result = await this.cardService.get(request.env)
+    // return {
+    //   data: result,
+    // }
+    return listTables(request.env.DB);
   } 
 }

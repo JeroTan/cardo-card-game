@@ -13,11 +13,11 @@ const app = new Elysia({
   .use(AdminContainer(new Elysia()))
 
 // In order to run elysia here
-const handle:APIRoute = ((ctx) => {
-  app.decorate({
+const handle:APIRoute = (async (ctx) => {
+  return await app.decorate({
     env: ctx.locals.runtime.env,
   })
-  .handle(ctx.request)
-}) as APIRoute;
+  .handle(ctx.request);
+});
 export const GET = handle;
 export const POST = handle;
