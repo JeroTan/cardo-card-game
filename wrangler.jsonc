@@ -55,7 +55,13 @@
 					"new_sqlite_classes": ["ChatRoom"],
 				},
 			],
-			
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "cardo-db-development",
+					"database_id": "d21284df-f85c-4880-9f57-d3babe224e6f"
+				}
+			],
 			"ai": {
 				"binding": "AI",
 			},
