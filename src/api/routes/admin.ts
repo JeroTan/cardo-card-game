@@ -5,10 +5,11 @@ export function AdminRoutes({
   app,
   cardController
 }:{
-  app: Elysia<"/admin">
+  app: Elysia
   cardController: CardController,
 }){
   app
+  .use(new Elysia({prefix: '/admin'}))
   .get("/cards", cardController.getAllCards)
 
   return app;

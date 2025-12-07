@@ -3,7 +3,7 @@ import { CardController } from '@/controller/admin/card';
 import { CardService } from '@/services/card';
 import { Elysia } from 'elysia'
 
-export function AdminContainer(app: Elysia<"/admin">){
+export function AdminContainer(app: Elysia){
   // Services
   const services = {
     card: new CardService(),

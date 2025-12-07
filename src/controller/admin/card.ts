@@ -8,7 +8,7 @@ export class CardController {
     public cardService: CardService,
   ){}
   
-  public getAllCards(request: Context){
+  public getAllCards(request: ModContext){
     
     return {
       hi: "Hello"

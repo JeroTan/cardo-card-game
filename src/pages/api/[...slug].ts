@@ -10,7 +10,7 @@ const app = new Elysia({
   .use(openapi())
   .use(getCorsConfig())
   // Containers
-  .use(AdminContainer(new Elysia({prefix: "/admin"})))
+  .use(AdminContainer(new Elysia()))
 
 // In order to run elysia here
 const handle:APIRoute = ((ctx) => {
