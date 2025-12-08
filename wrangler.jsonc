@@ -4,8 +4,8 @@
 	"name": "cardo-card-game",
 	"compatibility_date": "2025-09-15",
 	"compatibility_flags": [
-		// "nodejs_compat",
-		"nodejs_compat_v2",
+		"nodejs_compat",
+		// "nodejs_compat_v2",
 		"global_fetch_strictly_public",
 	],
 	"assets": {
