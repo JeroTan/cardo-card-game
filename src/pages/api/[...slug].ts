@@ -8,7 +8,7 @@ import type { APIRoute } from 'astro';
 const app = new Elysia({ 
   prefix: '/api',
   adapter: CloudflareAdapter,
-  aot: false,
+  aot: false, // After numerous trial to make it work, turning it off make it work on Cloudflare worker.
 })
   .use(openapi())
   .use(getCorsConfig())
@@ -21,7 +21,7 @@ const handle:APIRoute = (async (ctx) => {
   return await app.decorate({
     env: ctx.locals.runtime.env,
   })
-  // .compile()
+  // .compile()  // Although pointed out in documentation of Elysia.js, this doesn't work because it is run through Astro.JS
   .handle(ctx.request)
   ;
 });
