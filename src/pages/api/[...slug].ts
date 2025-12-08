@@ -21,7 +21,7 @@ const handle:APIRoute = (async (ctx) => {
   return await app.decorate({
     env: ctx.locals.runtime.env,
   })
-  .compile()
+  // .compile()
   .handle(ctx.request)
   ;
 });
