@@ -8,7 +8,7 @@ import type { APIRoute } from 'astro';
 const app = new Elysia({ 
   prefix: '/api',
   adapter: CloudflareAdapter,
-  // aot: false,
+  aot: false,
 })
   .use(openapi())
   .use(getCorsConfig())
@@ -21,7 +21,7 @@ const handle:APIRoute = (async (ctx) => {
   return await app.decorate({
     env: ctx.locals.runtime.env,
   })
-  // .compile()
+  .compile()
   .handle(ctx.request)
   ;
 });
