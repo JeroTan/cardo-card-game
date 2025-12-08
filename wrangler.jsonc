@@ -2,7 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": "./dist/_worker.js/index.js",
 	"name": "cardo-card-game",
-	"compatibility_date": "2025-06-01",
+	"compatibility_date": "2025-11-17",
 	"compatibility_flags": [
 		// "nodejs_compat",
 		"nodejs_compat_v2",
