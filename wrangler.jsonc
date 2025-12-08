@@ -22,7 +22,8 @@
 		{
 			"binding": "DB",
 			"database_name": "cardo-db-development",
-			"database_id": "d21284df-f85c-4880-9f57-d3babe224e6f"
+			"database_id": "d21284df-f85c-4880-9f57-d3babe224e6f",
+			"remote": true
 		}
 	],
 	"ai": {
@@ -66,7 +67,8 @@
 				{
 					"binding": "DB",
 					"database_name": "cardo-db-development",
-					"database_id": "d21284df-f85c-4880-9f57-d3babe224e6f"
+					"database_id": "d21284df-f85c-4880-9f57-d3babe224e6f",
+					"remote": true
 				}
 			],
 			"ai": {
