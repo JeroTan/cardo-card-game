@@ -8,6 +8,7 @@ import type { APIRoute } from 'astro';
 const app = new Elysia({ 
   prefix: '/api',
   adapter: CloudflareAdapter,
+  aot: false,
 })
   .use(openapi())
   .use(getCorsConfig())
