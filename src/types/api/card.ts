@@ -1,0 +1,28 @@
+import { z } from "zod";
+import { zod0To9, zodImage, zodLargeText, zodName, zodRarity } from "../zod/field";
+import { tbox0To9, tboxImage, tboxLargeText, tboxName, tboxRarity } from "../typebox/field";
+import { t } from "elysia";
+
+export function zodCardCreate() {
+  return z.object({
+    name: zodName({fieldName: "Card Name"}),
+    rarity: zodRarity(),
+    atk: zod0To9({fieldName: "Attack"}),
+    def: zod0To9({fieldName: "Defense"}),
+    description: zodLargeText({fieldName: "Description", maxLength: 256}),
+    card_art: zodImage({fieldName: "Card Art"}),
+  })
+}
+
+export function tboxCardCreate(){
+  return t.Object({
+    name: tboxName({fieldName: "Card Name"}),
+    rarity: tboxRarity(),
+    atk: tbox0To9({fieldName: "Attack"}),
+    def: tbox0To9({fieldName: "Defense"}),
+    description: tboxLargeText({fieldName: "Description", maxLength: 256}),
+    card_art: tboxImage({fieldName: "Card Art"}),
+  })
+}
+
+export type typeCardCreate = z.infer<ReturnType<typeof zodCardCreate>>;

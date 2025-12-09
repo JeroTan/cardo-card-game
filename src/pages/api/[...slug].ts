@@ -1,16 +1,25 @@
-import { Elysia, t } from 'elysia'
+import { Elysia } from 'elysia'
 import { CloudflareAdapter } from 'elysia/adapter/cloudflare-worker'
-import { openapi } from '@elysiajs/openapi'
+import { fromTypes, openapi } from '@elysiajs/openapi'
 import getCorsConfig from '@/api/config/cors'
 import { AdminContainer } from '@/container/api/adminContainer';
 import type { APIRoute } from 'astro';
+import { z } from 'zod';
+import { use } from 'react';
 
 const app = new Elysia({ 
   prefix: '/api',
   adapter: CloudflareAdapter,
   aot: false, // After numerous trial to make it work, turning it off make it work on Cloudflare worker.
 })
-  .use(openapi())
+  // .use(openapi({
+	// mapJsonSchema: {
+	// 	  zod: z.toJSONSchema
+  //   }
+  // }))
+  .use(openapi({
+    references: fromTypes() 
+  }))
   .use(getCorsConfig())
   // Containers
   .use(AdminContainer(new Elysia()))
