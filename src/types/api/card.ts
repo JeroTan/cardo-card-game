@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zod0To9, zodImage, zodLargeText, zodName, zodRarity } from "../zod/field";
 import { tbox0To9, tboxImage, tboxLargeText, tboxName, tboxRarity } from "../typebox/field";
-import { t } from "elysia";
+import { t, type Static } from "elysia";
 
 export function zodCardCreate() {
   return z.object({
@@ -25,4 +25,5 @@ export function tboxCardCreate(){
   })
 }
 
-export type typeCardCreate = z.infer<ReturnType<typeof zodCardCreate>>;
+// export type typeCardCreate = z.infer<ReturnType<typeof zodCardCreate>>;
+export type typeCardCreate = Static<ReturnType<typeof tboxCardCreate>>;
