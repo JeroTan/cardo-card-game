@@ -1,10 +1,10 @@
 import type { ModelCardRaw } from "@/types/model/cards";
 import type { QueryProps } from "@/types/model/filter";
-import { listTables, query } from "@/lib/querybuilder";
+import { query } from "@/lib/querybuilder";
 
 export class CardService {
 
-  async get (env:Env, props?: {query?: QueryProps}): Promise<ModelCardRaw[]> {
+  async get ({env, queryParams}: {env: Env, queryParams?: QueryProps}): Promise<ModelCardRaw[]> {
     const fields = [
       'c.id',
       'c.name',
@@ -19,7 +19,7 @@ export class CardService {
     try {
       return await query('card')
         .select(fields, 'c')
-        .applyQuery(props?.query, ['c.name', 'c.description'])
+        .applyQuery(queryParams, ['c.name', 'c.description'])
         .orderBy('c.created_at', 'desc')
         .get<ModelCardRaw>(env.DB);
     } catch (error) {
@@ -52,7 +52,7 @@ export class CardService {
     }
   }
 
-  async create(env:Env, data: Omit<ModelCardRaw, 'id' | 'created_at' | 'updated_at'>): Promise<ModelCardRaw | null> {
+  async create(env:Env, data: Omit<ModelCardRaw, 'id' | 'created_at' | 'updated_at' | "description"> & Partial<Pick<ModelCardRaw, "description">>): Promise<ModelCardRaw | null> {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
     
@@ -64,7 +64,7 @@ export class CardService {
           rarity: data.rarity,
           atk: data.atk,
           def: data.def,
-          description: data.description,
+          description: data.description || "",
           card_art: data.card_art,
           created_at: now,
           updated_at: now,

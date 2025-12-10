@@ -1,7 +1,9 @@
 import { listTables } from "@/lib/querybuilder";
+import { uploadCardImage } from "@/lib/r2";
 import type { CardService } from "@/services/card";
 import type { typeCardCreate } from "@/types/api/card";
 import type { ModContext } from "@/types/elysia/types";
+import type { QueryProps } from "@/types/model/filter";
 
 
 export class CardController {
@@ -9,14 +11,29 @@ export class CardController {
     public cardService: CardService,
   ){}
   
-  public getAllCards = async (request: ModContext) => {
-    // const result = await this.cardService.get(request.env)
-    // return {
-    //   data: result,
-    // }
-    return listTables(request.env.DB);
+  public getAllCards = async ({env, queryParams}:{env:Env, queryParams?:QueryProps}) => {
+    const cards = await this.cardService.get({env, queryParams});
+    if(cards.length <= 0) {
+      return Response.json({
+        message: "No cards found",
+        data: [],
+      });
+    }
+
+    return Response.json({
+      message: "Cards retrieved successfully",
+      data: cards,
+    });
   } 
   public createCard = async ({cardData, env}:{cardData: typeCardCreate, env:Env}) => {
+
+    //Upload the image to R2
+    const cardImageId = await uploadCardImage({env, file: cardData.card_art});
+    if(!cardImageId) {
+      return Response.json({
+        message: "Failed to upload card image",
+      }, {status: 500});
+    }
 
     // use to prepare data for database 
     const cardDataToDatabase = {
@@ -25,13 +42,16 @@ export class CardController {
       atk: cardData.atk,
       def: cardData.def,
       description: cardData.description,
-      card_art: "",
+      card_art: cardImageId,
     };
     
     const result = await this.cardService.create(env, cardDataToDatabase);
-    // return {
-    //   data: result,
-    // }
-    return "SAMPLE"
+    if(!result) {
+      return Response.json({
+        message: "Failed to create card",
+      }, {status: 500});
+    }
+
+    return result;
   }
 }

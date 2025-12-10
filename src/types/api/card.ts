@@ -9,7 +9,7 @@ export function zodCardCreate() {
     rarity: zodRarity(),
     atk: zod0To9({fieldName: "Attack"}),
     def: zod0To9({fieldName: "Defense"}),
-    description: zodLargeText({fieldName: "Description", maxLength: 256}),
+    description: z.optional(zodLargeText({fieldName: "Description", maxLength: 256})),
     card_art: zodImage({fieldName: "Card Art"}),
   })
 }
@@ -20,7 +20,7 @@ export function tboxCardCreate(){
     rarity: tboxRarity(),
     atk: tbox0To9({fieldName: "Attack"}),
     def: tbox0To9({fieldName: "Defense"}),
-    description: tboxLargeText({fieldName: "Description", maxLength: 256}),
+    description: t.Optional(tboxLargeText({fieldName: "Description", maxLength: 256})),
     card_art: tboxImage({fieldName: "Card Art"}),
   })
 }

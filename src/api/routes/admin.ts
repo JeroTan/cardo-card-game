@@ -1,7 +1,8 @@
 import type { CardController } from '@/controller/admin/card';
 import { typedEnv } from '@/lib/elysia';
 import { tboxCardCreate, zodCardCreate } from '@/types/api/card';
-import { Elysia, t } from 'elysia'
+import { tBoxQueryParams } from '@/types/api/query';
+import { Elysia, t, type Context } from 'elysia'
 import z from 'zod';
 
 export function AdminRoutes({
@@ -19,12 +20,16 @@ export function AdminRoutes({
   })
 
   // Cards
-  .get("/cards", cardController.getAllCards)
-
-  .post("/cards", async ({body, env})=>{
-    console.log("Body in route:",body);  
-    // console.log("Body keys:", Object.keys(body));
-    // console.log("Body types:", Object.entries(body).map(([key, val]) => [key, typeof val, val instanceof File ? 'File' : '']));
+  .get("/cards", ({env, query}: {env:Env, query: any})=>{
+    return cardController.getAllCards({env});
+  }, {
+    query: tBoxQueryParams,
+    detail: {
+      summary: 'Get all cards',
+      tags: ['Cards']
+    }
+  })
+  .post("/cards", ({body, env})=>{
     return cardController.createCard( {cardData:body, env});
   }, {
     type: "multipart/form-data",
@@ -32,6 +37,17 @@ export function AdminRoutes({
     detail: {
       summary: 'Create a new card',
       tags: ['Cards']
+    },
+    transform({body}){
+      if(body?.atk && typeof body.atk === 'string'){
+        body.atk = Number(body.atk);
+      }
+      if(body?.def && typeof body.def === 'string'){
+        body.def = Number(body.def);
+      }
+      if(body?.rarity && typeof body.rarity === 'string'){
+        body.rarity = Number(body.rarity);
+      }
     }
   })
 

@@ -1,12 +1,14 @@
 import { t } from 'elysia';
 
 export function tboxName({fieldName = "Field", minLength = 2, maxLength = 64}:{fieldName?: string, minLength?: number, maxLength?: number} = {}){
+  // Unicode ranges: Letters (all languages), numbers, spaces, and common punctuation
+  // Includes Latin, Japanese (Hiragana, Katakana, Kanji), Chinese, Korean, Arabic, etc.
   return t.String({
     minLength,
     maxLength,
-    pattern: '^[\\p{L}\\p{M}\'ñÑáéíóúÁÉÍÓÚ\\s\\-\\.,]+$',
+    pattern: '^[\\u0020-\\u007E\\u00A0-\\u00FF\\u0100-\\u017F\\u0180-\\u024F\\u1E00-\\u1EFF\\u2000-\\u206F\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF\\uAC00-\\uD7AF\\u0600-\\u06FF\\s0-9.,\'"\\-]+$',
     description: fieldName,
-    error: `${fieldName} should only contain letters, numbers, spaces, and the characters ., ' "`
+    error: `${fieldName} must be between ${minLength} and ${maxLength} characters long and contain valid characters.`
   });
 }
 
@@ -76,12 +78,28 @@ export function tbox0To9({fieldName = "Field"}:{fieldName?: string} = {}){
   });
 }
 
+export function tbox0To9AsString({fieldName = "Field"}:{fieldName?: string} = {}){
+  return t.String({
+    pattern: '^[0-9]$',
+    description: `${fieldName} accepts as string but treated as number.`,
+    error: `${fieldName} must be a string representing a number from 0 to 9.`
+  });
+}
+
 export function tboxRarity({fieldName = "Rarity"}:{fieldName?: string} = {}){
   return t.Number({
     minimum: 1,
     maximum: 5,
     description: fieldName,
     error: `${fieldName} must be a number from 1 to 5.`
+  });
+}
+
+export function tboxRarityAsString({fieldName = "Rarity"}:{fieldName?: string} = {}){
+  return t.String({
+    pattern: '^[1-5]$',
+    description: `${fieldName} accepts as string but treated as number.`,
+    error: `${fieldName} must be a string representing a number from 1 to 5.`
   });
 }
 
