@@ -4,8 +4,6 @@ import { fromTypes, openapi } from '@elysiajs/openapi'
 import getCorsConfig from '@/api/config/cors'
 import { AdminContainer } from '@/container/api/adminContainer';
 import type { APIRoute } from 'astro';
-import { z } from 'zod';
-import { use } from 'react';
 
 const app = new Elysia({ 
   prefix: '/api',
@@ -21,18 +19,17 @@ const app = new Elysia({
     references: fromTypes() 
   }))
   .use(getCorsConfig())
-  // Containers
-  .use(AdminContainer(new Elysia()))
-// Required for Cloudflare Workers
-
-// In order to run elysia here
+  
+// Required for Cloudflare Workers. In order to run elysia here
 const handle:APIRoute = (async (ctx) => {
-  return await app.decorate({
+  app.decorate({
     env: ctx.locals.runtime.env,
   })
-  // .compile()  // Although pointed out in documentation of Elysia.js, this doesn't work because it is run through Astro.JS
-  .handle(ctx.request)
-  ;
+  // Containers
+  .use(AdminContainer(new Elysia()))
+  // .compile()  //Although pointed out in documentation of Elysia.js, this doesn't work because it is run through Astro.JS
+
+  return await app.handle(ctx.request);
 });
 export const GET = handle;
 export const POST = handle;

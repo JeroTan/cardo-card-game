@@ -1,4 +1,5 @@
 import type { CardController } from '@/controller/admin/card';
+import { typedEnv } from '@/lib/elysia';
 import { tboxCardCreate, zodCardCreate } from '@/types/api/card';
 import { Elysia, t } from 'elysia'
 import z from 'zod';
@@ -12,6 +13,7 @@ export function AdminRoutes({
 }){
   app
   .use(new Elysia({prefix: '/admin'}))
+  .use(typedEnv)
   .onError((err) => {
     console.error("Admin Route Error:", err);
   })
@@ -19,12 +21,11 @@ export function AdminRoutes({
   // Cards
   .get("/cards", cardController.getAllCards)
 
-  .post("/cards", async ({body})=>{
+  .post("/cards", async ({body, env})=>{
     console.log("Body in route:",body);  
     // console.log("Body keys:", Object.keys(body));
     // console.log("Body types:", Object.entries(body).map(([key, val]) => [key, typeof val, val instanceof File ? 'File' : '']));
-    // return cardController.createCard( body);
-    return "SAMPLE RESPONSE FROM ROUTE"
+    return cardController.createCard( {cardData:body, env});
   }, {
     type: "multipart/form-data",
     body: tboxCardCreate(),

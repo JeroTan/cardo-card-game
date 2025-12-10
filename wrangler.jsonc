@@ -43,6 +43,12 @@
 			"new_sqlite_classes": ["ChatRoom"],
 		},
 	],
+	"r2_buckets": [
+		{
+			"binding": "CARD_ART_IMAGES",
+			"bucket_name": "card-art-images-development"
+		}
+	],
 	"env": {
 		"development": {
 			"name": "cardo-card-game-development",
@@ -69,6 +75,12 @@
 					"database_name": "cardo-db-development",
 					"database_id": "d21284df-f85c-4880-9f57-d3babe224e6f",
 					"remote": true
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "CARD_ART_IMAGES",
+					"bucket_name": "card-art-images-development"
 				}
 			],
 			"ai": {
