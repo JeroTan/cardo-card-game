@@ -25,5 +25,5 @@ export function tboxCardCreate(){
   })
 }
 
-// export type typeCardCreate = z.infer<ReturnType<typeof zodCardCreate>>;
-export type typeCardCreate = Static<ReturnType<typeof tboxCardCreate>>;
+export type typeCardCreate = z.infer<ReturnType<typeof zodCardCreate>>;
+// export type typeCardCreate = Static<ReturnType<typeof tboxCardCreate>>;
