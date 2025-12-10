@@ -1,9 +1,8 @@
 import type { CardController } from '@/controller/admin/card';
-import { typedEnv } from '@/lib/elysia';
-import { tboxCardCreate, zodCardCreate } from '@/types/api/card';
+import { typedEnv, typedUrlData } from '@/lib/elysia';
+import { tboxCardCreate } from '@/types/api/card';
 import { tBoxQueryParams } from '@/types/api/query';
-import { Elysia, t, type Context } from 'elysia'
-import z from 'zod';
+import { Elysia } from 'elysia'
 
 export function AdminRoutes({
   app,
@@ -15,6 +14,7 @@ export function AdminRoutes({
   app
   .use(new Elysia({prefix: '/admin'}))
   .use(typedEnv)
+  .use(typedUrlData)
   .onError((err) => {
     console.error("Admin Route Error:", err);
   })

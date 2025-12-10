@@ -11,7 +11,7 @@ export class CardController {
     public cardService: CardService,
   ){}
   
-  public getAllCards = async ({env, queryParams}:{env:Env, queryParams?:QueryProps}) => {
+  public getAllCards = async ({env, queryParams, origin = ""}:{env:Env, queryParams?:QueryProps, origin?: string}) => {
     const cards = await this.cardService.get({env, queryParams});
     if(cards.length <= 0) {
       return Response.json({
@@ -19,6 +19,11 @@ export class CardController {
         data: [],
       });
     }
+
+    // In order to provide full URL for card images
+    cards.forEach(card => {
+      card.card_art = `${origin}/public/resources/card/${card.card_art}`;
+    })
 
     return Response.json({
       message: "Cards retrieved successfully",

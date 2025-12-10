@@ -22,8 +22,10 @@ const app = new Elysia({
   
 // Required for Cloudflare Workers. In order to run elysia here
 const handle:APIRoute = (async (ctx) => {
+  console.log("API Request URL:");
   app.decorate({
     env: ctx.locals.runtime.env,
+    urlData: ctx.url,
   })
   // Containers
   .use(AdminContainer(new Elysia()))
