@@ -12,43 +12,45 @@ export function AdminRoutes({
   cardController: CardController,
 }){
   app
-  .use(new Elysia({prefix: '/admin'}))
   .use(typedEnv)
   .use(typedUrlData)
   .onError((err) => {
     console.error("Admin Route Error:", err);
   })
-
-  // Cards
-  .get("/cards", ({env, query}: {env:Env, query: any})=>{
-    return cardController.getAllCards({env});
-  }, {
-    query: tBoxQueryParams,
-    detail: {
-      summary: 'Get all cards',
-      tags: ['Cards']
-    }
-  })
-  .post("/cards", ({body, env})=>{
-    return cardController.createCard( {cardData:body, env});
-  }, {
-    type: "multipart/form-data",
-    body: tboxCardCreate(),
-    detail: {
-      summary: 'Create a new card',
-      tags: ['Cards']
-    },
-    transform({body}){
-      if(body?.atk && typeof body.atk === 'string'){
-        body.atk = Number(body.atk);
+  .group('/admin', (app) => {
+    app
+    // Cards
+    .get("/cards", ({env, query}: {env:Env, query: any})=>{
+      return cardController.getAllCards({env});
+    }, {
+      query: tBoxQueryParams,
+      detail: {
+        summary: 'Get all cards',
+        tags: ['Cards']
       }
-      if(body?.def && typeof body.def === 'string'){
-        body.def = Number(body.def);
+    })
+    .post("/cards", ({body, env})=>{
+      return cardController.createCard( {cardData:body, env});
+    }, {
+      type: "multipart/form-data",
+      body: tboxCardCreate(),
+      detail: {
+        summary: 'Create a new card',
+        tags: ['Cards']
+      },
+      transform({body}){
+        if(body?.atk && typeof body.atk === 'string'){
+          body.atk = Number(body.atk);
+        }
+        if(body?.def && typeof body.def === 'string'){
+          body.def = Number(body.def);
+        }
+        if(body?.rarity && typeof body.rarity === 'string'){
+          body.rarity = Number(body.rarity);
+        }
       }
-      if(body?.rarity && typeof body.rarity === 'string'){
-        body.rarity = Number(body.rarity);
-      }
-    }
+    });
+  return app;
   })
 
   return app;

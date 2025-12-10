@@ -9,6 +9,7 @@ const app = new Elysia({
   prefix: '/api',
   adapter: CloudflareAdapter,
   aot: false, // After numerous trial to make it work, turning it off make it work on Cloudflare worker.
+  normalize: true, // 
 })
   // .use(openapi({
 	// mapJsonSchema: {
