@@ -1,10 +1,10 @@
 import { defineAction } from "astro:actions";
-import { z } from "zod";
+import { z } from "astro:schema";
 
 export const cookies = {
 	toggle: defineAction({
 		input: z.boolean().default(true),
-		async handler(allow, context) {
+		async handler(allow = true, context) {
 			if (allow) {
 				context.cookies.set("X_ALLOW_COOKIES", "true", {
 					httpOnly: true,
