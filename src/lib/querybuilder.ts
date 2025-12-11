@@ -1,4 +1,4 @@
-import type { QueryProps, FilterData, SortData } from "@/types/model/filter";
+import type { QueryProps, FilterData, SortData, PageProps } from "@/types/model/filter";
 
 type QueryType = 'select' | 'insert' | 'update' | 'delete';
 
@@ -26,6 +26,14 @@ export class QueryBuilder {
   select(fields: string[] = ['*'], tableAlias?: string): this {
     this.queryType = 'select';
     this.selectFields = fields;
+    if (tableAlias) this.tableAlias = tableAlias;
+    return this;
+  }
+
+  /**
+   * Set table alias (can be chained at any point)
+   */
+  alias(tableAlias: string): this {
     this.tableAlias = tableAlias;
     return this;
   }
@@ -74,33 +82,48 @@ export class QueryBuilder {
 
   /**
    * Add a search condition (LIKE on multiple fields)
+   * SQL: field LIKE ?1 OR field LIKE ?2
+   * Params: ['%searchTerm%', '%searchTerm%'] - wildcards are in the parameter values
    */
   search(searchTerm: string | null, fields: string[]): this {
     if (!searchTerm || fields.length === 0) return this;
 
-    const conditions = fields.map(field => `${field} LIKE ?${this.paramIndex}`);
+    // Each field needs its own parameter index
+    const conditions = fields.map((field, i) => `${field} LIKE ?${this.paramIndex + i}`);
     this.whereClauses.push(`(${conditions.join(' OR ')})`);
     
+    // Add % wildcards to parameter values for "match anywhere" behavior
     fields.forEach(() => {
       this.params.push(`%${searchTerm}%`);
     });
     
-    this.paramIndex++;
+    // Increment by the number of fields added
+    this.paramIndex += fields.length;
     return this;
   }
 
   /**
    * Add WHERE IN or NOT IN filter
+   * Optimizes single-value IN/NOT IN to use = or != for better D1 compatibility
    */
   filter(filter: FilterData): this {
     if (!filter.values || filter.values.length === 0) return this;
 
-    const placeholders = filter.values.map((_, i) => `?${this.paramIndex + i}`).join(', ');
-    const operator = filter.type === 'in' ? 'IN' : 'NOT IN';
-    
-    this.whereClauses.push(`${filter.field} ${operator} (${placeholders})`);
-    this.params.push(...filter.values);
-    this.paramIndex += filter.values.length;
+    // Optimize single-value IN/NOT IN to use simple equality
+    if (filter.values.length === 1) {
+      const operator = filter.type === 'in' ? '=' : '!=';
+      this.whereClauses.push(`${filter.field} ${operator} ?${this.paramIndex}`);
+      this.params.push(filter.values[0]);
+      this.paramIndex++;
+    } else {
+      // Multiple values: use IN/NOT IN
+      const placeholders = filter.values.map((_, i) => `?${this.paramIndex + i}`).join(', ');
+      const operator = filter.type === 'in' ? 'IN' : 'NOT IN';
+      
+      this.whereClauses.push(`${filter.field} ${operator} (${placeholders})`);
+      this.params.push(...filter.values);
+      this.paramIndex += filter.values.length;
+    }
     
     return this;
   }
@@ -155,6 +178,7 @@ export class QueryBuilder {
 
   /**
    * Apply QueryProps (search, filter, sort)
+   * If a table alias is set, it will be prepended to filter and sort fields if not already present
    */
   applyQuery(query: QueryProps | undefined, searchFields: string[] = []): this {
     if (!query) return this;
@@ -164,15 +188,45 @@ export class QueryBuilder {
       this.search(query.search, searchFields);
     }
 
-    // Apply filters
+    // Apply filters (with alias prefix if needed)
     if (query.filter) {
-      this.filters(query.filter);
+      const aliasedFilters = query.filter.map(f => ({
+        ...f,
+        field: this.addAliasPrefix(f.field)
+      }));
+      this.filters(aliasedFilters);
     }
 
-    // Apply sorts
+    // Apply sorts (with alias prefix if needed)
     if (query.sort) {
-      this.sorts(query.sort);
+      const aliasedSorts = query.sort.map(s => ({
+        ...s,
+        field: this.addAliasPrefix(s.field)
+      }));
+      this.sorts(aliasedSorts);
     }
+
+    return this;
+  }
+
+  /**
+   * Add table alias prefix to field if alias exists and field doesn't already have it
+   */
+  private addAliasPrefix(field: string): string {
+    if (!this.tableAlias) return field;
+    if (field.includes('.')) return field; // Already has a prefix
+    return `${this.tableAlias}.${field}`;
+  }
+
+  /**
+   * Apply PageProps (pagination)
+   */
+  applyPage(page: PageProps | undefined): this {
+    if (!page) return this;
+
+    const offset = (page.page - 1) * page.limit;
+    this.limit(page.limit);
+    this.offset(offset);
 
     return this;
   }
@@ -290,9 +344,12 @@ export class QueryBuilder {
         // INSERT, UPDATE, DELETE return D1Result
         return await db.prepare(sql).bind(...params).run();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('QueryBuilder execute error:', error);
-      throw error;
+      throw new D1Error(
+        error?.message || 'Failed to execute query',
+        error?.code || 'EXECUTE_ERROR'
+      );
     }
   }
 
@@ -300,15 +357,16 @@ export class QueryBuilder {
    * Execute and get results array (for SELECT queries)
    */
   async get<T = any>(db: D1Database): Promise<T[]> {
-
-
     const { sql, params } = this.build();
     try {
       const result = await db.prepare(sql).bind(...params).all<T>();
       return result.results || [];
-    } catch (error) {
+    } catch (error: any) {
       console.error('QueryBuilder get error:', error);
-      throw error;
+      throw new D1Error(
+        error?.message || 'Failed to get query results',
+        error?.code || 'GET_ERROR'
+      );
     }
   }
 
@@ -320,10 +378,53 @@ export class QueryBuilder {
     try {
       const result = await db.prepare(sql).bind(...params).first<T>();
       return result || null;
-    } catch (error) {
+    } catch (error: any) {
       console.error('QueryBuilder first error:', error);
-      throw error;
+      throw new D1Error(
+        error?.message || 'Failed to get first result',
+        error?.code || 'FIRST_ERROR'
+      );
     }
+  }
+
+  /**
+   * Execute COUNT query and return total count
+   * Usage: await query('card').selectCount('c').applyQuery(...).count(db)
+   */
+  async count(db: D1Database): Promise<number> {
+    // Temporarily override select fields with COUNT(*)
+    const originalFields = this.selectFields;
+    const originalLimit = this.limitValue;
+    const originalOffset = this.offsetValue;
+    
+    this.selectFields = ['COUNT(*) as count'];
+    this.limitValue = undefined;
+    this.offsetValue = undefined;
+
+    try {
+      const { sql, params } = this.build();
+      const result = await db.prepare(sql).bind(...params).first<{ count: number }>();
+      
+      // Restore original values
+      this.selectFields = originalFields;
+      this.limitValue = originalLimit;
+      this.offsetValue = originalOffset;
+      
+      return result?.count || 0;
+    } catch (error: any) {
+      console.error('QueryBuilder count error:', error);
+      throw new D1Error(
+        error?.message || 'Failed to count results',
+        error?.code || 'COUNT_ERROR'
+      );
+    }
+  }
+
+  /**
+   * Set up for COUNT query (alias for select with COUNT(*))
+   */
+  selectCount(tableAlias?: string): this {
+    return this.select(['COUNT(*) as count'], tableAlias);
   }
 
   /**
@@ -333,9 +434,12 @@ export class QueryBuilder {
     const { sql, params } = this.build();
     try {
       return await db.prepare(sql).bind(...params).run();
-    } catch (error) {
+    } catch (error: any) {
       console.error('QueryBuilder run error:', error);
-      throw error;
+      throw new D1Error(
+        error?.message || 'Failed to run query',
+        error?.code || 'RUN_ERROR'
+      );
     }
   }
 }
@@ -365,8 +469,21 @@ export async function listTables(db: D1Database) {
     console.log('📊 Database Tables:');
     console.log(result.results);
     return result.results;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error listing tables:', error);
-    return null
+    throw new D1Error(
+      error?.message || 'Failed to list tables',
+      error?.code || 'LIST_TABLES_ERROR'
+    );
   }
+}
+
+
+
+export class D1Error {
+  constructor(
+    public message: string,
+    public code?: string,
+  )
+  {}
 }

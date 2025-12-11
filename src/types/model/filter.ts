@@ -15,6 +15,11 @@ export type QueryProps = {
   sort: Array<SortData>,
 }
 
+export type PageProps = {
+  page: number,
+  limit: number,
+}
+
 /**
  * Sample Query Params
  * ?search=dragon&filter[status]=active&-filter[type]=fire,ghost&sort=-level,name,-created_at

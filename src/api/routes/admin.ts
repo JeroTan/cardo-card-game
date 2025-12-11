@@ -1,8 +1,9 @@
 import type { CardController } from '@/controller/admin/card';
 import { typedEnv, typedUrlData } from '@/lib/elysia';
 import { tboxCardCreate } from '@/types/api/card';
-import { tBoxQueryParams } from '@/types/api/query';
-import { Elysia } from 'elysia'
+import { tboxQueryParams, tboxPaginationParams } from '@/types/api/query';
+import { convertQueriesToPageAndQueryProps, getQueryTransformer } from '@/utils/api/query';
+import { Elysia, t } from 'elysia'
 
 export function AdminRoutes({
   app,
@@ -21,12 +22,16 @@ export function AdminRoutes({
     app
     // Cards
     .get("/cards", ({env, query, urlData})=>{
-      return cardController.getAllCards({env, origin: urlData.origin});
+      const { queryProps, pageProps } = convertQueriesToPageAndQueryProps(query);
+      return cardController.getAllCards({env, origin: urlData.origin, queryProps, pageProps});
     }, {
-      query: tBoxQueryParams,
+      query: t.Composite([tboxQueryParams, tboxPaginationParams]),
       detail: {
         summary: 'Get all cards',
         tags: ['Admin Cards Management']
+      },
+      transform({query}){
+        getQueryTransformer(query);
       }
     })
     .post("/cards", ({body, env})=>{

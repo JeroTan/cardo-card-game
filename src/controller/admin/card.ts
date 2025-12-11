@@ -3,7 +3,7 @@ import { uploadCardImage } from "@/lib/r2";
 import type { CardService } from "@/services/card";
 import type { typeCardCreate } from "@/types/api/card";
 import type { ModContext } from "@/types/elysia/types";
-import type { QueryProps } from "@/types/model/filter";
+import type { PageProps, QueryProps } from "@/types/model/filter";
 
 
 export class CardController {
@@ -11,17 +11,23 @@ export class CardController {
     public cardService: CardService,
   ){}
   
-  public getAllCards = async ({env, queryParams, origin = ""}:{env:Env, queryParams?:QueryProps, origin?: string}) => {
-    const cards = await this.cardService.get({env, queryParams});
-    if(cards.length <= 0) {
+  public getAllCards = async ({env, queryProps, pageProps, origin = ""}:{env:Env, queryProps?:QueryProps, pageProps?: PageProps, origin?: string}) => {
+    const { data: cards, error } = await this.cardService.get({env, queryProps, pageProps});
+    if(error || !cards || (cards && cards.data.length <= 0)) {
       return Response.json({
-        message: "No cards found",
+        message: error || "No cards found",
         data: [],
+        totalItems: 0,
+        totalPages: 0,
+        page: pageProps?.page || 1,
+        limit: pageProps?.limit || 10,
+      }, {
+        status: 422
       });
     }
 
     // In order to provide full URL for card images
-    cards.forEach(card => {
+    cards.data.forEach(card => {
       card.card_art = `${origin}/api/public/resources/card/${card.card_art}`;
     })
 
