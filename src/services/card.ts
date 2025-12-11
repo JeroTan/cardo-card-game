@@ -130,14 +130,24 @@ export class CardService {
     }
   }
 
-  async delete(env:Env, id: string): Promise<ServiceResult<boolean>> {
+  async delete(env:Env, id: string): Promise<ServiceResult<{
+    changes: number,
+    dataDeleted: ModelCardRaw
+  }>> {
     try {
+      const existingCardResult = await this.getById(env, id);
+      if (existingCardResult.error) {
+        return { data: undefined, error: existingCardResult.error };
+      }
       const result = await query('card')
         .delete()
         .where('id', '=', id)
         .run(env.DB);
 
-      return { data: result.meta.changes > 0, error: undefined };
+      return { data: {
+        changes: result.meta.changes,
+        dataDeleted: existingCardResult.data as ModelCardRaw
+      }, error: undefined };
     } catch (error) {
       console.error('Error deleting card:', error);
       const errorMessage = error instanceof D1Error ? error.message : 'Failed to delete card';

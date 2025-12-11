@@ -54,7 +54,19 @@ export function AdminRoutes({
           body.rarity = Number(body.rarity);
         }
       }
-    });
+    })
+    .delete("/cards/:id", ({params, env})=>{
+      return cardController.deleteCard({env, id: params.id});
+    }, {
+      params: t.Object({
+        id: t.String()
+      }),
+      detail: {
+        summary: 'Delete a card by ID',
+        tags: ['Admin Cards Management']
+      },
+    })
+
     return app;
   })
 

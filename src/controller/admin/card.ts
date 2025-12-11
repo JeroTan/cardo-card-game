@@ -1,5 +1,5 @@
 import { listTables } from "@/lib/querybuilder";
-import { uploadCardImage } from "@/lib/r2";
+import { deleteCardImage, uploadCardImage } from "@/lib/r2";
 import type { CardService } from "@/services/card";
 import type { typeCardCreate } from "@/types/api/card";
 import type { ModContext } from "@/types/elysia/types";
@@ -36,6 +36,7 @@ export class CardController {
       data: cards,
     });
   } 
+
   public createCard = async ({cardData, env}:{cardData: typeCardCreate, env:Env}) => {
 
     //Upload the image to R2
@@ -65,4 +66,22 @@ export class CardController {
 
     return result;
   }
+
+  public deleteCard = async ({env, id}:{env:Env, id:string}) => {
+    const result = await this.cardService.delete(env, id);
+    if(result.error) {
+      return Response.json({
+        message: result.error,
+      }, {status: 422});
+    }
+
+    // Delete the card image from R2
+    await deleteCardImage({env, id});
+
+    return Response.json({
+      message: "Card deleted successfully",
+      data: result.data,
+    });
+  }
 }
+
