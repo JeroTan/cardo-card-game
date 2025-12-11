@@ -22,7 +22,7 @@ export class CardController {
 
     // In order to provide full URL for card images
     cards.forEach(card => {
-      card.card_art = `${origin}/public/resources/card/${card.card_art}`;
+      card.card_art = `${origin}/api/public/resources/card/${card.card_art}`;
     })
 
     return Response.json({

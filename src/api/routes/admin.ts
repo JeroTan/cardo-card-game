@@ -20,13 +20,13 @@ export function AdminRoutes({
   .group('/admin', (app) => {
     app
     // Cards
-    .get("/cards", ({env, query}: {env:Env, query: any})=>{
-      return cardController.getAllCards({env});
+    .get("/cards", ({env, query, urlData})=>{
+      return cardController.getAllCards({env, origin: urlData.origin});
     }, {
       query: tBoxQueryParams,
       detail: {
         summary: 'Get all cards',
-        tags: ['Cards']
+        tags: ['Admin Cards Management']
       }
     })
     .post("/cards", ({body, env})=>{
@@ -36,7 +36,7 @@ export function AdminRoutes({
       body: tboxCardCreate(),
       detail: {
         summary: 'Create a new card',
-        tags: ['Cards']
+        tags: ['Admin Cards Management']
       },
       transform({body}){
         if(body?.atk && typeof body.atk === 'string'){
@@ -50,7 +50,7 @@ export function AdminRoutes({
         }
       }
     });
-  return app;
+    return app;
   })
 
   return app;

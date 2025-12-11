@@ -11,19 +11,11 @@ const app = new Elysia({
   aot: false, // After numerous trial to make it work, turning it off make it work on Cloudflare worker.
   normalize: true, // 
 })
-  // .use(openapi({
-	// mapJsonSchema: {
-	// 	  zod: z.toJSONSchema
-  //   }
-  // }))
-  .use(openapi({
-    references: fromTypes() 
-  }))
+  .use(openapi())
   .use(getCorsConfig())
   
 // Required for Cloudflare Workers. In order to run elysia here
 const handle:APIRoute = (async (ctx) => {
-  console.log("API Request URL:");
   app.decorate({
     env: ctx.locals.runtime.env,
     urlData: ctx.url,

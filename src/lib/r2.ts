@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 
 export async function uploadCardImage({env, id = randomUUID(), file}:{env: Env, id?:string, file: File}) {
-  const result = await env.CARD_ART_IMAGES.put(id, file);
+  const result = await env.CARD_ART_IMAGES.put(id, file, {
+    httpMetadata: {
+      contentType: file.type,
+      contentDisposition: 'inline',
+    }
+  });
   if(!result) {
     console.error("Failed to upload card image to R2");
     return null;
