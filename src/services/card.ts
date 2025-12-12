@@ -26,14 +26,14 @@ export class CardService {
       const totalItems = await query('card')
         .alias('c')
         .selectCount()
-        .applyQuery(queryProps, ['c.name', 'c.description'])
+        .applyQuery(queryProps, ['c.description', 'c.id', 'c.name', 'c.rarity', 'c.atk', 'c.def'])
         .count(env.DB);
       
       // Get paginated items
       const items = await query('card')
         .alias('c')
         .select(fields)
-        .applyQuery(queryProps, ['c.name', 'c.description'])
+        .applyQuery(queryProps, ['c.description', 'c.id', 'c.name', 'c.rarity', 'c.atk', 'c.def'])
         .applyPage(pageProps)
         .orderBy('c.created_at', 'desc')
         .get<ModelCardRaw>(env.DB);
