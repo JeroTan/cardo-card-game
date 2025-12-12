@@ -1,8 +1,6 @@
-import { listTables } from "@/lib/querybuilder";
 import { deleteCardImage, uploadCardImage } from "@/lib/r2";
 import type { CardService } from "@/services/card";
 import type { typeCardCreate } from "@/types/api/card";
-import type { ModContext } from "@/types/elysia/types";
 import type { PageProps, QueryProps } from "@/types/model/filter";
 
 
@@ -13,7 +11,7 @@ export class CardController {
   
   public getAllCards = async ({env, queryProps, pageProps, origin = ""}:{env:Env, queryProps?:QueryProps, pageProps?: PageProps, origin?: string}) => {
     const { data: cards, error } = await this.cardService.get({env, queryProps, pageProps});
-    if(error || !cards || (cards && cards.data.length <= 0)) {
+    if(error || !cards) {
       return Response.json({
         message: error || "No cards found",
         data: [],

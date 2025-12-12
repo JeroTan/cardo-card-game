@@ -2,10 +2,9 @@ import type { ModelCardRaw } from "@/types/model/cards";
 import type { PageProps, QueryProps } from "@/types/model/filter";
 import { query, D1Error } from "@/lib/querybuilder";
 import type { PageResult } from "@/types/api/result";
+import type { ServiceResult } from "./types";
 
-type ServiceResult<T> = 
-  | { data: T; error: undefined }
-  | { data: undefined; error: string };
+
 
 export class CardService {
 
@@ -152,6 +151,19 @@ export class CardService {
       console.error('Error deleting card:', error);
       const errorMessage = error instanceof D1Error ? error.message : 'Failed to delete card';
       return { data: undefined, error: errorMessage };
+    }
+  }
+
+  async checkCardExists({env, ids}: {env:Env, ids:string[]}): Promise<ServiceResult<boolean>> {
+    try {
+      //Check card(s) if it is existing in database
+      const count = await query('card')
+        .applyQuery({filter: [{field: 'id', type: 'in', values: ids}]}, ['id'])
+        .selectCount()
+        .count(env.DB);
+      return { data: count === ids.length, error: undefined };
+    } catch {
+      return { data: null, error: 'Failed to check card existence' };  
     }
   }
 }

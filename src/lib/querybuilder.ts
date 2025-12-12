@@ -15,6 +15,7 @@ export class QueryBuilder {
   private sortClauses: string[] = [];
   private limitValue?: number;
   private offsetValue?: number;
+  private joinClauses: string[] = [];
 
   constructor(tableName: string) {
     this.tableName = tableName;
@@ -77,6 +78,33 @@ export class QueryBuilder {
    */
   set(data: Record<string, any>): this {
     this.updateData = { ...this.updateData, ...data };
+    return this;
+  }
+
+  /**
+   * Add INNER JOIN
+   */
+  join(table: string, condition: string, tableAlias?: string): this {
+    const alias = tableAlias ? ` ${tableAlias}` : '';
+    this.joinClauses.push(`INNER JOIN ${table}${alias} ON ${condition}`);
+    return this;
+  }
+
+  /**
+   * Add LEFT JOIN
+   */
+  leftJoin(table: string, condition: string, tableAlias?: string): this {
+    const alias = tableAlias ? ` ${tableAlias}` : '';
+    this.joinClauses.push(`LEFT JOIN ${table}${alias} ON ${condition}`);
+    return this;
+  }
+
+  /**
+   * Add RIGHT JOIN
+   */
+  rightJoin(table: string, condition: string, tableAlias?: string): this {
+    const alias = tableAlias ? ` ${tableAlias}` : '';
+    this.joinClauses.push(`RIGHT JOIN ${table}${alias} ON ${condition}`);
     return this;
   }
 
@@ -180,7 +208,7 @@ export class QueryBuilder {
    * Apply QueryProps (search, filter, sort)
    * If a table alias is set, it will be prepended to filter and sort fields if not already present
    */
-  applyQuery(query: QueryProps | undefined, searchFields: string[] = []): this {
+  applyQuery(query: Partial<QueryProps> | undefined, searchFields: string[] = []): this {
     if (!query) return this;
 
     // Apply search
@@ -269,6 +297,10 @@ export class QueryBuilder {
     const alias = this.tableAlias || '';
     const fields = this.selectFields.join(', ');
     let sql = `SELECT ${fields} FROM ${this.tableName}${alias ? ` ${alias}` : ''}`;
+
+    if (this.joinClauses.length > 0) {
+      sql += ` ${this.joinClauses.join(' ')}`;
+    }
 
     if (this.whereClauses.length > 0) {
       sql += ` WHERE ${this.whereClauses.join(' AND ')}`;
