@@ -1,5 +1,5 @@
 -- =========================================
--- CARDO GAME — D1-Compatible Schema (Simplified)
+-- CARDO GAME — D1-Compatible Schema (Final)
 -- =========================================
 
 -- ----------------------------
@@ -19,9 +19,9 @@ CREATE INDEX idx_card_name ON card (name);
 
 
 -- ----------------------------
--- ACCOUNT
+-- USER ACCOUNT
 -- ----------------------------
-CREATE TABLE account (
+CREATE TABLE user_account (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT NOT NULL,
   username TEXT UNIQUE NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE account_coin_log (
   delta INTEGER NOT NULL,
   reason TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE ON UPDATE CASCADE
+  FOREIGN KEY (account_id) REFERENCES user_account(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE INDEX idx_coin_log_account_id ON account_coin_log (account_id);
@@ -81,14 +81,14 @@ CREATE INDEX idx_pack_end ON card_pack (publish_end_date);
 
 
 -- ----------------------------
--- CARD PACK → CARD (Contents of a pack)
+-- CARD PACK → CARD (PACK CONTENTS)
 -- ----------------------------
 CREATE TABLE card_pack_cards (
   id TEXT PRIMARY KEY NOT NULL,
   card_pack_id TEXT NOT NULL,
   card_id TEXT NOT NULL,
   FOREIGN KEY (card_pack_id) REFERENCES card_pack(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  FOREIGN KEY (card_id) REFERENCES card(id) ON DELETE CASCADE ON UPDATE CASCADE
+  FOREIGN KEY (card_id)   REFERENCES card(id)      ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE INDEX idx_pack_cards_pack_id ON card_pack_cards (card_pack_id);
@@ -103,21 +103,21 @@ CREATE TABLE account_pack_purchase (
   card_pack_id TEXT NOT NULL,
   total_price INTEGER NOT NULL,
   created_at TEXT NOT NULL,
-  FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  FOREIGN KEY (card_pack_id) REFERENCES card_pack(id) ON DELETE CASCADE ON UPDATE CASCADE
+  FOREIGN KEY (account_id)  REFERENCES user_account(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (card_pack_id) REFERENCES card_pack(id)   ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 
 -- ----------------------------
--- OWNED PACKS (User keeps full packs)
+-- OWNED PACKS (THE USER OWNS WHOLE PACKS)
 -- ----------------------------
 CREATE TABLE account_packs (
   id TEXT PRIMARY KEY NOT NULL,
   account_id TEXT NOT NULL,
   card_packs_id TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE ON UPDATE CASCADE,
-  FOREIGN KEY (card_packs_id) REFERENCES card_pack(id) ON DELETE CASCADE ON UPDATE CASCADE
+  FOREIGN KEY (account_id)    REFERENCES user_account(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (card_packs_id) REFERENCES card_pack(id)    ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE INDEX idx_account_packs_account_id ON account_packs (account_id);
