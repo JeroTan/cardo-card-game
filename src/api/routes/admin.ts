@@ -1,11 +1,13 @@
 import type { AdminAccountController } from '@/controller/admin/adminAccount';
 import type { CardController } from '@/controller/admin/card';
 import type { CardPackController } from '@/controller/admin/cardPacks';
+import type { UserAccountController } from '@/controller/admin/userAccount';
 import { typedEnv, typedUrlData } from '@/lib/elysia';
 import { tboxCreateAdminAccount } from '@/types/api/admin';
 import { tboxLoginWithPassword, tboxResetAdminPasswordWithToken } from '@/types/api/auth';
 import { tboxCardCreate, tboxCardPackAddCards, tboxCardPackCreate, tboxCardPackUpdate, tboxCardPackUpdateCards } from '@/types/api/card';
 import { tboxQueryParams, tboxPaginationParams } from '@/types/api/query';
+import { tboxCreateUserAccount, tboxUpdateUserAccount } from '@/types/api/user';
 import { convertQueriesToPageAndQueryProps, getQueryTransformer } from '@/utils/api/query';
 import { Elysia, t } from 'elysia'
 
@@ -14,11 +16,13 @@ export function AdminRoutes({
   cardController,
   cardPackController,
   adminAccountController,
+  userAccountController,
 }:{
   app: Elysia
   cardController: CardController,
   cardPackController: CardPackController, 
   adminAccountController: AdminAccountController,
+  userAccountController: UserAccountController,
 }){
   app
   .use(typedEnv)
@@ -178,7 +182,7 @@ export function AdminRoutes({
       },
     })
     //====================================================================================// 
-    .get("/admin-accounts", ({env, query})=>{
+    .get("/admin-account", ({env, query})=>{
       const { queryProps, pageProps } = convertQueriesToPageAndQueryProps(query);
       return adminAccountController.getAccountList({env, queryProps, pageProps});
     }, {
@@ -192,7 +196,7 @@ export function AdminRoutes({
       }
     })
     //====================================================================================//
-    .get("/admin-accounts/:id", ({params, env})=>{
+    .get("/admin-account/:id", ({params, env})=>{
       return adminAccountController.getAccountById({env, id: params.id});
     }, {
       params: t.Object({
@@ -204,7 +208,7 @@ export function AdminRoutes({
       },
     })
     //====================================================================================//
-    .post("/admin-accounts", ({body, env})=>{
+    .post("/admin-account", ({body, env})=>{
       return adminAccountController.createAdminAccount({env, ...body});
     }, {
       body: tboxCreateAdminAccount,
@@ -214,7 +218,7 @@ export function AdminRoutes({
       },
     })
     //====================================================================================//
-    .delete("/admin-accounts/:id", ({params, env})=>{
+    .delete("/admin-account/:id", ({params, env})=>{
       return adminAccountController.deleteAccount({env, id: params.id});
     }, {
       params: t.Object({
@@ -261,6 +265,67 @@ export function AdminRoutes({
         },
       });
       return app;
+    })
+    //====================================================================================//
+    .get("/user-account", ({env, query})=>{
+      const { queryProps, pageProps } = convertQueriesToPageAndQueryProps(query);
+      return userAccountController.getAllUserAccounts({env, queryProps, pageProps});
+    }, {
+      query: t.Composite([tboxQueryParams, tboxPaginationParams]),
+      detail: {
+        summary: 'Get all user accounts',
+        tags: ['Admin User Accounts Management']
+      },
+      transform({query}){
+        getQueryTransformer(query);
+      }
+    })
+    //====================================================================================//
+    .get("/user-account/:id", ({params, env})=>{
+      return userAccountController.getUserAccountById({env, id: params.id});
+    }, {
+      params: t.Object({
+        id: t.String()
+      }),
+      detail: {
+        summary: 'Get user account by ID',
+        tags: ['Admin User Accounts Management']
+      },
+    })
+    //====================================================================================//
+    .post("/user-account", ({body, env})=>{
+      return userAccountController.createUserAccount({env, userData: body});
+    }, {
+      body: tboxCreateUserAccount,
+      detail: {
+        summary: 'Create a new user account',
+        tags: ['Admin User Accounts Management']
+      },
+    })
+    //====================================================================================//
+    .patch("/user-account/:id", ({params, env, body})=>{
+      return userAccountController.updateUserAccount({env, id: params.id, userData: body});
+    }, {
+      params: t.Object({
+        id: t.String()
+      }),
+      body: tboxUpdateUserAccount,
+      detail: {
+        summary: 'Update user account by ID',
+        tags: ['Admin User Accounts Management']
+      },
+    })
+    //====================================================================================//
+    .delete("/user-account/:id", ({params, env})=>{
+      return userAccountController.deleteUserAccount({env, id: params.id});
+    }, {
+      params: t.Object({
+        id: t.String()
+      }),
+      detail: {
+        summary: 'Delete user account by ID',
+        tags: ['Admin User Accounts Management']
+      },
     })
     ;
 

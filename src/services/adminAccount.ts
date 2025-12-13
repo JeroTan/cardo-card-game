@@ -103,6 +103,9 @@ export class AdminAccountService {
       if(dataBeforeUpdate.error){
         return { data: null, error: dataBeforeUpdate.error };
       }
+      if(!dataBeforeUpdate.data){
+        return { data: null, error: "Admin account not found" };
+      }
 
       const toUpdateData = {
         ...adminData,
