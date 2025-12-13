@@ -20,7 +20,6 @@ export class CardPackService {
         .select(fields)
         .applyQuery(queryProps, ['id', 'name', 'status', 'pack_price', 'publish_start_date', 'publish_end_date'])
         .applyPage(pageProps)
-        .orderBy('created_at', 'desc')
         .get<ModelCardPackRaw>(env.DB);
 
       const limit = pageProps?.limit || 10;

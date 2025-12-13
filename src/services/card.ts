@@ -30,7 +30,6 @@ export class CardService {
         .select(fields)
         .applyQuery(queryProps, ['id', 'name', 'atk', 'def'])
         .applyPage(pageProps)
-        .orderBy('c.created_at', 'desc')
         .get<ModelCardRaw>(env.DB);
       
       const limit = pageProps?.limit || 10;

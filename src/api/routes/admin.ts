@@ -1,6 +1,9 @@
+import type { AdminAccountController } from '@/controller/admin/adminAccount';
 import type { CardController } from '@/controller/admin/card';
 import type { CardPackController } from '@/controller/admin/cardPacks';
 import { typedEnv, typedUrlData } from '@/lib/elysia';
+import { tboxCreateAdminAccount } from '@/types/api/admin';
+import { tboxLoginWithPassword, tboxResetAdminPasswordWithToken } from '@/types/api/auth';
 import { tboxCardCreate, tboxCardPackAddCards, tboxCardPackCreate, tboxCardPackUpdate, tboxCardPackUpdateCards } from '@/types/api/card';
 import { tboxQueryParams, tboxPaginationParams } from '@/types/api/query';
 import { convertQueriesToPageAndQueryProps, getQueryTransformer } from '@/utils/api/query';
@@ -10,10 +13,12 @@ export function AdminRoutes({
   app,
   cardController,
   cardPackController,
+  adminAccountController,
 }:{
   app: Elysia
   cardController: CardController,
   cardPackController: CardPackController, 
+  adminAccountController: AdminAccountController,
 }){
   app
   .use(typedEnv)
@@ -172,7 +177,91 @@ export function AdminRoutes({
         tags: ['Admin Card Packs Management']
       },
     })
-    //====================================================================================//  
+    //====================================================================================// 
+    .get("/admin-accounts", ({env, query})=>{
+      const { queryProps, pageProps } = convertQueriesToPageAndQueryProps(query);
+      return adminAccountController.getAccountList({env, queryProps, pageProps});
+    }, {
+      query: t.Composite([tboxQueryParams, tboxPaginationParams]),
+      detail: {
+        summary: 'Get all admin accounts',
+        tags: ['Admin Accounts Management']
+      },
+      transform({query}){
+        getQueryTransformer(query);
+      }
+    })
+    //====================================================================================//
+    .get("/admin-accounts/:id", ({params, env})=>{
+      return adminAccountController.getAccountById({env, id: params.id});
+    }, {
+      params: t.Object({
+        id: t.String()
+      }),
+      detail: {
+        summary: 'Get admin account by ID',
+        tags: ['Admin Accounts Management']
+      },
+    })
+    //====================================================================================//
+    .post("/admin-accounts", ({body, env})=>{
+      return adminAccountController.createAdminAccount({env, ...body});
+    }, {
+      body: tboxCreateAdminAccount,
+      detail: {
+        summary: 'Create a new admin account',
+        tags: ['Admin Accounts Management']
+      },
+    })
+    //====================================================================================//
+    .delete("/admin-accounts/:id", ({params, env})=>{
+      return adminAccountController.deleteAccount({env, id: params.id});
+    }, {
+      params: t.Object({
+        id: t.String()
+      }),
+      detail: {
+        summary: 'Delete admin account by ID',
+        tags: ['Admin Accounts Management']
+      },
+    })
+    .group('/auth', (app) => {
+      app
+      //====================================================================================//
+      .post("/login-with-password", ({body, env})=>{
+        return adminAccountController.loginWithPassword({env, ...body});
+      }, {
+        body: tboxLoginWithPassword,
+        detail: {
+          summary: 'Login with password',
+          tags: ['Admin Authentication']
+        },
+      })
+      //====================================================================================//
+      .post("/request-reset-password", ({body, env})=>{
+        return adminAccountController.requestPasswordResetToken({env, ...body});
+      }, {
+        body: t.Object({
+          email: t.String(),
+          urlLinkToSend: t.String(),
+        }),
+        detail: {
+          summary: 'Request admin password reset',
+          tags: ['Admin Authentication']
+        },
+      })
+      //====================================================================================//
+      .post("/reset-password-with-token", async ({body, env})=>{
+        return adminAccountController.resetPasswordWithToken({env, token: body.token, newPassword: body.newPassword});
+      },{
+        body: tboxResetAdminPasswordWithToken,
+        detail: {
+          summary: 'Reset admin account password with token',
+          tags: ['Admin Authentication']
+        },
+      });
+      return app;
+    })
     ;
 
     return app;

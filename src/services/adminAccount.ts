@@ -19,7 +19,6 @@ export class AdminAccountService {
         .select(fields)
         .applyQuery(queryProps, ['id', 'email'])
         .applyPage(pageProps)
-        .orderBy('created_at', 'desc')
         .get<ModelAdminAccount>(env.DB);
       const limit = pageProps?.limit || 10;
       const totalPages = Math.ceil(totalItems / limit);
@@ -39,7 +38,7 @@ export class AdminAccountService {
     }
   }
 
-  async getById({env, id}: {env:Env, id: string}): Promise<ServiceResult<ModelAdminAccountClean | null>> {
+  async getById({env, id}: {env:Env, id: string}): Promise<ServiceResult<ModelAdminAccount | null>> {
     const fields = ['id', 'email', 'password_hash', 'created_at', 'updated_at'];
     try {
       const data = await query('admin_account')
@@ -50,8 +49,7 @@ export class AdminAccountService {
         return { data: null, error: undefined };
       }
       // Remove password_hash before returning
-      const { password_hash, ...cleanedData } = data;
-      return { data: cleanedData, error: undefined };
+      return { data, error: undefined };
     }
     catch(error){
       console.error('Error fetching admin account by ID:', error);
