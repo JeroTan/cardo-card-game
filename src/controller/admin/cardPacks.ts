@@ -72,7 +72,10 @@ export class CardPackController {
     if(cards.length < 1) {
       return Response.json({
         message: "Card pack created successfully",
-        data: newCardPack,
+        data: {
+          cardPack: newCardPack,
+          addedCards: null,
+        },
       });
     }
 
@@ -102,7 +105,10 @@ export class CardPackController {
 
     return Response.json({
       message: "Card pack created successfully",
-      data: newCardPack,
+      data: {
+        cardPack: newCardPack,
+        addedCards: addCardsResult,
+      },
     });
   }
 

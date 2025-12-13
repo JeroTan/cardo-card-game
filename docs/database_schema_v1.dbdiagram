@@ -5,8 +5,8 @@ Table card {
   id uuid [pk, not null]
   name varchar [not null, unique]
   rarity tinyint [not null]
-  atk tinyint 
-  def tinyint
+  atk tinyint [not null]
+  def tinyint [not null]
   description text
   card_art varchar
   created_at timestamp [not null]

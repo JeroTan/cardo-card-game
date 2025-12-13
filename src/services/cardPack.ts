@@ -6,19 +6,19 @@ import type { PageResult } from "@/types/api/result";
 
 export class CardPackService {
   async get({env, queryProps, pageProps}: {env: Env, queryProps?: QueryProps, pageProps?: PageProps}): Promise<ServiceResult<PageResult<ModelCardPackRaw[]>>> {
-    const fields = ['id', 'status', 'name', 'price_per_card', 'publish_start_date', 'publish_end_date', 'created_at', 'updated_at'];
+    const fields = ['id', 'status', 'name', 'pack_price', 'publish_start_date', 'publish_end_date', 'created_at', 'updated_at'];
 
     try{
       // Get total count (without pagination)
       const totalItems = await query('card_pack')
         .selectCount()
-        .applyQuery(queryProps, ['id', 'name', 'status', 'price_per_card', 'publish_start_date', 'publish_end_date'])
+        .applyQuery(queryProps, ['id', 'name', 'status', 'pack_price', 'publish_start_date', 'publish_end_date'])
         .count(env.DB);
 
       // Get paginated items
       const items = await query('card_pack')
         .select(fields)
-        .applyQuery(queryProps, ['id', 'name', 'status', 'price_per_card', 'publish_start_date', 'publish_end_date'])
+        .applyQuery(queryProps, ['id', 'name', 'status', 'pack_price', 'publish_start_date', 'publish_end_date'])
         .applyPage(pageProps)
         .orderBy('created_at', 'desc')
         .get<ModelCardPackRaw>(env.DB);
@@ -41,7 +41,7 @@ export class CardPackService {
   }
 
   async getById(env:Env, id: string): Promise<ServiceResult<ModelCardPackRaw | null>> {
-    const fields = ['id', 'status', 'name', 'price_per_card', 'publish_start_date', 'publish_end_date', 'created_at', 'updated_at'];
+    const fields = ['id', 'status', 'name', 'pack_price', 'publish_start_date', 'publish_end_date', 'created_at', 'updated_at'];
     try {
       const data = await query('card_pack')
         .select(fields)
@@ -63,7 +63,6 @@ export class CardPackService {
           'card_pack_cards.id',
           'card_pack_cards.card_pack_id',
           'card_pack_cards.card_id',
-          'card_pack_cards.drop_rate',
           'card.name',
           'card.rarity',
           'card.atk',

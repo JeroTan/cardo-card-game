@@ -54,9 +54,6 @@ export function AdminRoutes({
         if(body?.def && typeof body.def === 'string'){
           body.def = Number(body.def);
         }
-        if(body?.rarity && typeof body.rarity === 'string'){
-          body.rarity = Number(body.rarity);
-        }
       }
     })
     //====================================================================================//

@@ -7,7 +7,7 @@ export type ModelCardPackRaw = {
   id: string,
   status: CardPackStatus,
   name: string,
-  price_per_card: number,
+  pack_price: number,
   publish_start_date: string,
   publish_end_date: string,
   created_at: string,
@@ -21,7 +21,6 @@ export type ModelCardPackCards = {
   id: string,
   card_pack_id: string,
   card_id: string,
-  drop_rate: number,
 }
 
 export type ModelCardPackCardsCreate = Omit<ModelCardPackCards, 'id'>;

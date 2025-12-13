@@ -48,10 +48,8 @@ export class CardController {
     // use to prepare data for database 
     const cardDataToDatabase = {
       name: cardData.name,
-      rarity: cardData.rarity,
       atk: cardData.atk,
       def: cardData.def,
-      description: cardData.description,
       card_art: cardImageId,
     };
     

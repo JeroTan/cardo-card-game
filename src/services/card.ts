@@ -1,4 +1,4 @@
-import type { ModelCardRaw } from "@/types/model/cards";
+import type { ModelCardCreate, ModelCardRaw, ModelCardUpdate } from "@/types/model/cards";
 import type { PageProps, QueryProps } from "@/types/model/filter";
 import { query, D1Error } from "@/lib/querybuilder";
 import type { PageResult } from "@/types/api/result";
@@ -10,29 +10,25 @@ export class CardService {
 
   async get ({env, queryProps, pageProps}: {env: Env, queryProps?: QueryProps, pageProps?: PageProps}): Promise<ServiceResult<PageResult<ModelCardRaw[]>>> {
     const fields = [
-      'c.id',
-      'c.name',
-      'c.rarity',
-      'c.atk',
-      'c.def',
-      'c.description',
-      'c.card_art',
-      'c.created_at',
-      'c.updated_at'
+      'id',
+      'name',
+      'atk',
+      'def',
+      'card_art',
+      'created_at',
+      'updated_at'
     ];
     try {
       // Get total count (without pagination)
       const totalItems = await query('card')
-        .alias('c')
         .selectCount()
-        .applyQuery(queryProps, ['c.description', 'c.id', 'c.name', 'c.rarity', 'c.atk', 'c.def'])
+        .applyQuery(queryProps, ['id', 'name', 'atk', 'def'])
         .count(env.DB);
       
       // Get paginated items
       const items = await query('card')
-        .alias('c')
         .select(fields)
-        .applyQuery(queryProps, ['c.description', 'c.id', 'c.name', 'c.rarity', 'c.atk', 'c.def'])
+        .applyQuery(queryProps, ['id', 'name', 'atk', 'def'])
         .applyPage(pageProps)
         .orderBy('c.created_at', 'desc')
         .get<ModelCardRaw>(env.DB);
@@ -58,10 +54,8 @@ export class CardService {
     const fields = [
       'id',
       'name',
-      'rarity',
       'atk',
       'def',
-      'description',
       'card_art',
       'created_at',
       'updated_at'
@@ -80,7 +74,7 @@ export class CardService {
     }
   }
 
-  async create(env:Env, data: Omit<ModelCardRaw, 'id' | 'created_at' | 'updated_at' | "description"> & Partial<Pick<ModelCardRaw, "description">>): Promise<ServiceResult<ModelCardRaw | null>> {
+  async create(env:Env, data: ModelCardCreate): Promise<ServiceResult<ModelCardRaw | null>> {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
     
@@ -89,10 +83,8 @@ export class CardService {
         .insert({
           id,
           name: data.name,
-          rarity: data.rarity,
           atk: data.atk,
           def: data.def,
-          description: data.description || "",
           card_art: data.card_art,
           created_at: now,
           updated_at: now,
@@ -107,7 +99,7 @@ export class CardService {
     }
   }
 
-  async update(env:Env, id: string, data: Partial<Omit<ModelCardRaw, 'id' | 'created_at' | 'updated_at'>>): Promise<ServiceResult<ModelCardRaw | null>> {
+  async update(env:Env, id: string, data: ModelCardUpdate): Promise<ServiceResult<ModelCardRaw | null>> {
     try {
       const result = await query('card')
         .update({

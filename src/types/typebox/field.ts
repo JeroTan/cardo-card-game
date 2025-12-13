@@ -115,3 +115,27 @@ export function tboxImage({fieldName = "Image"}:{fieldName?: string} = {}){
   const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   return tboxFile({fieldName, fileTypes: imageTypes});
 }
+
+
+export function tboxDateTime({fieldName = "Date Time"}:{fieldName?: string} = {}){
+  return t.String({
+    format: 'date-time',
+    description: fieldName,
+    error: `Invalid ${fieldName}.`
+  });
+}
+
+export function tboxLiterals({fieldName = "Field", literals = []}:{fieldName?: string, literals: string[]}){
+  const formatLiterals = (items: string[]) => {
+    if(items.length === 0) return '';
+    if(items.length === 1) return `"${items[0]}"`;
+    if(items.length === 2) return `"${items[0]}" or "${items[1]}"`;
+    return `${items.slice(0, -1).map(i => `"${i}"`).join(', ')} or "${items[items.length - 1]}"`;
+  };
+
+  const formatted = formatLiterals(literals);
+  return t.Union(
+    literals.map(lit => t.Literal(lit)),
+    {error: `${fieldName} must be one of the predefined values: ${formatted}.`}
+  );
+}
