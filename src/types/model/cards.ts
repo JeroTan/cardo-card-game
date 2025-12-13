@@ -10,4 +10,4 @@ export type ModelCardRaw = {
 
 // Utility types for CRUD operations
 export type ModelCardCreate = Omit<ModelCardRaw, 'id' | 'created_at' | 'updated_at'>;
-export type ModelCardUpdate = Partial<Omit<ModelCardRaw, 'id' | 'created_at' | 'updated_at'>>;
+export type ModelCardUpdate = Partial<ModelCardCreate>;
