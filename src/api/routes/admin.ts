@@ -51,7 +51,7 @@ export function AdminRoutes({
       return cardController.createCard( {cardData:body, env});
     }, {
       type: "multipart/form-data",
-      body: tboxCardCreate(),
+      body: tboxCardCreate,
       detail: {
         summary: 'Create a new card',
         tags: ['Admin Cards Management']
@@ -108,7 +108,7 @@ export function AdminRoutes({
       const { pack:cardPackData, cards } = body;
       return cardPackController.createCardPack({env, cardPackData, cards});
     }, {
-      body: tboxCardPackCreate(),
+      body: tboxCardPackCreate,
       detail: {
         summary: 'Create a new card pack',
         tags: ['Admin Card Packs Management']
@@ -121,7 +121,7 @@ export function AdminRoutes({
       params: t.Object({
         id: t.String()
       }),
-      body: tboxCardPackAddCards(),
+      body: tboxCardPackAddCards,
       detail: {
         summary: 'Add cards to a card pack',
         tags: ['Admin Card Packs Management']
@@ -134,7 +134,7 @@ export function AdminRoutes({
       params: t.Object({
         id: t.String()
       }),
-      body: tboxCardPackUpdate(),
+      body: tboxCardPackUpdate,
       detail: {
         summary: 'Update a card pack by ID',
         tags: ['Admin Card Packs Management']
@@ -147,7 +147,7 @@ export function AdminRoutes({
       params: t.Object({
         id: t.String()
       }),
-      body: tboxCardPackUpdateCards(),
+      body: tboxCardPackUpdateCards,
       detail: {
         summary: 'Update cards of a card pack',
         tags: ['Admin Card Packs Management']
