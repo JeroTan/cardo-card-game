@@ -42,6 +42,7 @@ export default defineConfig({
     env: {
         schema: {
             SECRET_ENVIRONMENT_STATUS: envField.string({ context: "server", access: "public", default: "live" }),
+            SECRET_ADMIN_JWT_SECRET_KEY: envField.string({ context: "server", access: "secret", default: "CHANGE_ME" }),
         },
     },
     vite: {
