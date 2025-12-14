@@ -43,6 +43,10 @@ export default defineConfig({
         schema: {
             SECRET_ENVIRONMENT_STATUS: envField.string({ context: "server", access: "public", default: "live" }),
             SECRET_ADMIN_JWT_SECRET_KEY: envField.string({ context: "server", access: "secret", default: "CHANGE_ME" }),
+            SECRET_USER_JWT_SECRET_KEY: envField.string({ context: "server", access: "secret", default: "CHANGE_ME_TOO" }),
+            SECRET_GOOGLE_CLIENT_ID: envField.string({ context: "server", access: "secret", default: "CHANGE_ME_GOOGLE" }),
+            SECRET_GOOGLE_CLIENT_SECRET: envField.string({ context: "server", access: "secret", default: "CHANGE_ME_GOOGLE_TOO" }),
+            PUBLIC_APP_URL: envField.string({ context: "client", access: "public", default: "http://localhost:3001" }),
         },
     },
     vite: {

@@ -2,7 +2,7 @@ import { Elysia } from 'elysia'
 import { CloudflareAdapter } from 'elysia/adapter/cloudflare-worker'
 import { fromTypes, openapi } from '@elysiajs/openapi'
 import getCorsConfig from '@/api/config/cors'
-import { AdminContainer } from '@/container/api/adminContainer';
+import { ApiContainer } from '@/container/apiContainer';
 import type { APIRoute } from 'astro';
 
 const app = new Elysia({ 
@@ -21,7 +21,7 @@ const handle:APIRoute = (async (ctx) => {
     urlData: ctx.url,
   })
   // Containers
-  .use(AdminContainer(new Elysia()))
+  .use(ApiContainer(new Elysia()))
   // .compile()  //Although pointed out in documentation of Elysia.js, this doesn't work because it is run through Astro.JS
 
   return await app.handle(ctx.request);

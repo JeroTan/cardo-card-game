@@ -67,6 +67,41 @@ export class UserAccountService {
     }
   }
 
+  async getByUsername({env, username}: {env:Env, username: string}): Promise<ServiceResult<ModelUserAccount | null>> {
+    const fields = ['id', 'name', 'username', 'email', 'password_hash', 'created_at', 'updated_at', 'google_id'];
+    try {
+      const data = await query('user_account')
+        .select(fields)
+        .where('username', '=', username)
+        .first<ModelUserAccount>(env.DB);
+      return { data, error: undefined };
+    } catch(error){
+      console.error('Error fetching user account by username:', error);
+      const errorMessage = error instanceof D1Error ? error.message : 'Failed to fetch user account';
+      return { data: null, error: errorMessage };
+    }
+  }
+
+  async getByUsernameOrEmail({env, usernameOrEmail}: {env:Env, usernameOrEmail: string}): Promise<ServiceResult<ModelUserAccount | null>> {
+    const fields = ['id', 'name', 'username', 'email', 'password_hash', 'created_at', 'updated_at', 'google_id'];
+    try {
+      const data = await query('user_account')
+        .select(fields)
+        .applyQuery({
+          filter: [
+            {field: 'username', type: 'in', values: [usernameOrEmail]},
+            {field: 'email', type: 'in', values: [usernameOrEmail]},
+          ]
+        })
+        .first<ModelUserAccount>(env.DB);
+      return { data, error: undefined };
+    } catch(error){
+      console.error('Error fetching user account by username or email:', error);
+      const errorMessage = error instanceof D1Error ? error.message : 'Failed to fetch user account';
+      return { data: null, error: errorMessage };
+    }
+  }
+
   async create({env, userData}: {env:Env, userData: ModelUserAccountCreate}): Promise<ServiceResult<ModelUserAccount>> {
     try {
       const toInsert = {
