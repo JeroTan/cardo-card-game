@@ -1,5 +1,6 @@
 import type { UserAccountController } from "@/controller/admin/userAccount";
 import { typedEnv, typedUrlData } from "@/lib/elysia";
+import { tboxLoginWithPasswordUsingEmailOrUsername, tboxRegisterWithPassword, tboxResetPasswordWithToken } from "@/types/api/auth";
 import { Elysia, t} from "elysia";
 
 export function PlayerRoutes({
@@ -43,6 +44,50 @@ export function PlayerRoutes({
             tags: ['Player - Authentication'],
           }
         })
+        //====================================================================================//
+        .post("/login-with-password", ({env, body})=>{
+          return userController.loginWithPassword({env, emailOrUsername: body.emailOrUsername, password: body.password});
+        }, {
+          body: tboxLoginWithPasswordUsingEmailOrUsername,
+          detail: {
+            summary: 'Login with Email/Username and Password',
+            tags: ['Player - Authentication'],
+          }
+        })
+        //====================================================================================//
+        .post("/register", ({env, body})=>{
+          return userController.registerUserAccount({env, userData: body});
+        }, {
+          body: tboxRegisterWithPassword,
+          detail: {
+            summary: 'Register User Account with Email and Password',
+            tags: ['Player - Authentication'],
+          }
+        })
+        //====================================================================================//
+        .post("/request-reset-password", ({env, body})=>{
+          return userController.requestPasswordResetToken({env, email: body.email, urlLinkToSend: body.urlLinkToSend});
+        }, {
+          body: t.Object({
+            email: t.String(),
+            urlLinkToSend: t.String(),
+          }),
+          detail: {
+            summary: 'Request Password Reset',
+            tags: ['Player - Authentication'],
+          }
+        })
+        //====================================================================================//
+        .post("/reset-password-with-token", ({env, body})=>{
+          return userController.resetPasswordWithToken({env, token: body.token, newPassword: body.newPassword});
+        }, {
+          body: tboxResetPasswordWithToken,
+          detail: {
+            summary: 'Reset Password with Token',
+            tags: ['Player - Authentication'],
+          }
+        })
+        //====================================================================================//
         ;
 
         return app;

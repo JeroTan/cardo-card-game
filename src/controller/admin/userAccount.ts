@@ -1,6 +1,8 @@
+import { createInitialUsername, decryptJWTForPasswordResetWithToken, generateJWTForPasswordResetWithToken } from "@/lib/authentication/generalUtility";
 import { generateGoogleOAuthPayloadForRequest, generateGoogleOAuthPayloadForVerification, generateJWTForUser } from "@/lib/authentication/userAuth";
 import { hash, verifyHash } from "@/lib/crypto/hash";
 import type { UserAccountService } from "@/services/userAccount";
+import type { typeRegisterWithPassword } from "@/types/api/auth";
 import type { typeCreateUserAccount, typeUpdateUserAccount } from "@/types/api/user";
 import type { GoogleUserInfo } from "@/types/google/auth";
 import type { PageProps, QueryProps } from "@/types/model/filter";
@@ -183,8 +185,8 @@ export class UserAccountController {
     });
   }
 
-  public async loginWithPassword({env, usernameOrEmail, password}: {env: Env, usernameOrEmail: string, password: string}) {
-    const { data: userAccount, error: userAccountError} = await this.userAccountService.getByUsernameOrEmail({env, usernameOrEmail});
+  public async loginWithPassword({env, emailOrUsername, password}: {env: Env, emailOrUsername: string, password: string}) {
+    const { data: userAccount, error: userAccountError} = await this.userAccountService.getByEmailOrUsername({env, emailOrUsername});
     if(userAccountError) {
       return Response.json({
         message: userAccountError || "Failed to login",
@@ -192,7 +194,7 @@ export class UserAccountController {
     }
     if(!userAccount) {
       return Response.json({
-        message: "Invalid username/email or password",
+        message: "Invalid email/username or password",
       }, {status: 422});
     }
     const isPasswordValid = verifyHash(password, userAccount.password_hash);
@@ -360,6 +362,144 @@ export class UserAccountController {
     return new Response(null, {
       status: 302,
       headers: { 'Location': PUBLIC_APP_URL }
+    });
+  }
+  
+  public async requestPasswordResetToken({env, email, urlLinkToSend}: {env: Env, email: string, urlLinkToSend: string}) {
+    const {data:userAccount, error: userAccountError} = await this.userAccountService.getByEmail({env, email});
+    if(userAccountError){
+      return Response.json({
+        message: userAccountError,
+      }, {status: 500});
+    }
+    if(!userAccount){
+      return Response.json({
+        message: "User account with this email does not exist",
+      }, {status: 404});
+    }
+
+    const { data:token, error: jwtError } = await generateJWTForPasswordResetWithToken({
+      userId: userAccount.id,
+      previousHash: userAccount.password_hash,
+    });
+
+    if(jwtError){
+      return Response.json({
+        message: jwtError,
+      }, {status: 500});
+    }
+
+    // Do email sending next time
+    const urlWithToken = `${urlLinkToSend}?token=${token}&expiredIn=${new Date(Date.now() + 10*60*1000).toISOString()}`;
+
+    return Response.json({
+      message: "Password reset token generated successfully",
+      data: { token },
+    });
+  }
+
+  public async resetPasswordWithToken({env, token, newPassword}: {env: Env, token: string, newPassword: string}) {
+    const {data: tokenData, error: jwtError} = await decryptJWTForPasswordResetWithToken(token);
+    if(jwtError){
+      if(jwtError === "Token expired"){
+        return Response.json({
+          message: "Reset token has expired.",
+        }, {status: 400});
+      }
+      return Response.json({
+        message: jwtError,
+      }, {status: 500});
+    }
+    if(tokenData === null || !tokenData.userId || !tokenData.previousHash){
+      return Response.json({
+        message: "Invalid reset token.",
+      }, {status: 400});
+    }
+
+    const {data: userData, error: getUserError} = await this.userAccountService.getById({env, id: tokenData.userId});
+    if(getUserError){
+      return Response.json({
+        message: getUserError,
+      }, {status: 500});
+    }
+    if(!userData){
+      return Response.json({
+        message: "User not found",
+      }, {status: 404});
+    }
+
+    if(tokenData.previousHash !== userData.password_hash){
+      return Response.json({
+        message: "Reset token is no longer valid.",
+      }, {status: 400});
+    }
+
+    const newHashedPassword = await hash(newPassword);
+    const {data: updatedUserData, error: updateUserError} = await this.userAccountService.update({env, id: userData.id, userData:{
+      password_hash: newHashedPassword
+    }});
+    if(updateUserError){
+      return Response.json({
+        message: updateUserError,
+      }, {status: 500});
+    }
+
+    return Response.json({
+      message: "Password has been reset successfully",
+      data: {...updatedUserData, password_hash: undefined},
+    });
+  }
+
+  public async registerUserAccount({env, userData}: {env: Env, userData: typeRegisterWithPassword}) {
+    const {data: previousAccounts, error: getPreviousError} = await this.userAccountService.get({env, queryProps: {
+      filter: [{
+        field: 'email',
+        type: 'in',
+        values: [userData.email],
+      }]
+    }});
+
+    if(getPreviousError){
+      return Response.json({
+        message: getPreviousError,
+      }, {status: 500});
+    }
+
+    if(previousAccounts && previousAccounts.totalItems > 0){
+      return Response.json({
+        message: "Email already registered",
+      }, {status: 422});
+    }
+
+    const hashedPassword = await hash(userData.password);
+    const toCreateData: ModelUserAccountCreate = {
+      email: userData.email,
+      username: createInitialUsername(),
+      password_hash: hashedPassword,
+      name: createInitialUsername(),
+      google_id: null,
+    };
+
+    const { data: createdUserAccount, error } = await this.userAccountService.create({env, userData: toCreateData});
+    if(error || !createdUserAccount) {
+      return Response.json({
+        message: error || "Failed to create user account",
+      }, {status: 500});
+    }
+
+    const jwtToken = await generateJWTForUser({userId: createdUserAccount.id});
+    if(!jwtToken){
+      return Response.json({
+        message: "Failed to generate authentication token",
+      }, {status: 500});
+    }
+
+    return Response.json({
+      message: "User account registered successfully",
+      data: {
+        token: jwtToken,
+        user: {...createdUserAccount, password_hash: undefined}
+      },
     });
   }
 }

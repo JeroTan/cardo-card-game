@@ -82,15 +82,15 @@ export class UserAccountService {
     }
   }
 
-  async getByUsernameOrEmail({env, usernameOrEmail}: {env:Env, usernameOrEmail: string}): Promise<ServiceResult<ModelUserAccount | null>> {
+  async getByEmailOrUsername({env, emailOrUsername}: {env:Env, emailOrUsername: string}): Promise<ServiceResult<ModelUserAccount | null>> {
     const fields = ['id', 'name', 'username', 'email', 'password_hash', 'created_at', 'updated_at', 'google_id'];
     try {
       const data = await query('user_account')
         .select(fields)
         .applyQuery({
           filter: [
-            {field: 'username', type: 'in', values: [usernameOrEmail]},
-            {field: 'email', type: 'in', values: [usernameOrEmail]},
+            {field: 'username', type: 'in', values: [emailOrUsername]},
+            {field: 'email', type: 'in', values: [emailOrUsername]},
           ]
         })
         .first<ModelUserAccount>(env.DB);

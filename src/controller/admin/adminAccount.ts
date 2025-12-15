@@ -1,9 +1,8 @@
 import { generateJWTForAdmin } from "@/lib/authentication/adminAuth";
+import { decryptJWTForPasswordResetWithToken, generateJWTForPasswordResetWithToken } from "@/lib/authentication/generalUtility";
 import { hash, verifyHash } from "@/lib/crypto/hash";
-import { jwtDecrypt, jwtEncrypt } from "@/lib/crypto/jwt";
 import type { AdminAccountService } from "@/services/adminAccount";
 import type { PageProps, QueryProps } from "@/types/model/filter";
-import {SECRET_ADMIN_JWT_SECRET_KEY} from "astro:env/server";
 
 export class AdminAccountController {
   constructor(
@@ -45,10 +44,8 @@ export class AdminAccountController {
   }
 
   public async resetPasswordWithToken({env, token, newPassword}: {env: Env, token: string, newPassword: string}) {
-    const {data: tokenData, error: jwtError} = await jwtDecrypt<{userId: string, previousHash: string}>({
-      token,
-      secretKey: SECRET_ADMIN_JWT_SECRET_KEY
-    });
+    const {data: tokenData, error: jwtError} = await decryptJWTForPasswordResetWithToken(token);
+
 
     if(jwtError){
       if(jwtError === "Token expired"){
@@ -119,13 +116,9 @@ export class AdminAccountController {
         message: "Admin account with this email does not exist",
       }, {status: 404});
     }
-    const { data:token, error: jwtError } = await jwtEncrypt<{userId: string, previousHash: string}>({
-      payload: {
-        userId: userData.id,
-        previousHash: userData.password_hash,
-      },
-      secretKey: SECRET_ADMIN_JWT_SECRET_KEY,
-      expiresInSeconds: 600, // 10 minutes
+    const { data:token, error: jwtError } = await generateJWTForPasswordResetWithToken({
+      userId: userData.id,
+      previousHash: userData.password_hash,
     });
     if(jwtError){
       return Response.json({

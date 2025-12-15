@@ -4,7 +4,7 @@ import type { CardPackController } from '@/controller/admin/cardPacks';
 import type { UserAccountController } from '@/controller/admin/userAccount';
 import { typedEnv, typedUrlData } from '@/lib/elysia';
 import { tboxCreateAdminAccount } from '@/types/api/admin';
-import { tboxLoginWithPassword, tboxResetAdminPasswordWithToken } from '@/types/api/auth';
+import { tboxLoginWithPassword, tboxResetPasswordWithToken } from '@/types/api/auth';
 import { tboxCardCreate, tboxCardPackAddCards, tboxCardPackCreate, tboxCardPackUpdate, tboxCardPackUpdateCards } from '@/types/api/card';
 import { tboxQueryParams, tboxPaginationParams } from '@/types/api/query';
 import { tboxCreateUserAccount, tboxUpdateUserAccount } from '@/types/api/user';
@@ -258,7 +258,7 @@ export function AdminRoutes({
       .post("/reset-password-with-token", async ({body, env})=>{
         return adminAccountController.resetPasswordWithToken({env, token: body.token, newPassword: body.newPassword});
       },{
-        body: tboxResetAdminPasswordWithToken,
+        body: tboxResetPasswordWithToken,
         detail: {
           summary: 'Reset admin account password with token',
           tags: ['Admin Authentication']
