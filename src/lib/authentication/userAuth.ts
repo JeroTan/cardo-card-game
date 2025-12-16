@@ -1,6 +1,6 @@
 import { SECRET_USER_JWT_SECRET_KEY } from "astro:env/server";
 import { jwtEncrypt } from "../crypto/jwt";
-import { SECRET_GOOGLE_CLIENT_ID, SECRET_GOOGLE_CLIENT_SECRET} from "astro:env/server";
+import { PUBLIC_GOOGLE_CLIENT_ID, SECRET_GOOGLE_CLIENT_SECRET} from "astro:env/server";
 import { PUBLIC_APP_URL } from "astro:env/client";
 
 export async function generateJWTForUser({userId}:{userId:string}){
@@ -14,7 +14,7 @@ export async function generateJWTForUser({userId}:{userId:string}){
 
 export function generateGoogleOAuthPayloadForVerification({code}:{code:string}){
   return new URLSearchParams({
-    client_id: SECRET_GOOGLE_CLIENT_ID,
+    client_id: PUBLIC_GOOGLE_CLIENT_ID,
     client_secret: SECRET_GOOGLE_CLIENT_SECRET,
     code,
     grant_type: "authorization_code",
@@ -23,7 +23,7 @@ export function generateGoogleOAuthPayloadForVerification({code}:{code:string}){
 }
 export function generateGoogleOAuthPayloadForRequest(){
   return new URLSearchParams({
-    client_id: SECRET_GOOGLE_CLIENT_ID,
+    client_id: PUBLIC_GOOGLE_CLIENT_ID,
     redirect_uri: PUBLIC_APP_URL + "/api/player/auth/login-with-google",
     response_type: "code",
     scope: "openid email profile",
