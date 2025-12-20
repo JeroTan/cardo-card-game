@@ -1,6 +1,7 @@
 import { Middleware } from "@/lib/middleware/main";
 import { sequence, defineMiddleware } from "astro/middleware";
 import { CheckIfLive, CheckIfMaintenance } from "./callbacks/maintenance";
+import { BlockWhenAdminAuth, BlockWhenNotAdminAuth } from "./callbacks/admin";
 
 /*|------------------------------------------------------------------------------------------|*/
 /*|               Entry Point                                                                |*/
@@ -19,6 +20,11 @@ function Main() {
 			return next();
 		}
 
+		// Skip API routes
+		if (context.url.pathname.startsWith("/api/")) {
+			return next();
+		}
+
 		// Middleware Utility
 		const mid = new Middleware(context, next);
 
@@ -30,6 +36,27 @@ function Main() {
 			await mid.path().except(["/memo/maintenance"], "startend").do(CheckIfMaintenance);
 			await mid.path().select(["/memo/maintenance"], "startend").do(CheckIfLive);
 
+			return mid.fin(); // to end the group
+		});
+
+		// 2nd Group Middleware
+		await mid.group(async (mid)=>{
+			await mid.path().select([
+				"/admin/auth",
+			], "startend").do(BlockWhenAdminAuth);
+
+			await mid.path().select([
+				"/admin",	
+			], "exact").do(BlockWhenNotAdminAuth);
+
+			await mid.path().select([
+				"/admin/dashboard",
+				"/admin/account",
+				"/admin/card",
+				"/admin/card-pack",
+				"/admin/user",
+			], "startend").do(BlockWhenNotAdminAuth);
+			
 			return mid.fin(); // to end the group
 		});
 
