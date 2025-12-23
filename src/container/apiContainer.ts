@@ -6,12 +6,11 @@ import { CardController } from '@/controller/admin/card';
 import { CardPackController } from '@/controller/admin/cardPacks';
 import { UserAccountController } from '@/controller/admin/userAccount';
 import { handleContentTypeMismatch, handleFieldValidation } from '@/lib/api/general';
-import { handleTypeboxError } from '@/lib/typebox/formatter';
 import { AdminAccountService } from '@/services/adminAccount';
 import { CardService } from '@/services/card';
 import { CardPackService } from '@/services/cardPack';
 import { UserAccountService } from '@/services/userAccount';
-import { Elysia, t } from 'elysia'
+import { Elysia } from 'elysia'
 
 export function ApiContainer(app: Elysia){
   // Services

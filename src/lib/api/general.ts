@@ -1,6 +1,7 @@
 import type { ValidationError } from "elysia/error";
 import { z, ZodError } from "zod";
 import { handleTypeboxError } from "../typebox/formatter";
+import { Resolve } from "@jsarmyknife/native--http";
 
 type Handler<T, RETURN> = (data: T) => Promise<RETURN>;
 
@@ -26,6 +27,30 @@ export function defineApi<T, RETURN>({
 		return handler(inputtedData as T);
 	};
 	return request;
+}
+
+export function defineApiResolve<T>(object: {
+	input?: z.ZodType<T>;
+	handler: Handler<T, Response>;
+	onZodError?: (error: ZodError) => Resolve;
+}): (inputtedData?: T) => Resolve;
+export function defineApiResolve<T, Resolve>({
+	input,
+	handler,
+	onZodError,
+}: {
+	input?: z.ZodType<T>;
+	handler: Handler<T, Response>;
+	onZodError?: (error: ZodError) => Resolve;
+}): (inputtedData?: T) => Resolve {
+	const request = (inputtedData?: T) => {
+		const parsed = input?.safeParse(inputtedData);
+		if (parsed && !parsed.success && onZodError) {
+			return onZodError(parsed.error);
+		}
+		return new Resolve(handler(inputtedData as T));
+	};
+	return request as unknown as (inputtedData?: T) => Resolve;
 }
 
 export function handleContentTypeMismatch(error: unknown){

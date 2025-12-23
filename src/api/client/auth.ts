@@ -1,17 +1,18 @@
-import { defineApi } from "@/lib/api/general";
+import { defineApiResolve } from "@/lib/api/general";
 import { api } from "./config";
-import { zodLoginPasswordRequest, type typeLoginWithPasswordRequest } from "@/types/fields/loginWithPassword";
-import { Resolve } from "@jsarmyknife/native--http/dist/resolver";
+import { zodLoginPasswordRequest } from "@/types/fields/loginWithPassword";
+import { onZodError } from "@/lib/zod/formatter";
 
 
-// export const ApiLoginWithPasswordUser = defineApi({
-//   input: zodLoginPasswordRequest,
-//   handler: async (data)=>{
-//     return api().path("/auth/login-with-password").data(JSON.stringify(data)).post();
-//   }
-// });
+export const ApiLoginWithPasswordUser = defineApiResolve({
+  input: zodLoginPasswordRequest,
+  handler: async (data)=>{
+    return api().path("/auth/login-with-password").data(JSON.stringify(data)).post().request();
+  },
+  onZodError,
+});
 
-export function ApiLoginWithPasswordUser(data: typeLoginWithPasswordRequest){
-  const req =  api().path("/auth/login-with-password").data(JSON.stringify(data)).post().request();
-  return new Resolve(req);
-}
+// export function ApiLoginWithPasswordUser(data: typeLoginWithPasswordRequest){
+//   const req =  api().path("/auth/login-with-password").data(JSON.stringify(data)).post().request();
+//   return new Resolve(req);
+// }

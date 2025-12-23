@@ -59,7 +59,7 @@ export function zodAddress({fieldName = "Address", minLength = 5, maxLength = 15
   .max(maxLength, { message: `${fieldName} must be at most ${maxLength} characters long.` });
 }
 
-export function zodRequired<T extends z.ZodType>({zodSchema, fieldName = "Field"}: {zodSchema: T, fieldName?: string}) {
+export function zodRequired<T extends z.ZodType>(zodSchema: T, fieldName = "Field") {
 	return zodSchema
 		.transform((val) => (val === "" ? undefined : val))
 		.refine((val) => val !== undefined && val !== null, { message: `${fieldName} is required.` });
