@@ -27,9 +27,6 @@ export function AdminRoutes({
   app
   .use(typedEnv)
   .use(typedUrlData)
-  .onError((err) => {
-    console.error("Admin Route Error:", err);
-  })
   .group('/admin', (app) => {
     app
     //====================================================================================//

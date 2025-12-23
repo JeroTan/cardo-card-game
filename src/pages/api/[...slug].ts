@@ -21,7 +21,7 @@ const handle:APIRoute = (async (ctx) => {
     urlData: ctx.url,
   })
   // Containers
-  .use(ApiContainer(new Elysia()))
+  ApiContainer(app as unknown as Elysia)
   // .compile()  //Although pointed out in documentation of Elysia.js, this doesn't work because it is run through Astro.JS
 
   return await app.handle(ctx.request);

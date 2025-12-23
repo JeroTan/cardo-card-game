@@ -13,9 +13,6 @@ export function PlayerRoutes({
   app
     .use(typedEnv)
     .use(typedUrlData)
-    .onError((err) => {
-      console.error("Player Route Error:", err);
-    })
     .group('/player', (app) => {
       app
       .group("/auth", (app)=>{

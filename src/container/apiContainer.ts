@@ -5,11 +5,13 @@ import { AdminAccountController } from '@/controller/admin/adminAccount';
 import { CardController } from '@/controller/admin/card';
 import { CardPackController } from '@/controller/admin/cardPacks';
 import { UserAccountController } from '@/controller/admin/userAccount';
+import { handleContentTypeMismatch, handleFieldValidation } from '@/lib/api/general';
+import { handleTypeboxError } from '@/lib/typebox/formatter';
 import { AdminAccountService } from '@/services/adminAccount';
 import { CardService } from '@/services/card';
 import { CardPackService } from '@/services/cardPack';
 import { UserAccountService } from '@/services/userAccount';
-import { Elysia } from 'elysia'
+import { Elysia, t } from 'elysia'
 
 export function ApiContainer(app: Elysia){
   // Services
@@ -27,6 +29,16 @@ export function ApiContainer(app: Elysia){
     adminAccount: new AdminAccountController(services.adminAccount),
     userAccount: new UserAccountController(services.userAccount),
   }
+
+  //Validation Handler to return error of typebox with style
+  app.onError(({code, error})=>{
+    if(code === 'VALIDATION'){
+      return handleFieldValidation(error);
+    }
+    if(code == undefined && error != null && typeof error === 'object'){
+      return handleContentTypeMismatch(error);
+    }
+  });
 
   // Routes Insertion
   AdminRoutes({
