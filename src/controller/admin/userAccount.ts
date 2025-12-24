@@ -1,3 +1,4 @@
+import { setAdminAuthToken } from "@/lib/authentication/adminAuth";
 import { createInitialUsername, decryptJWTForPasswordResetWithToken, generateJWTForPasswordResetWithToken } from "@/lib/authentication/generalUtility";
 import { generateGoogleOAuthPayloadForRequest, generateGoogleOAuthPayloadForVerification, generateJWTForUser } from "@/lib/authentication/userAuth";
 import { hash, verifyHash } from "@/lib/crypto/hash";
@@ -7,6 +8,7 @@ import type { typeCreateUserAccount, typeUpdateUserAccount } from "@/types/api/u
 import type { GoogleUserInfo } from "@/types/google/auth";
 import type { PageProps, QueryProps } from "@/types/model/filter";
 import type { ModelUserAccountCreate, ModelUserAccountUpdate } from "@/types/model/user";
+import type { AstroCookies } from "astro";
 import { PUBLIC_APP_URL } from "astro:env/client";
 
 
@@ -185,7 +187,7 @@ export class UserAccountController {
     });
   }
 
-  public async loginWithPassword({env, emailOrUsername, password}: {env: Env, emailOrUsername: string, password: string}) {
+  public async loginWithPassword({env, emailOrUsername, password, astroCookies}: {env: Env, emailOrUsername: string, password: string, astroCookies: AstroCookies}) {
     const { data: userAccount, error: userAccountError} = await this.userAccountService.getByEmailOrUsername({env, emailOrUsername});
     if(userAccountError) {
       return Response.json({
@@ -205,6 +207,13 @@ export class UserAccountController {
     }
 
     const jwtToken = await generateJWTForUser({userId: userAccount.id});
+    if(!jwtToken){
+      return Response.json({
+        message: "Failed to generate authentication token",
+      }, {status: 500});
+    }
+
+    // Set Cookie or Session here if needed
 
     return Response.json({
       message: "Login successful",

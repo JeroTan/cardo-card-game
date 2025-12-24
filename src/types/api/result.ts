@@ -5,3 +5,14 @@ export type PageResult<T> = {
   page: number;
   limit: number;
 };
+
+export type RefineValidationData = {
+  field: string,
+  error: string[],
+} 
+
+export type Error422Result = {
+  message: string;
+  data: Array<RefineValidationData>;
+}
+

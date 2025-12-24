@@ -1,15 +1,16 @@
-import { generateJWTForAdmin } from "@/lib/authentication/adminAuth";
+import { generateJWTForAdmin, setAdminAuthInformation, setAdminAuthToken } from "@/lib/authentication/adminAuth";
 import { decryptJWTForPasswordResetWithToken, generateJWTForPasswordResetWithToken } from "@/lib/authentication/generalUtility";
 import { hash, verifyHash } from "@/lib/crypto/hash";
 import type { AdminAccountService } from "@/services/adminAccount";
 import type { PageProps, QueryProps } from "@/types/model/filter";
+import type { AstroCookies } from "astro";
 
 export class AdminAccountController {
   constructor(
     public adminAccountService: AdminAccountService,
   ){}
 
-  public async loginWithPassword({env, email, password}: {env: Env, email: string, password: string}) {
+  public async loginWithPassword({env, email, password, astroCookies}: {env: Env, email: string, password: string, astroCookies: AstroCookies}) {
     const {data: userData, error} = await this.adminAccountService.getByEmail({env, email});
     if(error){
       return Response.json({
@@ -30,6 +31,18 @@ export class AdminAccountController {
     }
 
     const jwtToken = await generateJWTForAdmin({userId: userData.id});
+    if(!jwtToken){
+      return Response.json({
+        message: "Failed to generate authentication token",
+      }, {status: 500});
+    }
+
+    // Set Cookie or Session here if needed
+    setAdminAuthToken(astroCookies, jwtToken);
+    setAdminAuthInformation(astroCookies, {
+      id: userData.id,
+      email: userData.email,
+    });
 
     return Response.json({
       message: "Login successful",

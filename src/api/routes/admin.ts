@@ -2,7 +2,7 @@ import type { AdminAccountController } from '@/controller/admin/adminAccount';
 import type { CardController } from '@/controller/admin/card';
 import type { CardPackController } from '@/controller/admin/cardPacks';
 import type { UserAccountController } from '@/controller/admin/userAccount';
-import { typedEnv, typedUrlData } from '@/lib/elysia';
+import { typedAstroCookies, typedEnv, typedUrlData } from '@/lib/elysia';
 import { tboxCreateAdminAccount } from '@/types/api/admin';
 import { tboxLoginWithPassword, tboxResetPasswordWithToken } from '@/types/api/auth';
 import { tboxCardCreate, tboxCardPackAddCards, tboxCardPackCreate, tboxCardPackUpdate, tboxCardPackUpdateCards } from '@/types/api/card';
@@ -27,6 +27,7 @@ export function AdminRoutes({
   app
   .use(typedEnv)
   .use(typedUrlData)
+  .use(typedAstroCookies)
   .group('/admin', (app) => {
     app
     //====================================================================================//
@@ -229,8 +230,8 @@ export function AdminRoutes({
     .group('/auth', (app) => {
       app
       //====================================================================================//
-      .post("/login-with-password", ({body, env})=>{
-        return adminAccountController.loginWithPassword({env, ...body});
+      .post("/login-with-password", ({body, env, astroCookies})=>{
+        return adminAccountController.loginWithPassword({env, ...body, astroCookies});
       }, {
         body: tboxLoginWithPassword,
         detail: {

@@ -9,9 +9,9 @@ export const tboxQueryParams = t.Object({
     description: 'Comma-separated list of fields to sort by. Prefix with - for descending order',
     examples: ['created_at']
   })),
-  filter: t.Record(t.String(), t.String(), {
+  filter: t.Optional(t.Record(t.String(), t.String(), {
     description: 'Filter object with field names as keys. Use filter[fieldName]=value1,value2 or -filter[fieldName]=value1,value2 for exclusion filters',
-  })
+  })),
 });
 
 // Enhanced TypeScript type with template literal for filter keys

@@ -5,20 +5,21 @@ import getCorsConfig from '@/api/config/cors'
 import { ApiContainer } from '@/container/apiContainer';
 import type { APIRoute } from 'astro';
 
-const app = new Elysia({ 
-  prefix: '/api',
-  adapter: CloudflareAdapter,
-  aot: false, // After numerous trial to make it work, turning it off make it work on Cloudflare worker.
-  normalize: true, // 
-})
-  .use(openapi())
-  .use(getCorsConfig())
-  
 // Required for Cloudflare Workers. In order to run elysia here
 const handle:APIRoute = (async (ctx) => {
+  const app = new Elysia({ 
+    prefix: '/api',
+    adapter: CloudflareAdapter,
+    aot: false, // After numerous trial to make it work, turning it off make it work on Cloudflare worker.
+    normalize: true, // 
+  })
+    .use(openapi())
+    .use(getCorsConfig());
+  
   app.decorate({
     env: ctx.locals.runtime.env,
     urlData: ctx.url,
+    astroCookies: ctx.cookies,
   })
   // Containers
   ApiContainer(app as unknown as Elysia)

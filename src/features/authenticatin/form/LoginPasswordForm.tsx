@@ -1,11 +1,15 @@
 import { ApiLoginWithPasswordUser } from "@/api/client/auth";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { MakeAlertClose, MakeErrorAlert } from "@/components/overlay/AlertBox";
+import { makeSuccessModal } from "@/components/overlay/ModalBase";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { useMultiStateField } from "@/lib/hooks/fields";
-import { Mail, Key, AlertCircleIcon } from "lucide-react"
-import { useCallback, useState, useTransition } from "react";
+import { AlertContext } from "@/stores/components/AlertContext";
+import { ModalContext } from "@/stores/components/ModalContext";
+import type { Error422Result } from "@/types/api/result";
+import { Mail, Key } from "lucide-react"
+import { useCallback, useContext, useState, useTransition } from "react";
 
 type Props = {
   role?: "admin" | "user";
@@ -16,7 +20,9 @@ export default function LoginPasswordForm({
 }: Props){
 
   const [processing, useProcessing] = useTransition();
-  const [errorMessage, errorMessageSet] = useState<string | null>(null);
+  const [,alertDispatch] = useContext(AlertContext);
+  const [,modalDispatch] = useContext(ModalContext);
+
   const data = useMultiStateField({
     email: "",
     password: "",
@@ -33,13 +39,31 @@ export default function LoginPasswordForm({
           email: data.email.get,
           password: data.password.get,
         }).s200((data)=>{
-          console.log("Admin Login Success:", data);
-        }).sOthers((data:any)=>{
-          errorMessageSet(data?.message || "An error occurred during login.");
+          console.log("Login Success:", data);
+          modalDispatch(makeSuccessModal({
+            title: "Login Successful",
+            message: "Redirecting you now to the main page.",
+            backdropTrigger: false,
+            closeButton: false,
+            acceptButton: false,
+            rejectButton: false,
+          }));
+        })
+        .s422((data: Error422Result)=>{
+          alertDispatch(MakeErrorAlert({
+            title: "Login Failed",
+            message: data.data.map((e)=>e.error.join("\n")).join("\n"),
+          }));
+        })
+        .sOthers((data:unknown)=>{
+          alertDispatch(MakeErrorAlert({
+            title: "Login Failed",
+            message: (data as any)?.message || "An unknown error occurred during login.",
+          }));
         }).promiseResponse;
       }
     });    
-  }, [processing]);
+  }, [processing, data.email, data.password]);
 
   return <>
     <form onSubmit={handleSubmit}>
@@ -56,7 +80,7 @@ export default function LoginPasswordForm({
               value={data.email.get}
               disabled={processing}
               onInput={(e)=>{
-                errorMessageSet(null);
+                alertDispatch(MakeAlertClose());
                 data.email.set((e.target as HTMLInputElement).value);
             }}/>
             {/* <InputGroupAddon align={"inline-end"}>
@@ -77,7 +101,7 @@ export default function LoginPasswordForm({
               value={data.password.get} 
               disabled={processing}
               onInput={(e)=>{
-                errorMessageSet(null);
+                alertDispatch(MakeAlertClose());
                 data.password.set((e.target as HTMLInputElement).value);
               }}
             />
@@ -93,16 +117,6 @@ export default function LoginPasswordForm({
         >
           {processing ? "Processing..." : "Login"}
         </Button>
-      </div>
-
-      <div>
-        {errorMessage && 
-          <Alert variant="destructive" className="mt-6">
-            <AlertCircleIcon />
-            <AlertTitle className=" font-bold">Login Error</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        }
       </div>
     </form>
   </>

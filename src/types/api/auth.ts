@@ -2,8 +2,8 @@ import { t, type Static } from "elysia";
 import { tboxName, tboxPassword } from "../typebox/field";
 
 export const tboxLoginWithPassword = t.Object({
-  email: t.String(),
-  password: t.String(),
+  email: t.String({minLength: 1, error: "Email is required."}),
+  password: t.String({minLength: 1, error: "Password is required."}),
 });
 
 export const tboxLoginWithPasswordUsingEmailOrUsername = t.Object({

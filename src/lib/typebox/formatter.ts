@@ -1,12 +1,12 @@
+import type { RefineValidationData } from "@/types/api/result";
 import type { ValidationError } from "elysia";
 
 export function handleTypeboxError(error: Readonly<ValidationError>): Array<RefineValidationData> {
   const result = new Map<string, string[]>();
-  
   // Recursive function to process errors and their nested errors
   function processError(err: any, parentPath: string = "") {
     // Check if err has the full ValueError structure
-    if ('path' in err && 'message' in err) {
+    if ('path' in err && ('message' in err || ('schema' in err && err?.schema?.error))) {
       // Construct the full path
       let fullPath = err.path === "" || err.path === "/" ? parentPath : err.path;
       if (parentPath && fullPath && fullPath !== "/") {
@@ -15,7 +15,7 @@ export function handleTypeboxError(error: Readonly<ValidationError>): Array<Refi
       
       // Convert path: empty or "/" becomes "_", otherwise replace "/" with "."
       const field = fullPath === "" || fullPath === "/" ? "_" : fullPath.replace(/^\//, "").replace(/\//g, ".");
-      const message = err.message || err.summary || "Invalid value";
+      const message = err?.schema?.error || err.message || err.summary || "Invalid value";
       
       if (result.has(field)) {
         result.get(field)!.push(message);
@@ -90,8 +90,3 @@ export function handleTypeboxError(error: Readonly<ValidationError>): Array<Refi
     error: errors,
   }));
 }
-
-export type RefineValidationData = {
-  field: string,
-  error: string[],
-} 

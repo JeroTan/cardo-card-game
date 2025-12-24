@@ -1,5 +1,5 @@
 import type { UserAccountController } from "@/controller/admin/userAccount";
-import { typedEnv, typedUrlData } from "@/lib/elysia";
+import { typedAstroCookies, typedEnv, typedUrlData } from "@/lib/elysia";
 import { tboxLoginWithPasswordUsingEmailOrUsername, tboxRegisterWithPassword, tboxResetPasswordWithToken } from "@/types/api/auth";
 import { Elysia, t} from "elysia";
 
@@ -13,6 +13,7 @@ export function PlayerRoutes({
   app
     .use(typedEnv)
     .use(typedUrlData)
+    .use(typedAstroCookies)
     .group('/player', (app) => {
       app
       .group("/auth", (app)=>{
@@ -42,8 +43,8 @@ export function PlayerRoutes({
           }
         })
         //====================================================================================//
-        .post("/login-with-password", ({env, body})=>{
-          return userController.loginWithPassword({env, emailOrUsername: body.emailOrUsername, password: body.password});
+        .post("/login-with-password", ({env, body, astroCookies})=>{
+          return userController.loginWithPassword({env, emailOrUsername: body.emailOrUsername, password: body.password, astroCookies});
         }, {
           body: tboxLoginWithPasswordUsingEmailOrUsername,
           detail: {
