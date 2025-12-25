@@ -48,6 +48,7 @@ export default function LoginPasswordForm({
             acceptButton: false,
             rejectButton: false,
           }));
+          location.href = "/admin/dashboard";
         })
         .s422((data: Error422Result)=>{
           alertDispatch(MakeErrorAlert({
@@ -76,7 +77,7 @@ export default function LoginPasswordForm({
             </InputGroupAddon>
             <InputGroupInput 
               type="email" 
-              placeholder="Email" 
+              placeholder={role == "admin" ? "Email" : "Email or Username"} 
               value={data.email.get}
               disabled={processing}
               onInput={(e)=>{
