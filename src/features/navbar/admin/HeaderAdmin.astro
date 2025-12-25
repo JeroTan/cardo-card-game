@@ -1,0 +1,18 @@
+---
+import { getAdminAuthToken } from "@/lib/authentication/adminAuth"
+import HeaderAdminContainer from "./HeaderAdminContainer";
+import HeaderAdminAuthNavigation from "./HeaderAdminAuthNavigation";
+
+const {error:notAuth} = getAdminAuthToken(Astro.cookies);
+---
+{ notAuth ? <>
+<HeaderAdminContainer client:load>
+  {/* <HeaderAdminAuthNavigation client:load /> */}
+</HeaderAdminContainer>
+</> : <>
+<HeaderAdminContainer client:load>
+  <HeaderAdminAuthNavigation client:load />
+</HeaderAdminContainer>
+</>}
+
+

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { useMultiStateField } from "@/lib/hooks/fields";
+import { makeStorage } from "@/stores/client/localStorageDefinition";
 import { AlertContext } from "@/stores/components/AlertContext";
 import { ModalContext } from "@/stores/components/ModalContext";
 import type { Error422Result } from "@/types/api/result";
@@ -38,8 +39,7 @@ export default function LoginPasswordForm({
         await ApiLoginWithPasswordUser({
           email: data.email.get,
           password: data.password.get,
-        }).s200((data)=>{
-          console.log("Login Success:", data);
+        }).s200(({data}: {data: {token: string}})=>{
           modalDispatch(makeSuccessModal({
             title: "Login Successful",
             message: "Redirecting you now to the main page.",
@@ -48,6 +48,7 @@ export default function LoginPasswordForm({
             acceptButton: false,
             rejectButton: false,
           }));
+          makeStorage("adminAuthToken").store(data.token);
           location.href = "/admin/dashboard";
         })
         .s422((data: Error422Result)=>{
@@ -113,7 +114,7 @@ export default function LoginPasswordForm({
       </div>
       <div className="mt-2">
         <Button type="submit" 
-          className="w-full cursor-pointer"
+          className="w-full"
           disabled={processing}
         >
           {processing ? "Processing..." : "Login"}

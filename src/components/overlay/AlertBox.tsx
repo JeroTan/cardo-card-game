@@ -57,7 +57,6 @@ export function AlertBoxBase({reducer}: {reducer: ReturnType<typeof useAlertRedu
     <AlertTitle className=" font-bold">{title}</AlertTitle>
     <div className="absolute top-0 right-0 m-1">
       {closeButton && <button
-        className="cursor-pointer"
         onClick={
           ()=>{
             if(!closeButtonCallback){

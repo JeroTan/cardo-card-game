@@ -45,7 +45,9 @@ const currentLang = getLangFromUrl(Astro.url);
 	<body>
 		<slot />
 		<script>
+			import { updateStorageVersion } from "@/stores/client/config";
 			// Import other scripts here
+			updateStorageVersion();
 		</script>
 	</body>
 

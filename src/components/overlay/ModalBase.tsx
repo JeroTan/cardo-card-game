@@ -103,7 +103,7 @@ export function makeLoadingModal(struct: Partial<MODAL_STRUCTURE>): MODAL_INSTRU
 	const structRefined: MODAL_STRUCTURE = {
 		...modalStructure,
 		isOpen: true,
-		icon: <LoaderCircle />,
+		icon: <LoaderCircle animate />,
 		title: "Loading",
 		message: "",
 		backdropTrigger: undefined,
