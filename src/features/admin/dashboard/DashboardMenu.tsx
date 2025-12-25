@@ -21,13 +21,13 @@ export default function DashboardMenu({ stats = {
         title: "Card Management",
         description: "Manage game cards, stats, and artwork",
         icon: CreditCard,
-        href: "/admin/cards",
+        href: "/admin/card",
       },
       {
         title: "Card Packs",
         description: "Manage card packs",
         icon: Package,
-        href: "/admin/card-packs",
+        href: "/admin/card-pack",
       },
       {
         title: "User Management",

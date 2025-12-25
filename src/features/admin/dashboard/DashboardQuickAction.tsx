@@ -6,7 +6,7 @@ export default function DashboardQuickAction(){
     <div className="flex flex-wrap gap-2">
       <Button asChild variant={"outline"}>
         <a
-          href="/admin/analytics"
+          href="/admin/card/create"
         >
           <CreditCard className="h-4 w-4" />
           Add New Card
@@ -15,7 +15,7 @@ export default function DashboardQuickAction(){
       
       <Button asChild variant={"outline"}>
         <a
-          href="/admin/card-packs"
+          href="/admin/card-pack/create"
         >
           <Package className="h-4 w-4" />
         Create Card Pack

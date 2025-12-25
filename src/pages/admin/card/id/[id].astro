@@ -1,0 +1,9 @@
+---
+import PagePlateAdmin from "@/layouts/PagePlateAdmin.astro";
+const id = Astro.params.id;
+if(id === undefined){
+  throw new Error("ID is undefined");
+}
+---
+<PagePlateAdmin title="Admin Dashboard - CARDO" >
+</PagePlateAdmin>
