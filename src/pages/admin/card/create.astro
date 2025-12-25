@@ -1,7 +1,17 @@
 ---
+import { Skeleton } from "@/components/ui/skeleton";
 import CardCreatePage from "@/features/admin/card/create/CardCreatePage";
 import PagePlateAdmin from "@/layouts/PagePlateAdmin.astro";
 ---
 <PagePlateAdmin title="Admin Dashboard - CARDO" >
-  <CardCreatePage client:load  />
+  <CardCreatePage client:only="react"  server:defer >
+    <div slot="fallback" class="flex justify-center px-5 py-10">
+      <div class="basis-150">
+        <Skeleton client:load className="w-1/2 h-10" />
+        <Skeleton client:load className="w-full h-52 mt-5" />
+        <Skeleton client:load className="w-full h-10 mt-5" />
+        <Skeleton client:load className="w-full h-10 mt-3" />
+      </div>
+    </div>
+  </CardCreatePage>
 </PagePlateAdmin>

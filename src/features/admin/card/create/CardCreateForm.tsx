@@ -33,8 +33,6 @@ export default function CardCreateForm({
     }
   }, [fieldNameDelay]);
 
-  
-
   return <>
     <form>
       {/* Card Name */}

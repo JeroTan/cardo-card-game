@@ -8,7 +8,7 @@ export default function CardCreatePage(){
     <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Create New Card</h1>
       <ErrorFieldProvider>
-        <CardFieldProvider>
+        <CardFieldProvider initialField={1}>
           <CardCreateComposer />
         </CardFieldProvider>
       </ErrorFieldProvider>
@@ -22,9 +22,9 @@ function CardCreateComposer(){
   const fieldContext = useContext(CardFieldContext);
   const errorFieldContext = useContext(ErrorFieldContext);
 
-  useEffect(()=>{
-    fieldContext.addField();
-  }, []);
+  // useEffect(()=>{
+  //   fieldContext.addField();
+  // }, []);
 
   return <>
     {fieldContext.field.map((fieldItem, index)=>{

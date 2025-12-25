@@ -27,13 +27,21 @@ type PropContext = {
 
 export const CardFieldContext = createContext<PropContext>(null!);
 
-export function CardFieldProvider({children}:PropsWithChildren<{}>){
+export function CardFieldProvider({children, initialField}:PropsWithChildren<{initialField?:number}>){
 
   const [keyCounter, keyCounterSet] = useState(
-		0
+    initialField != null ? initialField : 0
 	);
 
-  const [field, fieldSet] = useState<PropContext["field"]>([]);
+  const [field, fieldSet] = useState<PropContext["field"]>(
+    initialField != null ? [...Array(initialField)].map((_, index)=>({
+      key: index,
+      name: "",
+      atk: 0,
+      def: 0,
+      card_art: null!,
+    })) : []
+  );
 
   //---> Functionalities
   const getFieldByKey = useCallback((key: string | number)=>{
