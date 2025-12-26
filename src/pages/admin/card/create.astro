@@ -6,7 +6,7 @@ import PagePlateAdmin from "@/layouts/PagePlateAdmin.astro";
 <PagePlateAdmin title="Admin Dashboard - CARDO" >
   <CardCreatePage client:only="react"  server:defer >
     <div slot="fallback" class="flex justify-center px-5 py-10">
-      <div class="basis-150">
+      <div class="basis-5xl">
         <Skeleton client:load className="w-1/2 h-10" />
         <Skeleton client:load className="w-full h-52 mt-5" />
         <Skeleton client:load className="w-full h-10 mt-5" />
