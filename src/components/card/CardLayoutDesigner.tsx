@@ -24,7 +24,6 @@ export default function CardLayoutDesigner({
   const [updatingImage, updatingImageStart] = useTransition();
   const svgRef = useRef<SVGSVGElement>(null!);
   const identifier = useId();
-  console.log("CardLayoutDesigner Rendered", identifier);
 
   useEffect(()=>{
     if(rawImage == null){
