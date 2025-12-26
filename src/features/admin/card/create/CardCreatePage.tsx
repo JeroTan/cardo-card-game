@@ -1,4 +1,4 @@
-import { Fragment, useContext, useEffect } from "react";
+import { Fragment, useContext, useEffect, useMemo, useState } from "react";
 import CardCreateForm from "./CardCreateForm";
 import { CardFieldContext, CardFieldProvider } from "@/stores/card/CardFieldContext";
 import { ErrorFieldContext, ErrorFieldProvider } from "@/stores/card/ErrorFieldContext";
@@ -8,7 +8,7 @@ import { Minus, Plus } from "lucide-react";
 
 export default function CardCreatePage(){
   return <>
-    <div className="max-w-5xl mx-auto p-6">
+    <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Create New Card</h1>
       <ErrorFieldProvider>
         <CardFieldProvider initialField={1}>
@@ -24,6 +24,11 @@ export default function CardCreatePage(){
 function CardCreateComposer(){
   const fieldContext = useContext(CardFieldContext);
   const errorFieldContext = useContext(ErrorFieldContext);
+  const allowedToSubmit = useMemo(()=>{
+    return fieldContext.allFieldsNotEmpty() && errorFieldContext.checkAllHasNoError();
+  }, [fieldContext.field, errorFieldContext.fieldError]);
+  
+  const [cardStatuses, cardStatusesSet] = useState<Array<{key:number, status:"UPLOADING"|""}>>([]);
 
   return <>
     <section className="space-y-4">
@@ -80,14 +85,13 @@ function CardCreateComposer(){
 
     <section className="sticky mt-2">
       <div className="flex justify-center gap-2">
-        <Button variant={"outline"} onClick={()=>fieldContext.addField()}>
+        <Button variant={"outline"} className="min-w-fit max-w-full w-1/3" onClick={()=>fieldContext.addField()} disabled={fieldContext.field.length >= 20}>
           <Plus /> Card
         </Button>
-        <Button variant={"default"}>
+        <Button variant={"default"} className="min-w-fit max-w-full w-1/3" disabled={!allowedToSubmit}>
           Submit
         </Button>
       </div>
-
     </section>
   </>
 }

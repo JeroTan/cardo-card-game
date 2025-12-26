@@ -9,6 +9,7 @@ import { useDebounce } from "@uidotdev/usehooks"
 import useUpdateEffect from "react-use/lib/useUpdateEffect"
 import { zodValidateSchema } from "@/lib/zod/validator"
 import { zodCardCreate } from "@/types/fields/card/create"
+import CardContainerLayout from "@/components/card/CardContainerLayout"
 
 export default function CardCreateForm({
   field,
@@ -34,8 +35,8 @@ export default function CardCreateForm({
   }, [fieldNameDelay]);
 
   return <>
-    <form className="flex sm:flex-nowrap flex-wrap sm:gap-5">
-      <section className="block sm:basis-2/3 basis-full">
+    <form className="flex flex-wrap">
+      <section className="basis-full">
         {/* Card Name */}
         <Field className="gap-1">
           <FieldLabel htmlFor="card-name">
@@ -107,78 +108,94 @@ export default function CardCreateForm({
         </Field>
       </section>
   
-      <section className="sm:basis-1/3 basis-full">
-        {/* Card Art Upload */}
-        <Field className="gap-1">
-          <FieldLabel htmlFor="card_art">
-            Card Art
-          </FieldLabel>
-          <Input
-            id="card_art"
-            className="hidden"
-            type="file"
-            accept="image/*"
-            onChange={(e)=>{
-              const files = (e.target as HTMLInputElement).files;
-              if(files && files.length > 0){
-                updateField({card_art: files[0]});
-                updateErrorField({card_art: null});
-              }
-            }}
-          />
-          {
-            field.card_art ? <>
-              <div className="flex justify-center gap-4">
-                {/* Image Preview */}
-                <label htmlFor="card_art" className="cursor-pointer relative w-full">
-                  <div className="absolute w-full aspect-[2/3] flex justify-center items-center z-10 bg-slate-500 hover:opacity-50 opacity-0 duration-200">
-                    <ImagePlus size={96} className="text-slate-100"/>
-                  </div>
-                  <div className="w-full aspect-[2/3] border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-                    <img 
-                      src={URL.createObjectURL(field.card_art)} 
-                      alt="Card preview" 
-                      className="w-full h-full object-cover"
-                    />
+      <section className=" basis-full flex  gap-2">
+        <div className="basis-1/2">
+          {/* Card Art Upload */}
+          <Field className="gap-1">
+            <FieldLabel htmlFor="card_art">
+              Card Art
+            </FieldLabel>
+            <Input
+              id="card_art"
+              className="hidden"
+              type="file"
+              accept="image/*"
+              onChange={(e)=>{
+                const files = (e.target as HTMLInputElement).files;
+                if(files && files.length > 0){
+                  updateField({card_art: files[0]});
+                  updateErrorField({card_art: null});
+                }
+              }}
+            />
+            {
+              field.card_art ? <>
+                <div className="flex justify-start gap-4">
+                  {/* Image Preview */}
+                  <label htmlFor="card_art" className="cursor-pointer relative min-w-16 max-w-64 w-full">
+                    <div className="absolute w-full aspect-[2/3] flex justify-center items-center z-10 bg-slate-500 hover:opacity-50 opacity-0 duration-200">
+                      <ImagePlus size={96} className="text-slate-100"/>
+                    </div>
+                    <div className="w-full aspect-[2/3] border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                      <img 
+                        src={URL.createObjectURL(field.card_art)} 
+                        alt="Card preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </label>
+                </div>
+              </> : <>
+                <label 
+                  htmlFor="card_art" 
+                  className="group cursor-pointer border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+                  }}
+                  onDragLeave={(e) => {
+                    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                    const files = e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                      updateField({card_art: files[0]});
+                      updateErrorField({card_art: null});
+                    }
+                  }}
+                >
+                  <div className="space-y-2">
+                    <ImagePlus className="mx-auto text-slate-500"/>
+                    <div className="text-sm text-slate-600">
+                      <span className="font-medium text-slate-300 group-hover:text-blue-400 transition-colors">
+                        Click to upload
+                      </span> or drag and drop
+                    </div>
+                    <p className="text-xs text-slate-500">PNG, JPG, GIF up to 10MB</p>
                   </div>
                 </label>
-              </div>
-            </> : <>
-              <label 
-                htmlFor="card_art" 
-                className="group cursor-pointer border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
-                }}
-                onDragLeave={(e) => {
-                  e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
-                  const files = e.dataTransfer.files;
-                  if (files && files.length > 0) {
-                    updateField({card_art: files[0]});
-                    updateErrorField({card_art: null});
-                  }
-                }}
-              >
-                <div className="space-y-2">
-                  <ImagePlus className="mx-auto text-slate-500"/>
-                  <div className="text-sm text-slate-600">
-                    <span className="font-medium text-slate-300 group-hover:text-blue-400 transition-colors">
-                      Click to upload
-                    </span> or drag and drop
-                  </div>
-                  <p className="text-xs text-slate-500">PNG, JPG, GIF up to 10MB</p>
-                </div>
-              </label>
-            </>
-          }
-          
-          <FieldError className={`${errorField.card_art == null ? "opacity-0" : "opacity-100"}`}>{errorField.card_art?.join(", ") || `None`}</FieldError>
-        </Field>
+              </>
+            }
+            
+            <FieldError className={`${errorField.card_art == null ? "opacity-0" : "opacity-100"}`}>{errorField.card_art?.join(", ") || `None`}</FieldError>
+          </Field>
+        </div>
+        
+        <div className="basis-1/2">
+          <div>
+            <h2 className="text-sm">Card Preview</h2>
+          </div>
+          <div>
+            <CardContainerLayout 
+              image="https://www.gamesradar.com/games/action-rpg/stellar-blade-devs-confirm-ps5-players-will-get-the-pc-versions-new-boss-fight-and-25-extra-costumes-in-a-free-update-as-the-action-rpg-escapes-console-exclusivity-next-month/"
+              name={field.name}
+              atk={field.atk}
+              def={field.def}
+            />
+          </div>
+        </div>
       </section>
     
     </form>

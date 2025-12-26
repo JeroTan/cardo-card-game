@@ -11,6 +11,9 @@ type PropContext = {
   updateFieldByIndex: (index:number, updatedField:Partial<typeCardCreate>)=>void,
   deleteFieldByKey: (key:string|number)=>void,
   deleteFieldByIndex: (index:number)=>void,
+  fieldsNotEmptyByKey: (key:string|number)=>boolean,
+  fieldsNotEmptyByIndex: (index:number)=>boolean,
+  allFieldsNotEmpty: ()=>boolean,
   contextGroupByKey: (key:string|number)=>{
     field: ObjectAddKey<typeCardCreate>,
     index: number,
@@ -108,6 +111,24 @@ export function CardFieldProvider({children, initialField}:PropsWithChildren<{in
     });
   }, []);
 
+  const fieldsNotEmptyByKey = useCallback((key: string | number)=>{
+    const fieldItem = field.find((f)=>f.key === key);
+    if(!fieldItem) return false;
+    return Object.values(fieldItem).every((v)=>v !== "" && v != null);
+  }, [field]);
+
+  const fieldsNotEmptyByIndex = useCallback((index: number)=>{
+    if(index < 0 || index >= field.length) return false;
+    const fieldItem = field[index];
+    return Object.values(fieldItem).every((v)=>v !== "" && v != null);
+  }, [field]);
+
+  const allFieldsNotEmpty = useCallback(()=>{
+    return field.every((fieldItem)=>{
+      return Object.values(fieldItem).every((v)=>v !== "" && v != null);
+    });
+  }, [field]);
+
   const contextGroupByKey = useCallback((key: string | number)=>{
     const index = field.findIndex((f)=>f.key === key);
     if(index === -1) return null;
@@ -147,6 +168,9 @@ export function CardFieldProvider({children, initialField}:PropsWithChildren<{in
     updateFieldByIndex,
     deleteFieldByKey,
     deleteFieldByIndex,
+    fieldsNotEmptyByKey,
+    fieldsNotEmptyByIndex,
+    allFieldsNotEmpty,
     contextGroupByKey,
     contextGroupByIndex,
   }}>

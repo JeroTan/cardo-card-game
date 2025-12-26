@@ -1,5 +1,5 @@
 import { defineApiResolve } from "@/lib/api/general";
-import { api } from "./config";
+import { apiAdmin } from "./config";
 import { zodLoginPasswordRequest } from "@/types/fields/loginWithPassword";
 import { onZodError } from "@/lib/zod/formatter";
 
@@ -7,7 +7,7 @@ import { onZodError } from "@/lib/zod/formatter";
 export const ApiLoginWithPasswordUser = defineApiResolve({
   input: zodLoginPasswordRequest,
   handler: async (data)=>{
-    return api().path("/auth/login-with-password").data(JSON.stringify(data)).post().request();
+    return apiAdmin().path("/auth/login-with-password").data(JSON.stringify(data)).post().request();
   },
   onZodError,
 });

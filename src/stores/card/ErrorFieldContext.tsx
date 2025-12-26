@@ -13,6 +13,7 @@ type PropsContext = {
   deleteFieldErrorByIndex: (index:number)=>void,
   checkIfFieldErrorExistsByKey: (key:string|number)=>boolean,
   checkIfFieldErrorExistsByIndex: (index:number)=>boolean,
+  checkAllHasNoError: ()=>boolean,
   getFieldErrorByKey: (key:string|number)=>{ key: string | number, message: string[] } | null,
   getFieldErrorByIndex: (index:number)=>{ key: string | number, message: string[] } | null,
   getFieldErrorQuick: (key:string|number)=>string[]|null,
@@ -110,6 +111,14 @@ export function ErrorFieldProvider({children}:React.PropsWithChildren<{}>){
     return index >=0 && index < fieldError.length;
   }, [fieldError]);
 
+  const checkAllHasNoError = useCallback(()=>{
+    if(fieldError.length === 0) return true;
+    if(fieldError.every((f)=>f.message.length <= 0)){
+      return true;
+    }
+    return false;
+  }, [fieldError]);
+
   const getFieldErrorByKey = useCallback((key: string | number)=>{
     return fieldError.find((f)=>f.key === key) || null;
   }, [fieldError]);
@@ -133,6 +142,7 @@ export function ErrorFieldProvider({children}:React.PropsWithChildren<{}>){
     deleteFieldErrorByIndex,
     checkIfFieldErrorExistsByKey,
     checkIfFieldErrorExistsByIndex,
+    checkAllHasNoError,
     getFieldErrorByKey,
     getFieldErrorByIndex, 
     getFieldErrorQuick,
