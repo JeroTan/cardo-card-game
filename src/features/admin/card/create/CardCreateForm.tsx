@@ -9,7 +9,8 @@ import { useDebounce } from "@uidotdev/usehooks"
 import useUpdateEffect from "react-use/lib/useUpdateEffect"
 import { zodValidateSchema } from "@/lib/zod/validator"
 import { zodCardCreate } from "@/types/fields/card/create"
-import CardContainerLayout from "@/components/card/CardContainerLayout"
+import CardLayoutDesigner from "@/components/card/CardLayoutDesigner"
+import { useId, useState } from "react"
 
 export default function CardCreateForm({
   field,
@@ -33,13 +34,15 @@ export default function CardCreateForm({
       updateErrorField({name: null});
     }
   }, [fieldNameDelay]);
+  const [rawImage, rawImageSet] = useState<File|null>(null);
+  const identifier = useId();
 
   return <>
     <form className="flex flex-wrap">
       <section className="basis-full">
         {/* Card Name */}
         <Field className="gap-1">
-          <FieldLabel htmlFor="card-name">
+          <FieldLabel htmlFor={identifier+"_card-name"}>
             Card Name
           </FieldLabel>
           <InputGroup>
@@ -47,7 +50,7 @@ export default function CardCreateForm({
               <Type />
             </InputGroupAddon>
             <InputGroupInput
-              id="card-name"
+              id={identifier+"_card-name"}
               aria-invalid={errorField.name != null ? "true" : "false"}
               placeholder="Enter name of the card"
               value={field.name}
@@ -61,7 +64,7 @@ export default function CardCreateForm({
         
         {/* Card Stat */}
         <Field className="gap-1 mb-7">
-          <FieldLabel htmlFor="card-attack-defense">
+          <FieldLabel htmlFor={identifier+"_card-attack-defense"}>
             Attack & Defense
           </FieldLabel>
           <InputGroup>
@@ -80,11 +83,11 @@ export default function CardCreateForm({
               >
                 <SelectTrigger 
                   className="w-full cursor-pointer"
-                  id="card-attack-defense"
+                  id={identifier+"_card-attack-defense"}
                 >
                   <SelectValue placeholder="Select Attack & Defense Value" />
                 </SelectTrigger>
-                <SelectContent  id="card-attack-defense" className="w-full">
+                <SelectContent  id={identifier+"_card-attack-defense"} className="w-full">
                   {Array.from({length: 11}, (_, i) => i).reverse().map((atk, def)=>{
                     if(def == 0) return null;
                     const atkTotal = atk%10;
@@ -112,33 +115,33 @@ export default function CardCreateForm({
         <div className="basis-1/2">
           {/* Card Art Upload */}
           <Field className="gap-1">
-            <FieldLabel htmlFor="card_art">
+            <FieldLabel htmlFor={identifier+"_card_art"}>
               Card Art
             </FieldLabel>
             <Input
-              id="card_art"
+              id={identifier+"_card_art"}
               className="hidden"
               type="file"
               accept="image/*"
               onChange={(e)=>{
                 const files = (e.target as HTMLInputElement).files;
                 if(files && files.length > 0){
-                  updateField({card_art: files[0]});
+                  rawImageSet(files[0]);
                   updateErrorField({card_art: null});
                 }
               }}
             />
             {
-              field.card_art ? <>
+              rawImage ? <>
                 <div className="flex justify-start gap-4">
                   {/* Image Preview */}
-                  <label htmlFor="card_art" className="cursor-pointer relative min-w-16 max-w-64 w-full">
+                  <label htmlFor={identifier+"_card_art"} className="cursor-pointer relative min-w-16 max-w-64 w-full">
                     <div className="absolute w-full aspect-[2/3] flex justify-center items-center z-10 bg-slate-500 hover:opacity-50 opacity-0 duration-200">
                       <ImagePlus size={96} className="text-slate-100"/>
                     </div>
                     <div className="w-full aspect-[2/3] border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
                       <img 
-                        src={URL.createObjectURL(field.card_art)} 
+                        src={URL.createObjectURL(rawImage)} 
                         alt="Card preview" 
                         className="w-full h-full object-cover"
                       />
@@ -147,7 +150,7 @@ export default function CardCreateForm({
                 </div>
               </> : <>
                 <label 
-                  htmlFor="card_art" 
+                  htmlFor={identifier+"_card_art"} 
                   className="group cursor-pointer border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -161,7 +164,7 @@ export default function CardCreateForm({
                     e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
                     const files = e.dataTransfer.files;
                     if (files && files.length > 0) {
-                      updateField({card_art: files[0]});
+                      rawImageSet(files[0]);
                       updateErrorField({card_art: null});
                     }
                   }}
@@ -188,11 +191,12 @@ export default function CardCreateForm({
             <h2 className="text-sm">Card Preview</h2>
           </div>
           <div>
-            <CardContainerLayout 
-              image="https://www.gamesradar.com/games/action-rpg/stellar-blade-devs-confirm-ps5-players-will-get-the-pc-versions-new-boss-fight-and-25-extra-costumes-in-a-free-update-as-the-action-rpg-escapes-console-exclusivity-next-month/"
+            <CardLayoutDesigner 
+              rawImage={rawImage}
               name={field.name}
               atk={field.atk}
               def={field.def}
+              updateCardImage={(newImage)=>updateField({card_art: newImage})}
             />
           </div>
         </div>
