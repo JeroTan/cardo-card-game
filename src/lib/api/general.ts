@@ -58,6 +58,7 @@ export function handleContentTypeMismatch(error: unknown){
 		const message = (error as { message: string }).message;
 		const errorMatch = [
 			"Content-Type",
+			"Failed to parse body as"
 		];
 		
 		if(message.includes(errorMatch[0])){
@@ -65,6 +66,12 @@ export function handleContentTypeMismatch(error: unknown){
 				message: "Invalid Content-Type Header",
 				error: message,
 			}, {status: 415});
+		}
+		if(message.includes(errorMatch[1])){
+			return Response.json({
+				message: "Failed to parse body as per Content-Type Header",
+				error: message,
+			}, {status: 400});
 		}
 	}
 }
