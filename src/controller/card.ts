@@ -10,7 +10,7 @@ export class CardController {
   ){}
   
   public getAllCards = async ({env, queryProps, pageProps, origin = ""}:{env:Env, queryProps?:QueryProps, pageProps?: PageProps, origin?: string}) => {
-    const { data: cards, error } = await this.cardService.get({env, queryProps, pageProps});
+    const { data: cards, error } = await this.cardService.getCardsWithPacks({env, queryProps, pageProps});
     if(error || !cards) {
       return Response.json({
         message: error || "No cards found",
@@ -33,7 +33,25 @@ export class CardController {
       message: "Cards retrieved successfully",
       data: cards,
     });
-  } 
+  }
+
+  public getCardById = async ({env, id, origin = ""}:{env:Env, id:string, origin?: string}) => {
+    const { data: card, error } = await this.cardService.getCardWithPacksById(env, id);
+    if(error || !card) {
+      return Response.json({
+        message: error || "Card not found",
+        data: null,
+      }, {
+        status: 422
+      });
+    }
+    // In order to provide full URL for card image
+    card.card_art = `${origin}/api/public/resources/card/${card.card_art}`;
+    return Response.json({
+      message: "Card retrieved successfully",
+      data: card,
+    });
+  }
 
   public createCard = async ({cardData, env}:{cardData: typeCardCreate, env:Env}) => {
 

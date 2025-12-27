@@ -1,4 +1,4 @@
-import type { UserAccountController } from "@/controller/admin/userAccount";
+import type { UserAccountController } from "@/controller/userAccount";
 import { typedAstroCookies, typedEnv, typedUrlData } from "@/lib/elysia";
 import { tboxLoginWithPasswordUsingEmailOrUsername, tboxRegisterWithPassword, tboxResetPasswordWithToken } from "@/types/api/auth";
 import { Elysia, t} from "elysia";

@@ -1,7 +1,7 @@
-import type { AdminAccountController } from '@/controller/admin/adminAccount';
-import type { CardController } from '@/controller/admin/card';
-import type { CardPackController } from '@/controller/admin/cardPacks';
-import type { UserAccountController } from '@/controller/admin/userAccount';
+import type { AdminAccountController } from '@/controller/adminAccount';
+import type { CardController } from '@/controller/card';
+import type { CardPackController } from '@/controller/cardPacks';
+import type { UserAccountController } from '@/controller/userAccount';
 import { typedAstroCookies, typedEnv, typedUrlData } from '@/lib/elysia';
 import { tboxCreateAdminAccount } from '@/types/api/admin';
 import { tboxLoginWithPassword, tboxResetPasswordWithToken } from '@/types/api/auth';
@@ -43,6 +43,18 @@ export function AdminRoutes({
       transform({query}){
         getQueryTransformer(query);
       }
+    })
+    //====================================================================================//
+    .get("/cards/:id", ({params, env, urlData})=>{
+      return cardController.getCardById({env, id: params.id, origin: urlData.origin});
+    }, {
+      params: t.Object({
+        id: t.String()
+      }),
+      detail: {
+        summary: 'Get card by ID',
+        tags: ['Admin Cards Management']
+      },
     })
     //====================================================================================//
     .post("/cards", ({body, env})=>{

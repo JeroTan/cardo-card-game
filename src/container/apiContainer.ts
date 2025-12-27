@@ -1,10 +1,10 @@
 import { AdminRoutes } from '@/api/routes/admin';
 import { PlayerRoutes } from '@/api/routes/player';
 import { ResourcesRoutes } from '@/api/routes/resources';
-import { AdminAccountController } from '@/controller/admin/adminAccount';
-import { CardController } from '@/controller/admin/card';
-import { CardPackController } from '@/controller/admin/cardPacks';
-import { UserAccountController } from '@/controller/admin/userAccount';
+import { AdminAccountController } from '@/controller/adminAccount';
+import { CardController } from '@/controller/card';
+import { CardPackController } from '@/controller/cardPacks';
+import { UserAccountController } from '@/controller/userAccount';
 import { handleContentTypeMismatch, handleFieldValidation } from '@/lib/api/general';
 import { AdminAccountService } from '@/services/adminAccount';
 import { CardService } from '@/services/card';
