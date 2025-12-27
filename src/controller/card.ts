@@ -31,7 +31,7 @@ export class CardController {
 
     return Response.json({
       message: "Cards retrieved successfully",
-      data: cards,
+      ...cards
     });
   }
 

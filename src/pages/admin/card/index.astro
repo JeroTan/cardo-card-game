@@ -1,5 +1,12 @@
 ---
+import CardListPage from "@/features/admin/card/list/CardListPage";
 import PagePlateAdmin from "@/layouts/PagePlateAdmin.astro";
+
+const page = Number(Astro.url.searchParams.get("page") || "1");
+
 ---
 <PagePlateAdmin title="Admin Dashboard - CARDO" >
+  <main class="mx-auto max-w-300 w-full my-10">
+    <CardListPage page={page} client:load />
+  </main>
 </PagePlateAdmin>

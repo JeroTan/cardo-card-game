@@ -95,14 +95,14 @@ export default function DashboardMenu({ stats = {
               <CardContent>
                 {/* Icon */}
                 <div className="flex justify-center">
-                  <div className={`relative rounded-full p-3 bg-slate-200 bg-opacity-10 transition-transform group-hover:scale-110`}>
+                  <div className={`relative rounded-full p-3 bg-zinc-200 bg-opacity-10 transition-transform group-hover:scale-110`}>
                     <item.icon color={"gray"} className={`size-8`} />
                   </div>
                 </div>
                 
                 {/* Content */}
                 <div className="text-center mt-3">
-                  <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                  <h3 className="text-lg group-hover:text-primary transition-colors">
                     {item.title}
                   </h3>
                   <p className="text-sm text-muted-foreground">

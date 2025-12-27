@@ -78,3 +78,31 @@ export function getQueryTransformer(query: Record<string|number, any>){
   Object.assign(query, transformedQuery);
   return transformedQuery;
 }
+
+export function fromPropsToQueryParams(props: QueryProps & PageProps): Record<string, string> {
+  const queryParams: Record<string, string> = {};
+
+  // Handle search
+  if (props.search) {
+    queryParams['search'] = props.search;
+  }
+  // Handle filter
+  for (const filter of props.filter) {
+    const prefix = filter.type === 'not_in' ? '-' : '';
+    queryParams[`${prefix}filter[${filter.field}]`] = filter.values.join(',');
+  }
+  // Handle sort
+  if (props.sort.length > 0) {
+    const sortParams = props.sort.map(s => (s.direction === 'desc' ? `-${s.field}` : s.field));
+    queryParams['sort'] = sortParams.join(',');
+  }
+  // Handle page
+  if (props.page) {
+    queryParams['page'] = props.page.toString();
+  }
+  // Handle limit
+  if (props.limit) {
+    queryParams['limit'] = props.limit.toString();
+  }
+  return queryParams;
+}

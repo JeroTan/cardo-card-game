@@ -14,7 +14,7 @@ const roomUrl = `${Astro.url.origin}/chatroom/${roomId}`;
 			<div class="flex justify-between items-center">
 				<div>
 					<h1 class="text-3xl font-bold mb-2">Room: {roomId}</h1>
-					<p class="text-gray-600">Share this link with others to join</p>
+					<p class="text-zinc-600">Share this link with others to join</p>
 				</div>
 				<button
 					id="copyLink"
@@ -23,7 +23,7 @@ const roomUrl = `${Astro.url.origin}/chatroom/${roomId}`;
 					Copy Link
 				</button>
 			</div>
-			<div class="mt-4 p-3 bg-gray-100 rounded border border-gray-300 break-all text-sm">
+			<div class="mt-4 p-3 bg-zinc-100 rounded border border-zinc-300 break-all text-sm">
 				{roomUrl}
 			</div>
 		</div>
@@ -36,8 +36,8 @@ const roomUrl = `${Astro.url.origin}/chatroom/${roomId}`;
 			</div>
 
 			<!-- Messages -->
-			<div id="messages" class="h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 mb-4 space-y-2">
-				<p class="text-gray-500 text-center">No messages yet. Start chatting!</p>
+			<div id="messages" class="h-96 overflow-y-auto border border-zinc-200 rounded-lg p-4 mb-4 space-y-2">
+				<p class="text-zinc-500 text-center">No messages yet. Start chatting!</p>
 			</div>
 
 			<!-- Input -->
@@ -46,7 +46,7 @@ const roomUrl = `${Astro.url.origin}/chatroom/${roomId}`;
 					type="text"
 					id="messageInput"
 					placeholder="Type a message..."
-					class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+					class="flex-1 px-4 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
 					disabled
 				/>
 				<button
@@ -85,12 +85,12 @@ const roomUrl = `${Astro.url.origin}/chatroom/${roomId}`;
 
 		function addMessage(message: string, isOwn: boolean = false): void {
 			// Clear "no messages" text
-			if (messagesDiv.querySelector("p.text-gray-500")) {
+			if (messagesDiv.querySelector("p.text-zinc-500")) {
 				messagesDiv.innerHTML = "";
 			}
 
 			const msgDiv = document.createElement("div");
-			msgDiv.className = `p-3 rounded-lg ${isOwn ? "bg-blue-100 ml-auto" : "bg-gray-100"} max-w-[80%] text-wrap break-all`;
+			msgDiv.className = `p-3 rounded-lg ${isOwn ? "bg-blue-100 ml-auto" : "bg-zinc-100"} max-w-[80%] text-wrap break-all`;
 			msgDiv.textContent = message;
 			messagesDiv.appendChild(msgDiv);
 			messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -98,7 +98,7 @@ const roomUrl = `${Astro.url.origin}/chatroom/${roomId}`;
 
 		function addSystemMessage(message: string): void {
 			// Clear "no messages" text
-			if (messagesDiv.querySelector("p.text-gray-500")) {
+			if (messagesDiv.querySelector("p.text-zinc-500")) {
 				messagesDiv.innerHTML = "";
 			}
 

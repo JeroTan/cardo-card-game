@@ -2,6 +2,9 @@ import { defineApiResolve } from "@/lib/api/general";
 import { onZodError } from "@/lib/zod/formatter";
 import { zodCardCreate } from "@/types/fields/card/create";
 import { apiAdmin } from "./config";
+import z from "zod";
+import { zodPageAndQueryProps } from "@/types/model/filter";
+import { fromPropsToQueryParams } from "@/utils/api/query";
 
 export const apiCreateCard = defineApiResolve({
   input: zodCardCreate,
@@ -19,4 +22,16 @@ export const apiCreateCard = defineApiResolve({
       .request();
   },
   onZodError
-})
+});
+
+export const apiGetCards = defineApiResolve({
+  input: zodPageAndQueryProps,
+  handler: async (query)=>{
+    return apiAdmin()
+    .path("/cards")
+    .params(fromPropsToQueryParams(query))
+    .get()
+    .request();
+  },
+  onZodError,
+});

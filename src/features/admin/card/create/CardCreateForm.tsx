@@ -136,10 +136,10 @@ export default function CardCreateForm({
                 <div className="flex justify-start gap-4">
                   {/* Image Preview */}
                   <label htmlFor={identifier+"_card_art"} className="cursor-pointer relative min-w-16 max-w-64 w-full">
-                    <div className="absolute w-full aspect-[2/3] flex justify-center items-center z-10 bg-slate-500 hover:opacity-50 opacity-0 duration-200">
-                      <ImagePlus size={96} className="text-slate-100"/>
+                    <div className="absolute w-full aspect-[2/3] flex justify-center items-center z-10 bg-zinc-500 hover:opacity-50 opacity-0 duration-200">
+                      <ImagePlus size={96} className="text-zinc-100"/>
                     </div>
-                    <div className="w-full aspect-[2/3] border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                    <div className="w-full aspect-[2/3] border-2 border-zinc-300 rounded-lg overflow-hidden bg-zinc-50">
                       <img 
                         src={URL.createObjectURL(rawImage)} 
                         alt="Card preview" 
@@ -151,7 +151,7 @@ export default function CardCreateForm({
               </> : <>
                 <label 
                   htmlFor={identifier+"_card_art"} 
-                  className="group cursor-pointer border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
+                  className="group cursor-pointer border-2 border-dashed border-zinc-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
                   onDragOver={(e) => {
                     e.preventDefault();
                     e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
@@ -170,13 +170,13 @@ export default function CardCreateForm({
                   }}
                 >
                   <div className="space-y-2">
-                    <ImagePlus className="mx-auto text-slate-500"/>
-                    <div className="text-sm text-slate-600">
-                      <span className="font-medium text-slate-300 group-hover:text-blue-400 transition-colors">
+                    <ImagePlus className="mx-auto text-zinc-500"/>
+                    <div className="text-sm text-zinc-600">
+                      <span className="font-medium text-zinc-300 group-hover:text-blue-400 transition-colors">
                         Click to upload
                       </span> or drag and drop
                     </div>
-                    <p className="text-xs text-slate-500">PNG, JPG, GIF up to 10MB</p>
+                    <p className="text-xs text-zinc-500">PNG, JPG, GIF up to 10MB</p>
                   </div>
                 </label>
               </>

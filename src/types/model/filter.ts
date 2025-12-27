@@ -1,26 +1,38 @@
-export type FilterData = {
-  field: string,
-  values: Array<string>,
-  type: "in"|"not_in",
-}
+import z from "zod"
 
-export type SortData = {
-  field: string,
-  direction: "asc" | "desc",
-}
+export const zodFilterData = z.object({
+  field: z.string(),
+  values: z.array(z.string()),
+  type: z.enum(["in", "not_in"]),
+});
 
-export type QueryProps = {
-  search: string|null,
-  filter: Array<FilterData>,
-  sort: Array<SortData>,
-}
+export type FilterData = z.infer<typeof zodFilterData>;
 
-export type PageProps = {
-  page: number,
-  limit: number,
-}
+export const zodSortData = z.object({
+  field: z.string(),
+  direction: z.enum(["asc", "desc"]),
+});
+
+export type SortData = z.infer<typeof zodSortData>;
+
+export const zodQueryProps = z.object({
+  search: z.string().nullable(),
+  filter: z.array(zodFilterData),
+  sort: z.array(zodSortData),
+});
+export type QueryProps = z.infer<typeof zodQueryProps>;
+
+export const zodPageProps = z.object({
+  page: z.number().min(1).default(1),
+  limit: z.number().min(1).max(100).default(10),
+});
+
+export type PageProps = z.infer<typeof zodPageProps>;
 
 /**
  * Sample Query Params
  * ?search=dragon&filter[status]=active&-filter[type]=fire,ghost&sort=-level,name,-created_at
  */
+
+export const zodPageAndQueryProps = z.intersection(zodQueryProps, zodPageProps);
+export type PageAndQueryProps = z.infer<typeof zodPageAndQueryProps>;

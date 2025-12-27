@@ -129,7 +129,7 @@ export default function CardLayoutDesigner({
                   backgroundColor: '#e5e7eb'
                 }}
               >
-                <ImageOff size={80} className="text-gray-400" />
+                <ImageOff size={80} className="text-zinc-400" />
               </div>
             </foreignObject>
           )}
