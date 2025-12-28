@@ -3,13 +3,15 @@ import { Card } from "../ui/card";
 type Props = {
   leftChildren?: ReactNode,
   rightChildren?: ReactNode,
+  className?:string,
 }
 export default function NavigationBar({
   leftChildren,
   rightChildren,
+  className,
 }:Props){
-  return <nav className="">
-    <Card className="w-full flex sm:flex-nowrap flex-wrap justify-between items-center">
+  return <nav className={className}>
+    <Card className="w-full flex-row flex sm:flex-nowrap flex-wrap items-center gap-2 py-2 px-2">
       {leftChildren}
       {rightChildren}
     </Card>

@@ -162,7 +162,7 @@ export default function ModalBase(props: { reducer: ReturnType<typeof useModalRe
 					) : (
 						<>
 							<DialogHeader>
-								<DialogTitle className="flex items-center gap-1">
+								<DialogTitle className="flex items-center gap-1 font-normal">
 									{state.icon}
 									{state.title}
 								</DialogTitle>

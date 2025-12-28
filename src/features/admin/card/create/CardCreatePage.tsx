@@ -141,7 +141,7 @@ function CardCreateComposer(){
         <Button 
           variant={"default"} 
           className="min-w-fit max-w-full w-1/3" 
-          disabled={!allowedToSubmit || (cardStatuses.length > 1 && cardStatuses.every((e)=>e.status === "UPLOADING" || e.status ==="COMPLETED"))} 
+          disabled={!allowedToSubmit || (cardStatuses.length > 0 && cardStatuses.every((e)=>e.status === "UPLOADING" || e.status ==="COMPLETED"))} 
           onClick={submitCards}
         >
           Submit

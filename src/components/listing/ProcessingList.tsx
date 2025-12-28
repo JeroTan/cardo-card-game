@@ -9,3 +9,10 @@ export default function ProcessingList(){
 
   </>
 }
+export function ProcessingListLarge(){
+  return <>
+    <Skeleton className="h-64 w-full mb-2"/>
+    <Skeleton className="h-64 w-full mb-2"/>
+    <Skeleton className="h-32 w-full mb-2"/>
+  </>
+}

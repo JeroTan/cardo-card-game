@@ -1,12 +1,19 @@
 ---
 import CardListPage from "@/features/admin/card/list/CardListPage";
 import PagePlateAdmin from "@/layouts/PagePlateAdmin.astro";
+import { Skeleton } from "@/components/ui/skeleton";
+import ProcessingList, { ProcessingListLarge } from "@/components/listing/ProcessingList";
 
 const page = Number(Astro.url.searchParams.get("page") || "1");
 
 ---
 <PagePlateAdmin title="Admin Dashboard - CARDO" >
   <main class="mx-auto max-w-300 w-full my-10">
-    <CardListPage page={page} client:load />
+    <CardListPage page={page} client:only="react" server:defer >
+      <div slot="fallback">
+        <Skeleton client:load className="w-full h-30 mb-2" />
+        <ProcessingListLarge client:load />
+      </div>
+    </CardListPage> 
   </main>
 </PagePlateAdmin>

@@ -4,7 +4,8 @@ export const clientEndpointsForAdmin = [
   "/auth/login-with-password",
 
   // Card Management
-  "/cards"
+  "/cards",
+  `/cards/{cardId}` as `/cards/${string|number}`,
 ] as const;
 type ClientEndpoint = typeof clientEndpointsForAdmin[number];
 

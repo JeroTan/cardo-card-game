@@ -75,7 +75,6 @@ export default function CardCreateForm({
               <Select
                 value={`${field.atk}/${field.def}`}
                 onValueChange={(value)=>{
-                    console.log("Selected Attack/Defense:", value);
                     const splitValue = value.split("/").map((v)=>parseInt(v, 10));
                     updateField({atk: splitValue[0], def: splitValue[1]});
                     updateErrorField({atk: null, def: null});

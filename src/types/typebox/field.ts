@@ -112,7 +112,7 @@ export function tboxFile({fieldName = "File", fileTypes = ['image/jpeg']}:{field
 }
 
 export function tboxImage({fieldName = "Image"}:{fieldName?: string} = {}){
-  const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
   return tboxFile({fieldName, fileTypes: imageTypes});
 }
 

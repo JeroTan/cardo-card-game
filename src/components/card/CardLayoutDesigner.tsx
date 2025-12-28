@@ -1,6 +1,6 @@
-import {convertBase64ToFile, convertFileToBase64, resizeAndCropImage} from "@jsarmyknife/native--file";
+import {convertBase64ToFileV2, convertFileToBase64, resizeAndCropImage} from "@jsarmyknife/native--file";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { toPng } from 'html-to-image';
+import { toPng, toSvg } from 'html-to-image';
 import { ImageOff } from "lucide-react";
 import { LoaderCircle } from "../animate-ui/icons/loader-circle";
 import { useDebounce } from "@uidotdev/usehooks";
@@ -34,7 +34,7 @@ export default function CardLayoutDesigner({
       // First Step: downsize the image to 400x600  but maintain the original image  aspect ratio. The overflow should be more than 400 if width or 600 if height whichever the case.
       // Second Step: Crop it to make 2x3 ratio
       // Last Step convert image to base64
-      const updatedImage = await resizeAndCropImage({rawImage, downsizingTo:{width:369*2, height:539*2}, targetCrop:`369x539`});
+      const updatedImage = await resizeAndCropImage({rawImage, downsizingTo:{width:369, height:539}, targetCrop:`369x539`});
       const base64Image = (await convertFileToBase64(updatedImage)) as string;
       refinedImageSet(base64Image);
     })
@@ -45,10 +45,11 @@ export default function CardLayoutDesigner({
     // If updateCardImage is provided, call it to update the parent state with the new image as png format
     if(updateCardImage){
       // using html to image
-      toPng(svgRef.current as unknown as HTMLElement).then((dataUrl)=>{
-        const img = new Image();
-        img.src = dataUrl;
-        updateCardImage(convertBase64ToFile(dataUrl, `card_image.png`));
+      toSvg(svgRef.current as unknown as HTMLElement, {
+        height:600,
+        width:400,
+      }).then(async(dataUrl)=>{
+        updateCardImage(await convertBase64ToFileV2(dataUrl, `card_image.svg`));
       })
     }
   }, [refinedImage, atk, def, refinedName]);
@@ -67,6 +68,7 @@ export default function CardLayoutDesigner({
         <path
           d="M0 20C0 8.95432 8.95431 0 20 0H380C391.046 0 400 8.95431 400 20V580C400 591.046 391.046 600 380 600H20C8.95431 600 0 591.046 0 580V20Z"
           fill="#111219"
+          stroke="#767778"
         />
         <path
           d="M15 55C15 32.9086 32.9086 15 55 15H344C366.091 15 384 32.9086 384 55V514C384 536.091 366.091 554 344 554H55C32.9086 554 15 536.091 15 514V55Z"
@@ -135,17 +137,11 @@ export default function CardLayoutDesigner({
           )}
         </g>
         <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M360 0C382.091 5.15408e-06 400 17.9086 400 40V560C400 582.091 382.091 600 360 600H40C17.9086 600 1.1276e-06 582.091 0 560V40C0 17.9086 17.9086 3.2213e-07 40 0H360ZM56 16C33.9086 16 16 33.9086 16 56V544C16 566.091 33.9086 584 56 584H344C366.091 584 384 566.091 384 544V56C384 33.9086 366.091 16 344 16H56Z"
+          d="M10 47C10 27.1177 26.1177 11 46 11H58V94C58 105.046 49.0457 114 38 114H10V47Z"
           fill="#111219"
         />
         <path
-          d="M15 51C15 31.1178 31.1177 15 51 15H58V94C58 105.046 49.0457 114 38 114H15V51Z"
-          fill="#111219"
-        />
-        <path
-          d="M387 51C387 31.1178 370.882 15 351 15H342V94C342 105.046 350.954 114 362 114H387V51Z"
+          d="M389 45C389 25.1177 372.882 9 353 9H342V94C342 105.046 350.954 114 362 114H389V45Z"
           fill="#111219"
         />
         {/* Defense Number */}
@@ -218,8 +214,6 @@ export default function CardLayoutDesigner({
         
       </defs>
     </svg>
-
   </>
 }
-
 
