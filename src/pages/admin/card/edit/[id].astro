@@ -1,5 +1,22 @@
 ---
+import { ProcessingListLarge } from "@/components/listing/ProcessingList";
+import { Skeleton } from "@/components/ui/skeleton";
+import CardEditPage from "@/features/admin/card/edit/CardEditPage";
 import PagePlateAdmin from "@/layouts/PagePlateAdmin.astro";
+const id = Astro.params.id;
+if(id === undefined){
+  throw new Error("ID is undefined");
+}
 ---
 <PagePlateAdmin title="Admin Dashboard - CARDO" >
+  <div class="flex justify-center px-2">
+    <div class="basis-2xl mt-5">
+      <h1 class="text-2xl font-bold mb-6">Edit Card</h1>
+      <CardEditPage id={id} client:only="react" server:defer >
+        <div slot="fallback">
+          <ProcessingListLarge  />
+        </div>
+      </CardEditPage>
+    </div>
+  </div>
 </PagePlateAdmin>

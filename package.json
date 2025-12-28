@@ -23,7 +23,7 @@
 		"@elysiajs/cors": "^1.4.0",
 		"@elysiajs/node": "^1.4.2",
 		"@elysiajs/openapi": "^1.4.11",
-		"@jsarmyknife/native--file": "^2.1.1-beta.0",
+		"@jsarmyknife/native--file": "^2.2.0-beta.0",
 		"@jsarmyknife/native--http": "^0.2.1-beta.0",
 		"@jsarmyknife/native--parse": "^0.1.11-beta.0",
 		"@jsarmyknife/native--storage": "^0.2.0-beta.0",

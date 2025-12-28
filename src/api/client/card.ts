@@ -36,6 +36,17 @@ export const apiGetCards = defineApiResolve({
   onZodError,
 });
 
+export const apiGetCardDetail = defineApiResolve({
+  input: z.uuid(),
+  handler: async (cardId)=>{
+    return apiAdmin()
+      .path(`/cards/${cardId}`)
+      .get()
+      .request();
+  },
+  onZodError,
+})
+
 export const apiDeleteCard = defineApiResolve({
   input: z.uuid(),
   handler: async (cardId)=>{
