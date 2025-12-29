@@ -5,6 +5,7 @@ import { apiAdmin } from "./config";
 import z from "zod";
 import { zodPageAndQueryProps } from "@/types/model/filter";
 import { fromPropsToQueryParams } from "@/utils/api/query";
+import { zodCardUpdate } from "@/types/fields/card/update";
 
 export const apiCreateCard = defineApiResolve({
   input: zodCardCreate,
@@ -42,6 +43,25 @@ export const apiGetCardDetail = defineApiResolve({
     return apiAdmin()
       .path(`/cards/${cardId}`)
       .get()
+      .request();
+  },
+  onZodError,
+});
+
+export const apiUpdateCard = defineApiResolve({
+  input: zodCardUpdate,
+  handler: async ({id, ...data})=>{
+    const formData = new FormData();
+    for(const key in data){
+      if(key == "key") continue;
+      if(data[key as keyof typeof data] === undefined) continue;
+      formData.append(key, data[key as keyof typeof data] as string | Blob);
+    }
+    return apiAdmin()
+      .path(`/cards/${id}`)
+      .headers({"Content-Type": undefined}, true)
+      .patch()
+      .data(formData)
       .request();
   },
   onZodError,

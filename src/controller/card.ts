@@ -78,7 +78,56 @@ export class CardController {
       }, {status: 500});
     }
 
-    return result;
+    return Response.json({
+      data: result.data,
+      message: "Card created successfully",
+    });
+  }
+
+  public updateCard = async ({env, id, cardData}:{env:Env, id:string, cardData: Partial<typeCardCreate>}) => {
+
+    // get the previous data 
+    const previous = await this.cardService.getById(env, id);
+    if(previous.error){
+      return Response.json({
+        message: "Failed to get previous card data",
+      }, {status: 500})
+    }
+    if(previous.data == null){
+      return Response.json({
+        message: "Card not found",
+      }, {status: 404})
+    }
+
+    if(cardData.card_art){
+      await uploadCardImage({env, id: previous.data.card_art, file:cardData.card_art});
+      delete cardData.card_art;
+      if(Object.keys(cardData).length === 0){
+        return Response.json({
+          message: "Card updated successfully",
+          data: previous.data,
+        });
+      }
+    }
+
+    const toUpdateCard:{
+      name?:string,
+      atk?:number,
+      def?:number,
+    } = {
+      ...cardData,
+    };
+    
+    const result = await this.cardService.update(env, id, toUpdateCard);
+    if(result.error){
+      return Response.json({
+        message: result.error,
+      }, {status: 422});
+    }
+    return Response.json({
+      message: "Card updated successfully",
+      data: result.data,
+    });
   }
 
   public deleteCard = async ({env, id}:{env:Env, id:string}) => {

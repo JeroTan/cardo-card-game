@@ -5,7 +5,7 @@ import type { UserAccountController } from '@/controller/userAccount';
 import { typedAstroCookies, typedEnv, typedUrlData } from '@/lib/elysia';
 import { tboxCreateAdminAccount } from '@/types/api/admin';
 import { tboxLoginWithPassword, tboxResetPasswordWithToken } from '@/types/api/auth';
-import { tboxCardCreate, tboxCardPackAddCards, tboxCardPackCreate, tboxCardPackUpdate, tboxCardPackUpdateCards } from '@/types/api/card';
+import { tboxCardCreate, tboxCardPackAddCards, tboxCardPackCreate, tboxCardPackUpdate, tboxCardPackUpdateCards, tboxCardUpdate } from '@/types/api/card';
 import { tboxQueryParams, tboxPaginationParams } from '@/types/api/query';
 import { tboxCreateUserAccount, tboxUpdateUserAccount } from '@/types/api/user';
 import { convertQueriesToPageAndQueryProps, getQueryTransformer } from '@/utils/api/query';
@@ -66,6 +66,20 @@ export function AdminRoutes({
         summary: 'Create a new card',
         tags: ['Admin Cards Management']
       },
+      transform({body}){
+        if(body?.atk && typeof body.atk === 'string'){
+          body.atk = Number(body.atk);
+        }
+        if(body?.def && typeof body.def === 'string'){
+          body.def = Number(body.def);
+        }
+      }
+    })
+    .patch("/cards/:id", ({params, body, env})=>{
+      return cardController.updateCard({env, id: params.id, cardData: body});
+    }, {
+      type: "multipart/form-data",
+      body: tboxCardUpdate,
       transform({body}){
         if(body?.atk && typeof body.atk === 'string'){
           body.atk = Number(body.atk);

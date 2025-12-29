@@ -12,6 +12,12 @@ export const tboxCardCreate = t.Object({
 // export type typeCardCreate = z.infer<typeof zodCardCreate>;
 export type typeCardCreate = Static<typeof tboxCardCreate>;
 
+export const tboxCardUpdate = t.Object({
+  name: t.Optional(tboxName({fieldName: "Card Name"})),
+  atk: t.Optional(tbox0To9({fieldName: "Attack"})),
+  def: t.Optional(tbox0To9({fieldName: "Defense"})),
+  card_art: t.Optional(tboxImage({fieldName: "Card Art"})),
+});
 
 export const tboxCardPackCreate = t.Object({
   pack: t.Object({
