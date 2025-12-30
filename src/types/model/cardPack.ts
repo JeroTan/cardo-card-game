@@ -26,4 +26,4 @@ export type ModelCardPackCards = {
 export type ModelCardPackCardsCreate = Omit<ModelCardPackCards, 'id'>;
 export type ModelCardPackCardsUpdate = Partial<ModelCardPackCardsCreate>;
 
-export type ModelCardPackCardsWitCardDetails = ModelCardPackCards & Omit<ModelCardRaw, 'id' | 'created_at' | 'updated_at'>;
+export type ModelCardPackCardsWitCardDetails = ModelCardPackCards & Omit<ModelCardRaw, 'created_at' | 'updated_at'>;

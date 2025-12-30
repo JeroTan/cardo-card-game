@@ -25,7 +25,7 @@ export class CardPackController {
 
     return Response.json({
       message: "Card packs retrieved successfully",
-      data: cardPacks,
+      ...cardPacks,
     });
   }
 

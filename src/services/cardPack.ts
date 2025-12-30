@@ -62,6 +62,7 @@ export class CardPackService {
           'card_pack_cards.id',
           'card_pack_cards.card_pack_id',
           'card_pack_cards.card_id',
+          'card.id',
           'card.name',
           'card.rarity',
           'card.atk',
