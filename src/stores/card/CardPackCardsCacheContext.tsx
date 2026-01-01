@@ -54,9 +54,7 @@ export function CardPackCardsCachedProvider({children}: {children: React.ReactNo
   const get = useCallback((id: string): CardPackCardsCachedType | undefined=>{
     return cachedData.find(d=>d.id === id);
   }, [cachedData]);
-
-
-
+  
   return <CardPackCardsCachedContext.Provider value={{
     cachedData,
     set,

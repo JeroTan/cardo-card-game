@@ -1,0 +1,17 @@
+---
+import { ProcessingListLarge } from "@/components/listing/ProcessingList";
+import { Skeleton } from "@/components/ui/skeleton";
+import PackCreatePage from "@/features/admin/pack/create/PackCreatePage";
+import PagePlateAdmin from "@/layouts/PagePlateAdmin.astro";
+
+---
+<PagePlateAdmin title="Admin Dashboard - CARDO" >
+<main class="mx-auto max-w-full w-full my-10">
+    <PackCreatePage client:only="react" server:defer >
+      <div slot="fallback">
+        <Skeleton client:load className="w-full h-30 mb-2" />
+        <ProcessingListLarge client:load />
+      </div>
+    </PackCreatePage>
+  </main> 
+</PagePlateAdmin>
