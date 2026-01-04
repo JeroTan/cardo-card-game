@@ -45,6 +45,15 @@ export function AdminRoutes({
       }
     })
     //====================================================================================//
+    .get("/cards-no-packs", ({env, urlData})=>{
+      return cardController.getAllCardsNoPacks({env, origin: urlData.origin});
+    }, {
+      detail: {
+        summary: 'Get all cards as flat list or a simple one without the pack it belongs to',
+        tags: ['Admin Cards Management']
+      },
+    })
+    //====================================================================================//
     .get("/cards/:id", ({params, env, urlData})=>{
       return cardController.getCardById({env, id: params.id, origin: urlData.origin});
     }, {

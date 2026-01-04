@@ -1,5 +1,5 @@
 import type { ModelCardRaw } from "@/types/model/cards";
-import { createContext, useCallback, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 
 export type CardPackCardsCachedType = {
   id: string,
@@ -16,7 +16,7 @@ export type CardPackCardsCachedContextType = {
 
 export const CardPackCardsCachedContext = createContext<CardPackCardsCachedContextType>(null!);
 
-export function CardPackCardsCachedProvider({children}: {children: React.ReactNode}) {
+export function CardPackCardsCachedProvider({children}: {children?: React.ReactNode}) {
 
   const [cachedData, cachedDataList] = useState<Array<CardPackCardsCachedType>>([]);
 
@@ -65,3 +65,7 @@ export function CardPackCardsCachedProvider({children}: {children: React.ReactNo
     {children}
   </CardPackCardsCachedContext.Provider>
 }
+
+export function useCardPackCardsCachedContext() {
+  return useContext(CardPackCardsCachedContext);
+} 

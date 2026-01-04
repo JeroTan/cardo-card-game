@@ -5,6 +5,7 @@ export const clientEndpointsForAdmin = [
 
   // Card Management
   "/cards",
+  `/cards-no-packs`,
   `/cards/{cardId}` as `/cards/${string|number}`,
 
   // Card Pack Management

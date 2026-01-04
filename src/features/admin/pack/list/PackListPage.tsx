@@ -40,12 +40,13 @@ export function Composer(){
   const {orderedSortData, getSortDataSure, togglerSort} = useSortContext();
   const sortDebounce = useDebounce(orderedSortData, 200);
   const [search, searchSet] = useState<string>("");
+  const searchDebounce = useDebounce(search, 200);  
 
   const fetchCards = useCallback(()=>{
     return apiGetCardPacks({
       page,
       limit: 20,
-      search: search,
+      search: searchDebounce,
       filter: [],
       sort: orderedSortData,
     }).s200(({data, totalPages}:PageResult<ModelCardPackCards[]>)=>{
@@ -79,7 +80,7 @@ export function Composer(){
       </div>}
       rightChildren={<div className="flex flex-wrap gap-2">
         <Button asChild>
-          <a href="/admin/card/create"><PlusCircle/> Add Card Packs</a>
+          <a href="/admin/card-pack/create"><PlusCircle/> Add Card Packs</a>
         </Button>
         <SortButton 
           sort={getSortDataSure("created_at").direction}

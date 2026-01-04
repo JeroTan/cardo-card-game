@@ -37,6 +37,18 @@ export const apiGetCards = defineApiResolve({
   onZodError,
 });
 
+export const apiGetCardsNoPacks = defineApiResolve({
+  input: zodPageAndQueryProps,
+  handler: async (query)=>{
+    return apiAdmin()
+    .path("/cards-no-packs")
+    .params(fromPropsToQueryParams(query))
+    .get()
+    .request();
+  },
+  onZodError,
+})
+
 export const apiGetCardDetail = defineApiResolve({
   input: z.uuid(),
   handler: async (cardId)=>{

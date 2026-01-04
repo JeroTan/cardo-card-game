@@ -17,3 +17,16 @@ export default function NavigationBar({
     </Card>
   </nav>
 }
+
+export function NavigationBarClean({
+  leftChildren,
+  rightChildren,
+  className,
+}:Props){
+  return <nav className={className}>
+    <div className="w-full flex-row flex @lg:flex-nowrap flex-wrap items-center gap-2 py-2 px-2">
+      {leftChildren}
+      {rightChildren}
+    </div>
+  </nav>
+}

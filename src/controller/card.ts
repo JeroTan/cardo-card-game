@@ -35,6 +35,30 @@ export class CardController {
     });
   }
 
+  public getAllCardsNoPacks = async ({env, queryProps, pageProps, origin = ""}:{env:Env, queryProps?:QueryProps, pageProps?: PageProps, origin?: string}) => {
+    const { data: cards, error } = await this.cardService.get({env, queryProps, pageProps});
+    if(error || !cards) {
+      return Response.json({
+        message: error || "No cards found",
+        data: [],
+        totalItems: 0,
+        totalPages: 0,
+        page: pageProps?.page || 1,
+        limit: pageProps?.limit || 10,
+      }, {
+        status: 422
+      });
+    }
+    // In order to provide full URL for card images
+    cards.data.forEach(card => {
+      card.card_art = `${origin}/api/public/resources/card/${card.card_art}`;
+    })
+    return Response.json({
+      message: "Cards retrieved successfully",
+      ...cards
+    });
+  }
+
   public getCardById = async ({env, id, origin = ""}:{env:Env, id:string, origin?: string}) => {
     const { data: card, error } = await this.cardService.getCardWithPacksById(env, id);
     if(error || !card) {
