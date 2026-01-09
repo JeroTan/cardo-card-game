@@ -9,12 +9,14 @@ export default function PackCardDragger({
   locationType,
   cardId,
   referenceId,
+  cardIndex = -1,
   children,
   clickCallback,
 }:{
   locationType: CardPackLocationType,
   cardId: string,
   referenceId?: string,
+  cardIndex?: number,
   children?: React.ReactNode,
   clickCallback?: ()=>void,
 }){
@@ -31,6 +33,7 @@ export default function PackCardDragger({
     data:{
       type: locationType,
       cardId: cardId,
+      cardIndex: cardIndex,
     },
   });
 

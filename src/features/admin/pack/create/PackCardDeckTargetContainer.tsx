@@ -5,9 +5,10 @@ import { Leaf } from "lucide-react";
 import { Fragment } from "react";
 import PackCardItem from "./PackCardItem";
 import { useCardCacheContext } from "@/stores/card/CardCacheContext";
+import PackCardDragger from "./PackCardDragger";
 
 export default function PackCardDeckTargetContainer({}:{}){
-  const {listCards, addToDeck} = useCardPackBuilderContext();
+  const {listCards, addToDeck, removeFromDeckByListIndex} = useCardPackBuilderContext();
   const {getCardById} = useCardCacheContext();
   const {setNodeRef, isOver} = useDroppable({
     id: "droppable-deck-container",
@@ -17,8 +18,14 @@ export default function PackCardDeckTargetContainer({}:{}){
   });
   useDndMonitor({
     onDragEnd(event) {
-      const data = event.active.data.current as {cardId:string, type:"FROM_DRAWER" | "FROM_DECK"};
-      if(data.type !== "FROM_DRAWER") return;
+      const data = event.active.data.current as {cardId:string, type:"FROM_DRAWER" | "FROM_DECK", cardIndex:number};
+      if(data.type === "FROM_DECK" ){
+        if(data.cardIndex == -1){
+          return;
+        }
+        removeFromDeckByListIndex(data.cardIndex);
+        return;
+      }
       const card = getCardById(data.cardId);
       if(!card) return;
       addToDeck(`${card.atk}/${card.def}` as deckCopyKeyType, card);
@@ -52,7 +59,17 @@ export default function PackCardDeckTargetContainer({}:{}){
         <div className="grid auto-rows-auto @xl:grid-cols-4 @lg:grid-cols-3 grid-cols-2 gap-4 px-2">
           {listCards.map((card, index)=>{
             return <Fragment key={index}>
-              <PackCardItem name={card.name} card_art={card.card_art} />
+              <PackCardDragger
+                locationType="FROM_DECK"
+                cardId={card.id}
+                cardIndex={index}
+                clickCallback={()=>{
+                  removeFromDeckByListIndex(index);
+                }}
+              >
+                <PackCardItem name={card.name} card_art={card.card_art} />
+              </PackCardDragger>
+              
             </Fragment>
           })}
         </div>
