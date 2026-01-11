@@ -3,6 +3,7 @@ import PackCreateForm from "./PackCreateForm"
 import {DndContext,   MouseSensor, TouchSensor, useSensor, } from '@dnd-kit/core';
 import { CardCacheProvider } from "@/stores/card/CardCacheContext";
 import { PackMetaProvider } from "@/stores/card/CardPackMetaContext";
+import { ModalProvider } from "@/stores/components/ModalContext";
 
 
 export default function PackCreatePage(){
@@ -22,6 +23,7 @@ export default function PackCreatePage(){
   });
   
   return <>
+    <ModalProvider>
     <PackMetaProvider>
     <CardPackBuilderProvider>
     <CardCacheProvider>
@@ -31,6 +33,6 @@ export default function PackCreatePage(){
     </CardCacheProvider>
     </CardPackBuilderProvider>
     </PackMetaProvider>
-   
+    </ModalProvider>
   </>
 }
