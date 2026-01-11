@@ -11,13 +11,15 @@ import { ModalProvider } from "@/stores/components/ModalContext";
 import { PaginationProvider, usePagination } from "@/stores/components/PaginationContext";
 import { SortProvider, useSortContext } from "@/stores/components/SortContext";
 import type { PageResult } from "@/types/api/result";
-import type { ModelCardPackCards } from "@/types/model/cardPack";
+import type { ModelCardPackRaw } from "@/types/model/cardPack";
 import { useDebounce } from "@uidotdev/usehooks";
 import { PlusCircle } from "lucide-react";
 import { Fragment, useCallback, useState, useTransition } from "react";
 import useEffectOnce from "react-use/lib/useEffectOnce";
 import { useFirstMountState } from "react-use/lib/useFirstMountState";
 import useUpdateEffect from "react-use/lib/useUpdateEffect";
+import PackItem from "./PackItem";
+import { CardPackCardsCachedProvider } from "@/stores/card/CardPackCardsCacheContext";
 
 export default function PackListPage({page=1}:{page?:number}) {
   return <>
@@ -34,7 +36,7 @@ export default function PackListPage({page=1}:{page?:number}) {
 export function Composer(){
   //---> State
   const firstMounted = useFirstMountState();
-  const [packs, packsSet] = useState<Array<ModelCardPackCards>>([]);
+  const [packs, packsSet] = useState<Array<ModelCardPackRaw>>([]);
   const [fetching, fetchingStart] = useTransition();
   const {page, changeTotalPages} = usePagination();
   const {orderedSortData, getSortDataSure, togglerSort} = useSortContext();
@@ -49,7 +51,7 @@ export function Composer(){
       search: searchDebounce,
       filter: [],
       sort: orderedSortData,
-    }).s200(({data, totalPages}:PageResult<ModelCardPackCards[]>)=>{
+    }).s200(({data, totalPages}:PageResult<ModelCardPackRaw[]>)=>{
       changeTotalPages(totalPages);
       packsSet(data);
     }).promiseResponse;
@@ -90,39 +92,39 @@ export function Composer(){
         </SortButton>
       </div>}
     />
-
-        {(firstMounted || fetching) ? <>
-      <div className="mx-2">
-        <ProcessingListLarge />
-      </div>
-    </> : <>
-      {packs.length < 1 ? <>
-        <EmptyList>
-          <Button asChild>
-            <a href="/admin/card-pack/create"><PlusCircle/> Add more card packs</a>
-          </Button>
-        </EmptyList>
+    <CardPackCardsCachedProvider>
+     {(firstMounted || fetching) ? <>
+        <div className="mx-2">
+          <ProcessingListLarge />
+        </div>
       </> : <>
-        <Card className=" mx-2 ">
-          <div className="flex flex-wrap justify-center">
-            {packs.map((pack, index)=>{
-              return <Fragment key={index}>
-                <div className="w-64 sm:m-3 m-2">
-               
-                </div>
-              </Fragment>
-            })}
-            <div className="w-64 sm:mx-3 mx-2"></div>
-            <div className="w-64 sm:mx-3 mx-2"></div>
-            <div className="w-64 sm:mx-3 mx-2"></div>
-            <div className="w-64 sm:mx-3 mx-2"></div>
-          </div>
-        </Card>
-        <aside className="mt-5">
-          <PaginationList />
-        </aside>
+        {packs.length < 1 ? <>
+          <EmptyList>
+            <Button asChild>
+              <a href="/admin/card-pack/create"><PlusCircle/> Add more card packs</a>
+            </Button>
+          </EmptyList>
+        </> : <>
+          <Card className=" mx-2 ">
+            <div className="flex flex-wrap justify-center">
+              {packs.map((pack, index)=>{
+                return <Fragment key={index}>
+                  <div className="w-64 sm:m-3 m-2">
+                    <PackItem data={pack} />
+                  </div>
+                </Fragment>
+              })}
+              <div className="w-64 sm:mx-3 mx-2"></div>
+              <div className="w-64 sm:mx-3 mx-2"></div>
+              <div className="w-64 sm:mx-3 mx-2"></div>
+              <div className="w-64 sm:mx-3 mx-2"></div>
+            </div>
+          </Card>
+          <aside className="mt-5">
+            <PaginationList />
+          </aside>
+        </>}
       </>}
-    </>}
-  
+    </CardPackCardsCachedProvider>
   </>
 }

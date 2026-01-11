@@ -126,8 +126,8 @@ export function AdminRoutes({
       }
     })
     //====================================================================================//
-    .get("/pack/:id", ({params, env})=>{
-      return cardPackController.getCardPackById({env, id: params.id});
+    .get("/pack/:id", ({params, env, urlData})=>{
+      return cardPackController.getCardPackById({env, id: params.id, origin: urlData.origin});
     }, {
       params: t.Object({
         id: t.String()

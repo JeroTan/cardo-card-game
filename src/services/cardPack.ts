@@ -64,10 +64,8 @@ export class CardPackService {
           'card_pack_cards.card_id',
           'card.id',
           'card.name',
-          'card.rarity',
           'card.atk',
           'card.def',
-          'card.description',
           'card.card_art'
         ])
         .join('card', 'card_pack_cards.card_id = card.id')

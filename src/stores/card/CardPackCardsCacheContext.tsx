@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useState } from "react";
 
 export type CardPackCardsCachedType = {
   id: string,
-  cards: Omit<ModelCardRaw, "created_at" | "updated_at">[],
+  cards: ModelCardRaw[],
 }
 
 export type CardPackCardsCachedContextType = {

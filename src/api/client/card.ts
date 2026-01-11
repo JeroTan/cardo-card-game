@@ -114,4 +114,14 @@ export const apiCreatePack = defineApiResolve({
       .request();
   },
   onZodError,
+});
+
+export const apiGetCardPackDetail = defineApiResolve({
+  input: z.uuid(),
+  handler: async (packId)=>{
+    return apiAdmin()
+      .path(`/pack/${packId}`)
+      .get()
+      .request();
+  },
 })

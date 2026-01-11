@@ -30,7 +30,7 @@ export class CardPackController {
     });
   }
 
-  public async getCardPackById({env, id}: {env: Env, id: string}) {
+  public async getCardPackById({env, id, origin}: {env: Env, id: string, origin: string}) {
     const { data: cardPackDetails, error } = await this.cardPackService.getById(env, id);  
     if(error || !cardPackDetails) {
       return Response.json({
@@ -41,7 +41,7 @@ export class CardPackController {
 
     // After getting the card pack details, get the cards in the pack
     const { data: cards, error: cardsError } = await this.cardPackService.getCardsOfPack({env, cardPackId: id});
-    if(cardsError) {
+    if(cardsError ) {
       return Response.json({
         message: cardsError || "Failed to retrieve cards of the pack",
         data: {
@@ -55,7 +55,7 @@ export class CardPackController {
       message: "Card pack retrieved successfully",
       data: {
         cardPackDetails,
-        cards,
+        cards: cards != null ? cards.map((card)=>({...card, card_art: `${origin}/api/public/resources/card/${card.card_art}` })) : [],
       },
     });
   }
