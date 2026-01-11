@@ -13,8 +13,8 @@ export default function PackCardDeck({}:{}){
   const [nameJustOpen, nameJustOpenSet] = useState(true);
 
   return <>
-    <Card className="p-2 @container">
-      <h2 className="px-2 text-xl">
+    <Card className="p-2 @container gap-0">
+      <h2 className="text-xl pb-2">
         Pack Container
       </h2>
       <div>
@@ -42,7 +42,7 @@ export default function PackCardDeck({}:{}){
         </Field>
       </div>
       <PackCardDeckCounter />
-      <div className="relative min-h-[calc(100vh-430px)] h-full">
+      <div className="relative min-h-[calc(100vh-430px)] h-full pt-2">
         <PackCardDeckTargetContainer />
       </div>
     </Card>
