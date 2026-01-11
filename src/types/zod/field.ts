@@ -4,8 +4,8 @@ import { fileType } from "elysia";
 export function zodName({fieldName = "Field", minLength = 2, maxLength = 64}:{fieldName?: string, minLength?: number, maxLength?: number} = {}){
   return z
   .string()
-  .min(minLength, { message: `${fieldName} must be at least 2 characters long.` })
-	.max(maxLength, { message: `${fieldName} must be at most 64 characters long.` })
+  .min(minLength, { message: `${fieldName} must be at least ${minLength} characters long.` })
+	.max(maxLength, { message: `${fieldName} must be at most ${maxLength} characters long.` })
   .regex(/^[\p{L}\p{M}'ñÑáéíóúÁÉÍÓÚ\s\-\.,]+$/gu, {
     message: `${fieldName} should only contain letters, numbers, spaces, and the characters ., ' \"`,
   });

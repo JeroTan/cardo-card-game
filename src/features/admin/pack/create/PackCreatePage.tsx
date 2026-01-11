@@ -2,6 +2,7 @@ import CardPackBuilderProvider from "@/stores/card/CardPackBuilderContext"
 import PackCreateForm from "./PackCreateForm"
 import {DndContext,   MouseSensor, TouchSensor, useSensor, } from '@dnd-kit/core';
 import { CardCacheProvider } from "@/stores/card/CardCacheContext";
+import { PackMetaProvider } from "@/stores/card/CardPackMetaContext";
 
 
 export default function PackCreatePage(){
@@ -21,6 +22,7 @@ export default function PackCreatePage(){
   });
   
   return <>
+    <PackMetaProvider>
     <CardPackBuilderProvider>
     <CardCacheProvider>
     <DndContext sensors={[mouseSensor, touchSensor]}>
@@ -28,5 +30,7 @@ export default function PackCreatePage(){
     </DndContext>
     </CardCacheProvider>
     </CardPackBuilderProvider>
+    </PackMetaProvider>
+   
   </>
 }

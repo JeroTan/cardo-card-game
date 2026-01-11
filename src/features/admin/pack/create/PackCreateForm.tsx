@@ -11,6 +11,7 @@ export default function PackCreateForm(){
           <PackCardDeck />
         </div>
         <div className="basis-full">
+          
           <SortProvider initialSortData={["-created_at", "name", "atk", "def"]}>
           <PaginationProvider>
             <PackCardDrawer />
