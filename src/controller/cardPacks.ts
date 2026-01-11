@@ -2,6 +2,7 @@ import type { CardService } from "@/services/card";
 import type { CardPackService } from "@/services/cardPack";
 import type { ModelCardPackCardsCreate, ModelCardPackCardsUpdate, ModelCardPackCreate } from "@/types/model/cardPack";
 import type { PageProps, QueryProps } from "@/types/model/filter";
+import uniq from "lodash/uniq";
 
 export class CardPackController {
   constructor(
@@ -80,7 +81,8 @@ export class CardPackController {
     }
 
     // If there is we need to check first if it is available in the cards list
-    const {data:cardsExists, error: cardsExistsError} = await this.cardService.checkCardExists({env, ids: cards.map(c => c.card_id)});
+    const cardIds = uniq(cards.map(c => c.card_id));
+    const {data:cardsExists, error: cardsExistsError} = await this.cardService.checkCardExists({env, ids: cardIds});
     if(cardsExistsError){
       return Response.json({
         message: cardsExistsError || "Failed to verify cards existence",

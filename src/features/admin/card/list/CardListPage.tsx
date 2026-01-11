@@ -131,7 +131,9 @@ function Composer(){
             {cards.map((card, index)=>{
               return <Fragment key={index}>
                 <div className="w-64 sm:m-3 m-2">
-                  <CardItem {...card} />
+                  <CardItem {...card} deleteCallback={()=>{
+                    fetchCards();
+                  }} />
                 </div>
               </Fragment>
             })}

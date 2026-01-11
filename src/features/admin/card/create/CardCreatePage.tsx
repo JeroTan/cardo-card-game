@@ -4,14 +4,21 @@ import { CardFieldContext, CardFieldProvider } from "@/stores/card/CardFieldCont
 import { ErrorFieldContext, ErrorFieldProvider } from "@/stores/card/ErrorFieldContext";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus } from "lucide-react";
+import { ArrowLeftToLine, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { apiCreateCard } from "@/api/client/card";
 
 export default function CardCreatePage(){
   return <>
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Create New Card</h1>
+      <div className="flex gap-2 items-center mb-6">
+        <Button asChild variant={"outline"}>
+          <a href="/admin/card">
+            <ArrowLeftToLine/>
+          </a>
+        </Button>
+        <h1 className="text-2xl font-bold">Create New Card</h1>
+      </div>
       <ErrorFieldProvider>
         <CardFieldProvider initialField={1}>
           <CardCreateComposer />

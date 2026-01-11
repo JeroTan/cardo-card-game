@@ -45,8 +45,9 @@ export function AdminRoutes({
       }
     })
     //====================================================================================//
-    .get("/cards-no-packs", ({env, urlData})=>{
-      return cardController.getAllCardsNoPacks({env, origin: urlData.origin});
+    .get("/cards-no-packs", ({env, urlData, query})=>{
+      const { queryProps, pageProps } = convertQueriesToPageAndQueryProps(query);
+      return cardController.getAllCardsNoPacks({env, origin: urlData.origin, queryProps, pageProps});
     }, {
       detail: {
         summary: 'Get all cards as flat list or a simple one without the pack it belongs to',

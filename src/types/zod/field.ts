@@ -7,6 +7,15 @@ export function zodName({fieldName = "Field", minLength = 2, maxLength = 64}:{fi
   .min(minLength, { message: `${fieldName} must be at least ${minLength} characters long.` })
 	.max(maxLength, { message: `${fieldName} must be at most ${maxLength} characters long.` })
   .regex(/^[\p{L}\p{M}'ñÑáéíóúÁÉÍÓÚ\s\-\.,]+$/gu, {
+    message: `${fieldName} should only contain letters, spaces, and the characters ., ' \"`,
+  });
+}
+export function zodNameWithNumbers({fieldName = "Field", minLength = 2, maxLength = 64}:{fieldName?: string, minLength?: number, maxLength?: number} = {}){
+  return z
+  .string()
+  .min(minLength, { message: `${fieldName} must be at least ${minLength} characters long.` })
+  .max(maxLength, { message: `${fieldName} must be at most ${maxLength} characters long.` })
+  .regex(/^[\p{L}\p{M}0-9'ñÑáéíóúÁÉÍÓÚ\s\-\.,]+$/gu, {
     message: `${fieldName} should only contain letters, numbers, spaces, and the characters ., ' \"`,
   });
 }

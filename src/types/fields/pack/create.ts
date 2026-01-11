@@ -1,8 +1,8 @@
-import { zodArrayMinMax, zodName } from "@/types/zod/field";
+import { zodArrayMinMax, zodNameWithNumbers } from "@/types/zod/field";
 import z from "zod";
 
 export const zodPackCreate = z.object({
-  name: zodName({fieldName: "Pack Name", minLength: 2, maxLength: 64}),
+  name: zodNameWithNumbers({fieldName: "Pack Name", minLength: 2, maxLength: 64}),
   cards: zodArrayMinMax({ zodSchema: z.uuid(), minLength:50, maxLength:50 }),
 });
 
