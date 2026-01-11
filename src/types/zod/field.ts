@@ -89,3 +89,13 @@ export function zodImage({fieldName = "Image"}:{fieldName?: string} = {}){
   const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   return zodFile({fieldName, fileTypes: imageTypes});
 }
+
+export function zodArrayMinMax<T extends z.ZodTypeAny>({ zodSchema, minLength, maxLength, fieldName = "Field" }: { zodSchema: T; minLength?: number; maxLength?: number; fieldName?: string }) {
+  const zodData =  z.array(zodSchema);
+  if(minLength !== undefined)
+    zodData.min(minLength, { message: `${fieldName} must have at least ${minLength} items.` });
+
+  if(maxLength !== undefined)
+    zodData.max(maxLength, { message: `${fieldName} must have at most ${maxLength} items.` });
+  return zodData;
+}

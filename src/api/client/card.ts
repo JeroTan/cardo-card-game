@@ -6,6 +6,8 @@ import z from "zod";
 import { zodPageAndQueryProps } from "@/types/model/filter";
 import { fromPropsToQueryParams } from "@/utils/api/query";
 import { zodCardUpdate } from "@/types/fields/card/update";
+import { zodPackCreate } from "@/types/fields/pack/create";
+import { DateNavigator } from "@jsarmyknife/native--math"
 
 export const apiCreateCard = defineApiResolve({
   input: zodCardCreate,
@@ -77,7 +79,7 @@ export const apiUpdateCard = defineApiResolve({
       .request();
   },
   onZodError,
-})
+});
 
 export const apiDeleteCard = defineApiResolve({
   input: z.uuid(),
@@ -86,6 +88,29 @@ export const apiDeleteCard = defineApiResolve({
       .path(`/cards/${cardId}`)
       .data("{}")
       .delete()
+      .request();
+  },
+  onZodError,
+});
+
+export const apiCreatePack = defineApiResolve({
+  input: zodPackCreate,
+  handler: async (data)=>{
+    return apiAdmin()
+      .path("/pack")
+      .data(JSON.stringify({
+        pack: {
+          name: data.name,
+          status: "PUBLISHED",
+          pack_price: 1000,
+          publish_start_date: new Date().toISOString(),
+          publish_end_date: new DateNavigator().nextDay(20).toISOString(),
+        },
+        cards:data.cards.map((cardId)=>{
+          return {card_id: cardId};
+        }),
+      }))
+      .post()
       .request();
   },
   onZodError,
