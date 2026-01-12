@@ -51,7 +51,6 @@ export function setAdminAuthInformation(cookie: AstroCookies, info: CookieAdminA
   expiryDate.setDate(expiryDate.getDate() + 7); // 7 days expiry
   const expiredInSeconds = 7 * 24 * 60 * 60; // 7 days in seconds
   const hostname = PUBLIC_APP_URL.replace(/^https?:\/\//, '').replace(/:\d+/, '').replace(/\/$/, '');
-  console.log("Setting admin auth info cookie for domain:", hostname, PUBLIC_APP_URL);
   cookie.set("CDO_ADMIN_INFO", btoa(JSON.stringify(info)), {
    expires: expiryDate ,
     maxAge:expiredInSeconds,
