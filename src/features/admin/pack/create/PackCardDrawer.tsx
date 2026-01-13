@@ -40,9 +40,11 @@ export default function PackCardDrawer(){
       filter: [],
       sort: orderedSortData,
     }).s200(({data, totalPages}:PageResult<ModelCardWithPackItBelongsTo[]>)=>{
-      changeTotalPages(totalPages);
-      cardsSet(data);
-      cachedContext.setCardData(data);
+      fetchingStart(()=>{
+        changeTotalPages(totalPages);
+        cardsSet(data);
+        cachedContext.setCardData(data);
+      });
     }).promiseResponse;
   }, [page, searchDebounce, orderedSortData]);
 
