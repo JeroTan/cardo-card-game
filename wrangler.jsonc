@@ -46,7 +46,8 @@
 	"r2_buckets": [
 		{
 			"binding": "CARD_ART_IMAGES",
-			"bucket_name": "card-art-images-development"
+			"bucket_name": "card-art-images-development",
+			"remote": true
 		}
 	],
 	"env": {
@@ -80,7 +81,8 @@
 			"r2_buckets": [
 				{
 					"binding": "CARD_ART_IMAGES",
-					"bucket_name": "card-art-images-development"
+					"bucket_name": "card-art-images-development",
+					"remote": true
 				}
 			],
 			"ai": {

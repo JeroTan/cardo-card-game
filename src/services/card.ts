@@ -81,7 +81,7 @@ export class CardService {
       if (cardIds.length > 0) {
         packsData = await query('card_pack_cards')
           .select([
-            'card_pack_cards.card_id',
+            'DISTINCT card_pack_cards.card_id',
             'card_pack.id as pack_id',
             'card_pack.name as pack_name'
           ])
@@ -90,7 +90,7 @@ export class CardService {
           .get<{card_id: string, pack_id: string, pack_name: string}>(env.DB);
       }
       
-      // Group packs by card_id
+      // Group packs by card_id with unique pack names
       const packsByCardId = new Map<string, Array<{id: string, name: string}>>();
       for (const pack of packsData) {
         if (!packsByCardId.has(pack.card_id)) {
@@ -174,10 +174,10 @@ export class CardService {
         return { data: null, error: undefined };
       }
 
-      // Get packs for this card
+      // Get packs for this card with unique pack names
       const packsData = await query('card_pack_cards')
         .select([
-          'card_pack.id as pack_id',
+          'DISTINCT card_pack.id as pack_id',
           'card_pack.name as pack_name'
         ])
         .join('card_pack', 'card_pack_cards.card_pack_id = card_pack.id')
