@@ -55,8 +55,10 @@ function Composer(){
       filter: [],
       sort: orderedSortData,
     }).s200(({data, totalPages}:PageResult<ModelCardWithPackItBelongsTo[]>)=>{
-      changeTotalPages(totalPages);
-      cardsSet(data);
+      fetchingStart(()=>{
+        changeTotalPages(totalPages);
+        cardsSet(data);
+      });
     }).promiseResponse;
   }, [page, search, orderedSortData]);
 
