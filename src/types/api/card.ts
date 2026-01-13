@@ -51,9 +51,6 @@ export const tboxCardPackAddCards = t.Array(t.Object({
   }));
 export type typeCardPackAddCards = Static<typeof tboxCardPackAddCards>;
 
-export const tboxCardPackUpdateCards = t.Array(t.Object({
-  id: t.String(),
-  card_id: t.String(),
-}));
+export const tboxCardPackUpdateCards = t.Array(t.String());
 
 export type typeCardPackUpdateCards = Static<typeof tboxCardPackUpdateCards>;

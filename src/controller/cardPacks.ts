@@ -143,7 +143,7 @@ export class CardPackController {
     });
   }
 
-  public async updateCardsOfPack({env, cardPackId, cards}: {env: Env, cardPackId: string, cards: ModelCardPackCardsUpdate[]}) {
+  public async updateCardsOfPack({env, cardPackId, cards}: {env: Env, cardPackId: string, cards: string[]}) {
     const { data: result, error } = await this.cardPackService.updateCardsOfPack({env, cardPackId, cards});
     if(error) {
       return Response.json({

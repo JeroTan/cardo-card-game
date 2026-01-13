@@ -11,6 +11,7 @@ export const clientEndpointsForAdmin = [
   // Card Pack Management
   "/pack",
   `/pack/{packId}` as `/pack/${string|number}`,
+  `/pack/{packId}/cards` as `/pack/${string|number}/cards`,
 ] as const;
 type ClientEndpoint = typeof clientEndpointsForAdmin[number];
 

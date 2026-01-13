@@ -25,6 +25,7 @@ type CardPackBuilderContextType = {
   hasAllNoErrors: boolean,
   addToDeck: (key: deckCopyKeyType, card: ModelCardRaw) => void,
   removeFromDeck: (key: deckCopyKeyType, cardId: string) => void,
+  removeAll: () => void,
   removeFromDeckByListIndex: (index: number) => void,
 }
 
@@ -118,6 +119,10 @@ export default function CardPackBuilderProvider({ children }: { children?: React
     });
   }, [deckContainerSet]);
 
+  const removeAll = useCallback(()=>{
+    deckContainerSet(structuredClone(deckCopy));
+  }, [deckContainerSet]);
+
   return <CardPackBuilderContext.Provider value={{
     deckData: deckContainer,
     listCards,
@@ -128,6 +133,7 @@ export default function CardPackBuilderProvider({ children }: { children?: React
     addToDeck,
     removeFromDeck,
     removeFromDeckByListIndex,
+    removeAll,
   }}>
     {children}
   </CardPackBuilderContext.Provider>

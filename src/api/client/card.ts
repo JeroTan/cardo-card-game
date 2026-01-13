@@ -8,6 +8,7 @@ import { fromPropsToQueryParams } from "@/utils/api/query";
 import { zodCardUpdate } from "@/types/fields/card/update";
 import { zodPackCreate } from "@/types/fields/pack/create";
 import { DateNavigator } from "@jsarmyknife/native--math"
+import { zodPackMetaUpdate } from "@/types/fields/pack/update";
 
 export const apiCreateCard = defineApiResolve({
   input: zodCardCreate,
@@ -116,6 +117,38 @@ export const apiCreatePack = defineApiResolve({
   onZodError,
 });
 
+export const apiUpdatePackMeta = defineApiResolve({
+  input: zodPackMetaUpdate,
+  handler: async ({id, name})=>{
+    return apiAdmin()
+      .path(`/pack/${id}`)
+      .data(JSON.stringify({
+        name: name,
+      }))
+      .patch()
+      .request();
+  },
+  onZodError,
+});
+
+export const apiUpdatePackCards = defineApiResolve({
+  input: z.object({
+    id: z.uuid(),
+    cards: zodPackCreate.shape.cards,
+  }),
+  handler: async ({id, cards})=>{
+    console.log(JSON.stringify(cards.map((cardId)=>{
+      return {card_id: cardId};
+    })));
+    return apiAdmin()
+      .path(`/pack/${id}/cards`)
+      .data(JSON.stringify(cards))
+      .patch()
+      .request();
+  },
+  onZodError,
+})
+
 export const apiGetCardPackDetail = defineApiResolve({
   input: z.uuid(),
   handler: async (packId)=>{
@@ -124,4 +157,4 @@ export const apiGetCardPackDetail = defineApiResolve({
       .get()
       .request();
   },
-})
+});

@@ -124,23 +124,30 @@ export class CardPackService {
     }
   }
 
-  async updateCardsOfPack({env, cardPackId, cards}: {env:Env, cardPackId: string, cards: Partial<ModelCardPackCards>[] }): Promise<ServiceResult<ModelCardPackCards[]>> {
+  async updateCardsOfPack({env, cardPackId, cards:cardsId}: {env:Env, cardPackId: string, cards: string[] }): Promise<ServiceResult<ModelCardPackCards[]>> {
     try{
-      const existingCards = await this.getCardsOfPack({env, cardPackId});
-      for(const card of cards){
-        if(!card.id) continue;
-        const exists = existingCards.data?.find(c => c.id === card.id);
-        if(!exists) continue;
+      // First, delete all existing cards for this pack
+      await query('card_pack_cards')
+        .delete()
+        .where('card_pack_id', '=', cardPackId)
+        .run(env.DB);
+      
+      // Then add the new cards
+      const newCards: ModelCardPackCards[] = [];
+      for(const cardId of cardsId){
+        if(!cardId) continue;
+        const toInsert: ModelCardPackCards = {
+          id: crypto.randomUUID(),
+          card_pack_id: cardPackId,
+          card_id: cardId,
+        };
+        newCards.push(toInsert);
         await query('card_pack_cards')
-          .where('id', '=', card.id)
-          .update({
-            ...card,
-            // updated_at: new Date().toISOString(), // Assuming there's an updated_at field
-          })
+          .insert(toInsert)
           .run(env.DB);
-        Object.assign(exists, card);
       }
-      return { data: existingCards.data || [], error: undefined };
+      
+      return { data: newCards, error: undefined };
     }catch(error){
       console.error('Error updating cards of pack:', error);
       const errorMessage = error instanceof D1Error ? error.message : 'Failed to update cards of pack';
