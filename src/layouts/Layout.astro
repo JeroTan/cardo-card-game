@@ -7,13 +7,10 @@ import type { HTMLAttributes } from "astro/types";
 import ThemeScript from "@/features/theme/ThemeScript.astro";
 
 interface Props {
-	title: string,
-	html: HTMLAttributes<'html'>
+	title: string;
+	html: HTMLAttributes<"html">;
 }
-const {
-	title,
-	html
-} = Astro.props;
+const { title, html } = Astro.props;
 
 const currentLang = getLangFromUrl(Astro.url);
 // const newUrl = new URL(Astro.url);
@@ -29,11 +26,11 @@ const currentLang = getLangFromUrl(Astro.url);
 		{/* HTML Format */}
 		<meta name="application-name" content="CARDO - The Card Game" />
 		<title>{title}</title>
-		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+		<meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=0">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=0" />
 
-		<link rel="icon" type="image/ico" href="/favicon.ico" />
+		<link rel="icon" type="image/ico" href="/images/logo.png" />
 		<link rel="sitemap" href="/sitemap-index.xml" />
 		<meta name="robots" content="index, follow" />
 		<meta name="theme-color" content="#ffffff" />
@@ -50,5 +47,4 @@ const currentLang = getLangFromUrl(Astro.url);
 			updateStorageVersion();
 		</script>
 	</body>
-
 </html>

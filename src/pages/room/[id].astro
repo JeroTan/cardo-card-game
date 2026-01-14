@@ -1,0 +1,20 @@
+---
+import { Skeleton } from "@/components/ui/skeleton";
+import MainGame from "@/features/game/MainGame";
+import PagePlate from "@/layouts/PagePlate.astro";
+
+const roomId = Astro.params.id;
+if (roomId == undefined) {
+	return Astro.redirect("/404");
+}
+---
+
+<PagePlate title="CardO - Game Room">
+	<MainGame client:only="react" roomId={roomId}>
+		<div slot="fallback" class="flex justify-center px-5 py-10">
+			<div class="basis-full">
+				<Skeleton client:load className="w-full h-[calc(100vh-4rem)]" />
+			</div>
+		</div>
+	</MainGame>
+</PagePlate>
