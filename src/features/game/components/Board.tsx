@@ -1,5 +1,4 @@
-import { useApplication } from "@pixi/react"
-import { Circle, FillGradient } from "pixi.js";
+import { Circle } from "pixi.js";
 import { useCallback } from "react";
 import { useAppWithScaleConstat } from "../utils/Math";
 
