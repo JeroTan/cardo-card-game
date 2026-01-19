@@ -36,6 +36,7 @@ export default function Interface({
           resizeTo={wrapperRef}
           defaultTextStyle={basicFontStyle.current}
           background={"0x28282B"}
+          antialias={true}
         >
           {children}
         </Application>
