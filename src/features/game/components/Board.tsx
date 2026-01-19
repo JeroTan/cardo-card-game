@@ -8,7 +8,6 @@ export default function Board(){
   return <>
     <pixiGraphics
       draw={(graphics) => {
-        console.log(app.renderer, scaleConstant)
         graphics.clear();
         
         // Center a rectangle in the canvas
