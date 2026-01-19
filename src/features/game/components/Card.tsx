@@ -43,7 +43,7 @@ export default function Card({horizontalOffset= 0, verticalOffset= 0, src}: {hor
         const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
         const positionCalc = makeRectCalculator({rectWidth, rectHeight});
-        const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset, y: verticalOffset});
+        const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset * scaleConstant, y: verticalOffset * scaleConstant});
         
         const cornerRadius = 5; // Rounded corner radius
         graphics.roundRect(rectX, rectY, rectWidth, rectHeight, scaleConstant*cornerRadius);

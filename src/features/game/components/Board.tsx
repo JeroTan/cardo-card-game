@@ -46,16 +46,16 @@ export default function Board(){
     />
 
     {/** Bottom Jail */}
-    <JailGraphics x={-522} y={-216} />
+    <JailGraphics x={-770} y={-280} />
 
     {/** Top Jail */}
-    <JailGraphics x={522} y={216} />
+    <JailGraphics x={770} y={280} />
 
     {/** Bottom Drawer */}
-    <DrawerGraphics x={522} y={-216} />
+    <DrawerGraphics x={770} y={-280} />
 
     {/** Top Drawer */}
-    <DrawerGraphics x={-522} y={216} />
+    <DrawerGraphics x={-770} y={280} />
   </>
 }
 
@@ -80,7 +80,7 @@ function JailGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: n
       const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
       const positionCalc = makeRectCalculator({rectWidth, rectHeight});
-      const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset, y: verticalOffset});
+      const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset*scaleConstant, y: verticalOffset*scaleConstant});
       
       const cornerRadius = 5; // Rounded corner radius
       graphics.roundRect(rectX, rectY, rectWidth, rectHeight, scaleConstant*cornerRadius);
@@ -110,7 +110,7 @@ function DrawerGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y:
       const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
       const positionCalc = makeRectCalculator({rectWidth, rectHeight});
-      const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset, y: verticalOffset});
+      const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset * scaleConstant, y: verticalOffset * scaleConstant});
       
       const cornerRadius = 5; // Rounded corner radius
       graphics.roundRect(rectX, rectY, rectWidth, rectHeight, scaleConstant* cornerRadius);
