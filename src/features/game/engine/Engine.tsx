@@ -1,14 +1,17 @@
 import Board from "../components/Board";
-import Card from "../components/Card";
+import HoverGlow from "../components/HoverGlow";
 import { Pile } from "../components/Pile";
+import { FocusContextProvider } from "../Context/FocusContext";
 import Interface from "./Interface";
 import { useApplication } from '@pixi/react';
 
 export default function Engine(){
   return <>
-    <Interface>
-      <Composer />
-    </Interface>
+    <FocusContextProvider>
+      <Interface>
+        <Composer />
+      </Interface>
+    </FocusContextProvider>
   </>
 }
 
@@ -16,8 +19,11 @@ function Composer(){
   const app = useApplication();
   return <>
     <Board />
-    <Pile
-      topCard={"/images/card_back.svg"}
-    />
+    <HoverGlow>
+      <Pile
+        topCard={"/images/card_back.svg"}
+      />
+    </HoverGlow>
+    
   </>
 }
