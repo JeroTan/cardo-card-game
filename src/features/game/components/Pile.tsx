@@ -18,18 +18,20 @@ export function Pile({
 }: PileType){
   const [app, scaleConstant] = useAppWithScaleConstat();
   return <>
-    <BasePile
-      scaleConstant={scaleConstant}
-      horizontalOffset={horizontalOffset}
-      verticalOffset={verticalOffset}
-      pileSize={pileSize}
-    />
-    {topCard && <>
-      <Card 
-        horizontalOffset={horizontalOffset-(scaleConstant * pileSize)}
-        verticalOffset={verticalOffset+(scaleConstant * pileSize)} 
-        src={topCard}
+    {pileSize > 0 && <>
+      <BasePile
+        scaleConstant={scaleConstant}
+        horizontalOffset={horizontalOffset}
+        verticalOffset={verticalOffset}
+        pileSize={pileSize}
       />
+      {topCard && ((()=>{
+        return <Card 
+          horizontalOffset={(horizontalOffset*scaleConstant)-(scaleConstant * pileSize* 0.5)}
+          verticalOffset={(verticalOffset*scaleConstant)+(scaleConstant * pileSize* 0.5)} 
+          src={topCard}
+        />
+      })())}
     </>}
   </>
 }
@@ -49,7 +51,7 @@ export function BasePile({scaleConstant, horizontalOffset=0, verticalOffset=0, p
       
       const cornerRadius = 5; // Rounded corner radius
       const strokeWidth = scaleConstant * 0.5;
-      const depth = scaleConstant * pileSize; // Total depth of the pile
+      const depth = scaleConstant * pileSize * 0.5; // Total depth of the pile
       
       // Top card position - offset by depth (going up and left from the base position)
       const topCardX = rectX - depth;

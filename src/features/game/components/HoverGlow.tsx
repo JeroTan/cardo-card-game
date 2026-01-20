@@ -11,7 +11,7 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
   const {currentFocus, setFocus, clearFocus} = useFocusContext();
   const id = useId();
   const element = useRef<Container | null>(null);
-  const ticker = useRef(Ticker.shared);
+  const ticker = useRef(new Ticker());
 
   useUpdateEffect(()=>{
     if(element.current == null) return;

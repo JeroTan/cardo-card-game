@@ -22,8 +22,18 @@ function Composer(){
     <HoverGlow>
       <Pile
         topCard={"/images/card_back.svg"}
+        horizontalOffset={-771}
+        verticalOffset={281}
+        pileSize={50}
       />
     </HoverGlow>
-    
+    <HoverGlow>
+      <Pile
+        topCard={"/images/card_back.svg"}
+        horizontalOffset={771}
+        verticalOffset={-281}
+        pileSize={50}
+      />
+    </HoverGlow>
   </>
 }
