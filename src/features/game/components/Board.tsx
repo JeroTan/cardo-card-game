@@ -1,6 +1,5 @@
 import { Circle } from "pixi.js";
-import { useCallback } from "react";
-import { useAppWithScaleConstat } from "../utils/Math";
+import { makeCoordinatesCenter, useAppWithScaleConstat } from "../utils/Math";
 
 export default function Board(){
   const [app, scaleConstant] = useAppWithScaleConstat();
@@ -60,16 +59,7 @@ export default function Board(){
 }
 
 function JailGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: number}) {
-  const [app, scaleConstant] = useAppWithScaleConstat();
-
-  const makeRectCalculator = useCallback(({rectWidth, rectHeight}:{rectWidth: number, rectHeight: number})=>{
-    return function offsetOfRect({x, y}: {x: number, y: number}){
-      return {
-        x: ((1920 * scaleConstant) - rectWidth) / 2 + x,
-        y: ((1080 * scaleConstant) - rectHeight) / 2 - y,
-      }
-    }
-  }, [scaleConstant]);
+  const [, scaleConstant] = useAppWithScaleConstat();
 
   return <>
     <pixiGraphics draw={(graphics)=>{
@@ -79,8 +69,13 @@ function JailGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: n
       const rectWidth = (1920 * scaleConstant) * cardScale;
       const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
-      const positionCalc = makeRectCalculator({rectWidth, rectHeight});
-      const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset*scaleConstant, y: verticalOffset*scaleConstant});
+      const {x: rectX, y: rectY} = makeCoordinatesCenter({
+        scaleContaant: scaleConstant,
+        rectWidth,
+        rectHeight,
+        x: horizontalOffset*scaleConstant,
+        y: verticalOffset*scaleConstant,
+      });
       
       const cornerRadius = 5; // Rounded corner radius
       graphics.roundRect(rectX, rectY, rectWidth, rectHeight, scaleConstant*cornerRadius);
@@ -91,16 +86,8 @@ function JailGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: n
 }
 
 function DrawerGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: number}) {
-  const [app, scaleConstant] = useAppWithScaleConstat();
+  const [, scaleConstant] = useAppWithScaleConstat();
 
-  const makeRectCalculator = useCallback(({rectWidth, rectHeight}:{rectWidth: number, rectHeight: number})=>{
-    return function offsetOfRect({x, y}: {x: number, y: number}){
-      return {
-        x: ((1920 * scaleConstant) - rectWidth) / 2 + x,
-        y: ((1080 * scaleConstant) - rectHeight) / 2 - y,
-      }
-    }
-  }, [scaleConstant]);
   return <>
     <pixiGraphics draw={(graphics)=>{
       graphics.clear();
@@ -109,8 +96,14 @@ function DrawerGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y:
       const rectWidth = (1920 * scaleConstant) * cardScale;
       const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
-      const positionCalc = makeRectCalculator({rectWidth, rectHeight});
-      const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset * scaleConstant, y: verticalOffset * scaleConstant});
+      const {x: rectX, y: rectY} = 
+       makeCoordinatesCenter({
+        scaleContaant: scaleConstant,
+        rectWidth,
+        rectHeight,
+        x: horizontalOffset*scaleConstant,
+        y: verticalOffset*scaleConstant,
+      });
       
       const cornerRadius = 5; // Rounded corner radius
       graphics.roundRect(rectX, rectY, rectWidth, rectHeight, scaleConstant* cornerRadius);

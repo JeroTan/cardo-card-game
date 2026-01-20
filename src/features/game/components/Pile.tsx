@@ -1,5 +1,7 @@
-import { makeCoordinatesCenter, useAppWithScaleConstat, useMakeRectCalculator } from "../utils/Math";
+import { useEffect, useRef } from "react";
+import { makeCoordinatesCenter, useAppWithScaleConstat } from "../utils/Math";
 import Card from "./Card";
+import { Container, Ticker } from "pixi.js";
 
 export type PileType = {
   topCard?: string | null;
@@ -17,6 +19,13 @@ export function Pile({
   verticalOffset = 0
 }: PileType){
   const [app, scaleConstant] = useAppWithScaleConstat();
+  const {current: tickerTime} = useRef(new Ticker);
+  const cardRef = useRef<Container|null>(null);
+
+  useEffect(()=>{
+
+  }, [animateShuffling]);
+
   return <>
     {pileSize > 0 && <>
       <BasePile
@@ -32,7 +41,15 @@ export function Pile({
           src={topCard}
         />
       })())}
+      {animateShuffling && <>
+        <Card 
+          horizontalOffset={(horizontalOffset)-(pileSize* 0.5) + (Math.random() * 4 -2)}
+          verticalOffset={(verticalOffset)+(pileSize* 0.5) + (Math.random() *4 -2)} 
+          src={topCard!}
+        />
+      </>}
     </>}
+    
   </>
 }
 
