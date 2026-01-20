@@ -1,4 +1,4 @@
-import { useAppWithScaleConstat, useMakeRectCalculator } from "../utils/Math";
+import { makeCoordinatesCenter, useAppWithScaleConstat, useMakeRectCalculator } from "../utils/Math";
 import Card from "./Card";
 
 export type PileType = {
@@ -27,8 +27,8 @@ export function Pile({
       />
       {topCard && ((()=>{
         return <Card 
-          horizontalOffset={(horizontalOffset*scaleConstant)-(scaleConstant * pileSize* 0.5)}
-          verticalOffset={(verticalOffset*scaleConstant)+(scaleConstant * pileSize* 0.5)} 
+          horizontalOffset={(horizontalOffset)-(pileSize* 0.5)}
+          verticalOffset={(verticalOffset)+(pileSize* 0.5)} 
           src={topCard}
         />
       })())}
@@ -37,7 +37,6 @@ export function Pile({
 }
 
 export function BasePile({scaleConstant, horizontalOffset=0, verticalOffset=0, pileSize=10}:{scaleConstant: number, horizontalOffset?: number, verticalOffset?: number, pileSize?: number}) {
-  const makeRectCalculator = useMakeRectCalculator(scaleConstant);
   return <>
     <pixiGraphics draw={(graphics)=>{
       graphics.clear();
@@ -46,8 +45,13 @@ export function BasePile({scaleConstant, horizontalOffset=0, verticalOffset=0, p
       const rectWidth = (1920 * scaleConstant) * cardScale;
       const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
-      const positionCalc = makeRectCalculator({rectWidth, rectHeight});
-      const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset * scaleConstant, y: verticalOffset * scaleConstant});
+      const {x: rectX, y: rectY} = makeCoordinatesCenter({
+        scaleContaant: scaleConstant,
+        rectWidth,
+        rectHeight,
+        x: horizontalOffset * scaleConstant,
+        y: verticalOffset * scaleConstant
+      })
       
       const cornerRadius = 5; // Rounded corner radius
       const strokeWidth = scaleConstant * 0.5;

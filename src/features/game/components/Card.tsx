@@ -1,10 +1,9 @@
 import { Assets, FillGradient, Texture } from "pixi.js";
-import { useAppWithScaleConstat, useMakeRectCalculator } from "../utils/Math";
+import { makeCoordinatesCenter, useAppWithScaleConstat } from "../utils/Math";
 import { useEffect, useState } from "react";
 
 export default function Card({horizontalOffset= 0, verticalOffset= 0, src}: {horizontalOffset?: number, verticalOffset?: number, src?: string})  {
   const [, scaleConstant] = useAppWithScaleConstat();
-  const makeRectCalculator = useMakeRectCalculator(scaleConstant);
   const [texture, setTexture] = useState<Texture | null>(null);
 
   useEffect(() => {
@@ -31,8 +30,8 @@ export default function Card({horizontalOffset= 0, verticalOffset= 0, src}: {hor
         texture={texture}
         width={((1920 * scaleConstant) * 0.080)}
         height={((1920 * scaleConstant) * 0.080) * (3/2)}
-        x={((1920 * scaleConstant) / 2) + horizontalOffset}
-        y={((1080 * scaleConstant) / 2) - verticalOffset}
+        x={((1920)*scaleConstant / 2) + (horizontalOffset*scaleConstant)}
+        y={((1080)*scaleConstant/ 2) - (verticalOffset*scaleConstant)}
       />
     ) : (
       <pixiGraphics draw={(graphics)=>{
@@ -42,8 +41,13 @@ export default function Card({horizontalOffset= 0, verticalOffset= 0, src}: {hor
         const rectWidth = (1920 * scaleConstant) * cardScale;
         const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
-        const positionCalc = makeRectCalculator({rectWidth, rectHeight});
-        const {x: rectX, y: rectY} =  positionCalc({x: horizontalOffset * scaleConstant, y: verticalOffset * scaleConstant});
+        const {x: rectX, y: rectY} = makeCoordinatesCenter({
+          scaleContaant: scaleConstant,
+          rectWidth,
+          rectHeight,
+          x: horizontalOffset * scaleConstant,
+          y: verticalOffset * scaleConstant
+        });
         
         const cornerRadius = 5; // Rounded corner radius
         graphics.roundRect(rectX, rectY, rectWidth, rectHeight, scaleConstant*cornerRadius);

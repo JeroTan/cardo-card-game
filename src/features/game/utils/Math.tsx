@@ -17,13 +17,21 @@ export function useAppWithScaleConstat(props:{width?: number, height?: number} =
 
 export function useMakeRectCalculator(scaleConstant: number){
   return useCallback(({rectWidth, rectHeight}:{rectWidth: number, rectHeight: number})=>{
-      return function offsetOfRect({x, y}: {x: number, y: number}){
-        return {
-          x: ((1920 * scaleConstant) - rectWidth) / 2 + x,
-          y: ((1080 * scaleConstant) - rectHeight) / 2 - y,
-        }
+    return function offsetOfRect({x, y}: {x: number, y: number}){
+      return {
+        x: ((1920 * scaleConstant) - rectWidth) / 2 + x,
+        y: ((1080 * scaleConstant) - rectHeight) / 2 - y,
       }
-    }, [scaleConstant]);
+    }
+  }, [scaleConstant]);
+}
+
+export function makeCoordinatesCenter(data:{scaleContaant:number, rectWidth:number, rectHeight:number, x:number, y:number}){
+  const {scaleContaant, rectWidth, rectHeight, x, y} = data;
+  return {
+    x: ((1920 * scaleContaant) - rectWidth) / 2 + x,
+    y: ((1080 * scaleContaant) - rectHeight) / 2 - y,
+  }
 }
 
 export const curvatureAnimation = {
