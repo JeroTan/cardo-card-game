@@ -26,23 +26,31 @@ export function Pile({
   useEffect(()=>{
     if(cardRef.current == null || pileRef.current == null) return;
     const cardContainer = cardRef.current;
+    const pileContainer = pileRef.current;
 
     if(animateShuffling){
       tickerTime.start();
 
-      const animator = new Animator(300).setTimerBreakpoints([
-        150, 300 // in ms
+      const animator = new Animator(200).setTimerBreakpoints([
+        0, 100, 200 // in ms
       ]);
-      const moveScale = 20.5;
+      const moveScale = pileRef.current.width * 0.2;
       const initX = cardContainer.x;
       const initY = cardContainer.y;
+      const initContainerWidth = cardContainer.width;
 
       tickerTime.add(()=>{
-        if(animator.framesRendered <= animator.getTimeToFrameBreakpoints(0)){
-          // cardContainer.x 
-          // = (cardContainer.x + (animator.framesRendered * (moveScale * scaleConstant))) 
-          // % (initX +(animator.getTimeToFrameBreakpoints(0) * (moveScale * scaleConstant))); 
-          cardContainer.x = initX + ((animator.framesRendered * scaleConstant*moveScale) % (animator.getTimeToFrameBreakpoints(0) * scaleConstant*moveScale));
+        if(animator.framesRendered == 0){
+          cardContainer.width = initContainerWidth;
+        }else if(animator.framesRendered <= animator.getTimeToFrameBreakpoints(1)){
+          cardContainer.x = initX + ((animator.framesRendered * scaleConstant*moveScale) % (animator.getTimeToFrameBreakpoints(1) * scaleConstant*moveScale));
+        }else if(animator.getTimeToFrameBreakpoints(1) <= animator.getTimeToFrameBreakpoints(2)){
+          
+          const initalPoint = initX + (animator.getTimeToFrameBreakpoints(1) * scaleConstant*moveScale);
+          const reducePoint = (animator.framesRendered - animator.getTimeToFrameBreakpoints(1)) * scaleConstant*moveScale;
+          cardContainer.x = initalPoint - reducePoint;
+          
+          cardContainer.width = ((animator.getTimeToFrameBreakpoints(2) - animator.framesRendered)/animator.getTimeToFrameBreakpoints(2)) * initContainerWidth;
         }
         animator.addFrames();
       });

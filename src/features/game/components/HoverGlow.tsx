@@ -70,12 +70,18 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
   return <pixiContainer
     eventMode="dynamic"
     onPointerOver={()=>{
+      if(element.current){
+        element.current.cursor = "pointer";
+      }
       setFocus(id);
     }}
     onClick={()=>{
       setFocus(id);
     }}
     onPointerLeave={()=>{
+      if(element.current){
+        element.current.cursor = "default";
+      }
       clearFocus();
     }}
     ref={element}
