@@ -146,7 +146,26 @@ export class Animator{
     this.timerBreakpoint = breakpoints;
     return this;
   }
+}
 
-
+/**
+ * 
+ * @description Locate cards along the X axis from the center based on the number of cards and gap.
+ * @param scaleConstant scale of the content
+ * @param howMany how many cards to locate
+ * @param gap The gap between cards in pixels
+ * @param cardWidth The width of each card in pixels
+ * @param useCenter Whether to center the cards around the center point
+ * @returns An array of X coordinates for each card.
+ */
+export function locateCardXFromCenter({scaleConstant, howMany, gap = 10, cardWidth, useCenter = true}:{scaleConstant:number, howMany: number, gap?: number, cardWidth?: number, useCenter?: boolean}){
+  const baseWidth = 1920;
+  cardWidth = cardWidth ?? 1920 * scaleConstant * 0.08;
+  const pivot = useCenter ? (cardWidth) / 2 : 0;
+  return [...Array(howMany)].map((_,index)=>{
+    const totalWidth = (howMany * cardWidth) + ((howMany - 1) * (gap * scaleConstant));
+    const startX = (baseWidth * scaleConstant - totalWidth) / 2;
+    return startX + (index * (cardWidth + (gap * scaleConstant))) - pivot - ((baseWidth * scaleConstant) / 2);
+  })
 
 }
