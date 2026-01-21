@@ -50,7 +50,7 @@ export function Pile({
       tickerTime.stop();
     }
     return ()=>{
-      tickerTime.destroy();
+      tickerTime.stop();
     }
   }, [animateShuffling]);
 

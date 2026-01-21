@@ -62,7 +62,7 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
     }
 
     return ()=>{
-      ticker.current.destroy();
+      ticker.current.stop();
     }
   }, [currentFocus]);
 
