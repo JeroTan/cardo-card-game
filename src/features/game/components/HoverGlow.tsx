@@ -1,7 +1,6 @@
 import {GlowFilter} from "pixi-filters";
 import { useFocusContext } from "../Context/FocusContext";
-import { useApplication } from "@pixi/react";
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 import { Container, Ticker } from "pixi.js";
 import { useUpdateEffect } from "react-use";
 import { curvatureCalculator } from "../utils/Math";
@@ -25,7 +24,7 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
         color: 0xf0f0f0,
         quality: 0.2,
       })];
-      const targetTimer = 50 // 100 ms
+      const targetTimer = 50 // in ms
       const secondsRatio = targetTimer/1000; //Get ratio of seconds per millisecond
       const totalFramesToRender = 60*secondsRatio;
       let framesRendered = 0;
@@ -46,6 +45,10 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
           curvatureName: "easeOutQuad"
         }), 0);
         newDistanceValue = newDistanceValue < 1 ? 1 : newDistanceValue;
+        if(container == null){
+          ticker.current.stop();
+          return;
+        }
         container.filters = [new GlowFilter({
           distance: newDistanceValue,
           innerStrength: 0,
@@ -59,7 +62,7 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
     }
 
     return ()=>{
-      ticker.current.stop();
+      ticker.current.destroy();
     }
   }, [currentFocus]);
 

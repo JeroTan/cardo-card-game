@@ -55,7 +55,6 @@ export default function Card({
           const rectWidth = (1920 * scaleConstant) * cardScale;
           const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
-
           const cornerRadius = 5; // Rounded corner radius
           graphics.roundRect(-rectWidth*.5, -rectHeight*.5, rectWidth, rectHeight, scaleConstant*cornerRadius);
           graphics.stroke({ width: scaleConstant * 3, color: 0x767778 });

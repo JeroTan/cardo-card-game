@@ -70,7 +70,7 @@ function JailGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: n
       const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
       const {x: rectX, y: rectY} = makeCoordinatesCenter({
-        scaleContaant: scaleConstant,
+        scaleConstant,
         rectWidth,
         rectHeight,
         x: horizontalOffset*scaleConstant,
@@ -98,7 +98,7 @@ function DrawerGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y:
 
       const {x: rectX, y: rectY} = 
        makeCoordinatesCenter({
-        scaleContaant: scaleConstant,
+        scaleConstant,
         rectWidth,
         rectHeight,
         x: horizontalOffset*scaleConstant,

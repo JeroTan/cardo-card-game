@@ -35,6 +35,7 @@ function Composer(){
         horizontalOffset={771}
         verticalOffset={-281}
         pileSize={50}
+        animateShuffling={true}
       />
     </HoverGlow>
   </>

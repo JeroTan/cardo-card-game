@@ -26,11 +26,11 @@ export function useMakeRectCalculator(scaleConstant: number){
   }, [scaleConstant]);
 }
 
-export function makeCoordinatesCenter(data:{scaleContaant:number, rectWidth:number, rectHeight:number, x:number, y:number}){
-  const {scaleContaant, rectWidth, rectHeight, x, y} = data;
+export function makeCoordinatesCenter(data:{scaleConstant:number, rectWidth:number, rectHeight:number, x:number, y:number}){
+  const {scaleConstant, rectWidth, rectHeight, x, y} = data;
   return {
-    x: ((1920 * scaleContaant) - rectWidth) / 2 + x,
-    y: ((1080 * scaleContaant) - rectHeight) / 2 - y,
+    x: ((1920 * scaleConstant) - rectWidth) / 2 + x,
+    y: ((1080 * scaleConstant) - rectHeight) / 2 - y,
   }
 }
 
@@ -101,4 +101,52 @@ export function curvatureCalculator({
   
   // Interpolate between baseTargetValue and finalTargetValue using the easing curve
   return baseTargetValue + (finalTargetValue - baseTargetValue) * easingProgress;
+}
+
+/**
+ * @constructor
+ * @description Animator class to handle animations over time.
+ * @param finalTargetTime The total duration of the animation in milliseconds.
+ * @param fps The frames per second for the animation (default is 60).
+ */
+export class Animator{
+
+  public readonly secondsRatio: number;
+  public readonly totalFramesToRender: number;
+  public framesRendered: number;
+  public timerBreakpoint: number[] = [];
+
+  constructor(
+    public finalTargetTime: number, // in milliseconds
+    public fps: number = 60,
+  ){
+    this.secondsRatio = this.finalTargetTime /1000; //Get ratio of seconds per millisecond
+    this.totalFramesToRender = this.fps*this.secondsRatio;
+    this.framesRendered = 0;
+  }
+
+  addFrames(frames = 1){
+    this.framesRendered = (this.framesRendered + frames) % this.totalFramesToRender;
+    return this;
+  }
+
+  getTimeToFrameBreakpoints(index:number){
+    if(this.timerBreakpoint.length === 0){
+      throw new Error("Timer breakpoints not set. Please set timer breakpoints before getting frame breakpoints.");
+    }
+    const breakpointTime = this.timerBreakpoint[index];
+    if(breakpointTime === undefined){
+      throw new Error(`Timer breakpoint at index ${index} is undefined.`);
+    }
+    const frameBreakpoint = Math.floor((breakpointTime / this.finalTargetTime) * this.totalFramesToRender);
+    return frameBreakpoint;
+  }
+
+  setTimerBreakpoints(breakpoints: number[]){
+    this.timerBreakpoint = breakpoints;
+    return this;
+  }
+
+
+
 }
