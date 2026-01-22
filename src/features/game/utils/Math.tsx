@@ -1,4 +1,5 @@
 import { useApplication } from "@pixi/react";
+import { Sprite } from "pixi.js";
 import { useCallback } from "react";
 
 export function useAppWithScaleConstat(props:{width?: number, height?: number} = {
@@ -156,16 +157,53 @@ export class Animator{
  * @param gap The gap between cards in pixels
  * @param cardWidth The width of each card in pixels
  * @param useCenter Whether to center the cards around the center point
+ * @param midCoordinates Optional starting X coordinate for the middleground of the card (totalWidthOfAllCards / 2). If not then the starting card will start at 0 to 1920*scaleConstant. 
  * @returns An array of X coordinates for each card.
+ * 
  */
-export function locateCardXFromCenter({scaleConstant, howMany, gap = 10, cardWidth, useCenter = true}:{scaleConstant:number, howMany: number, gap?: number, cardWidth?: number, useCenter?: boolean}){
-  const baseWidth = 1920;
-  cardWidth = cardWidth ?? 1920 * scaleConstant * 0.08;
-  const pivot = useCenter ? (cardWidth) / 2 : 0;
-  return [...Array(howMany)].map((_,index)=>{
-    const totalWidth = (howMany * cardWidth) + ((howMany - 1) * (gap * scaleConstant));
-    const startX = (baseWidth * scaleConstant - totalWidth) / 2;
-    return startX + (index * (cardWidth + (gap * scaleConstant))) - pivot - ((baseWidth * scaleConstant) / 2);
-  })
+export function locateCardXFromCenter({
+  canvasSize = 1920,
+  scaleConstant, 
+  howMany, 
+  gap, 
+  cardWidth, 
+  useCenter = false,
+  midCoordinates,
+}:{
+  canvasSize?: number,
+  scaleConstant:number, 
+  howMany: number, 
+  gap?: number, 
+  cardWidth?: number, 
+  useCenter?: boolean,
+  midCoordinates?: number,
+}){
+  // Calculate the Total Size of the canvas
+  const baseWidth = canvasSize * scaleConstant;
 
+  // We need to get the width of the card to calculate the definite size for positioning coordinates
+  cardWidth = cardWidth ?? 1920 * scaleConstant * 0.08;
+  // Once we get the width we can now get the center by  dividing by 2
+  const cardCenter = (cardWidth / 2);
+
+  // The netGap is the gap between each card adjusted by the scaleConstant also it should not be more than the baseWidth divided by howMany
+  // An undefined gap meaning fill the available space equally
+  let netGap = gap === undefined 
+    ? (baseWidth - (howMany * cardWidth)) / (howMany - 1) 
+    : (gap * scaleConstant) > ((baseWidth - (howMany * cardWidth)) / (howMany - 1)) 
+      ? ((baseWidth - (howMany * cardWidth)) / (howMany - 1)) 
+      : (gap * scaleConstant);
+
+
+  const totalWidth = (howMany * cardWidth) + ((howMany - 1) * netGap);
+  const initialOffset = useCenter ? ((baseWidth - totalWidth)/2) : 0;
+  const midOffset = midCoordinates !== undefined ? -((baseWidth/2) - midCoordinates) : 0;
+  const array = [...Array(howMany)].map((_,index)=>{
+    const grossLocation =  initialOffset + cardCenter+ index*( cardWidth +netGap);
+    const netLocation = grossLocation + midOffset;
+    return netLocation;
+  });
+  // console.log(`Basewidth: ${baseWidth}, CardWidth: ${cardWidth}, CardCenter: ${cardCenter}, Gap: ${netGap}, TotalWidth: ${totalWidth}, InitialOffset: ${initialOffset}, MidOffset: ${midOffset}`);
+  // console.log(array);
+  return array;
 }

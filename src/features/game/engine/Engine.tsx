@@ -8,6 +8,7 @@ import { FocusContextProvider } from "../Context/FocusContext";
 import { locateCardXFromCenter, useAppWithScaleConstat } from "../utils/Math";
 import Interface from "./Interface";
 import { useApplication } from '@pixi/react';
+import { AttackToSentinelAnimation } from "../components/AttackAnimation";
 
 export default function Engine(){
   return <>
@@ -41,15 +42,26 @@ function Composer(){
       />
     </HoverGlow>
     {locateCardXFromCenter({
-      howMany: 5,
+      howMany: 7,
+      gap: 80,
+      canvasSize: 1490,
       scaleConstant: scaleConstant,
+      midCoordinates: 0,
+      useCenter: true,
     }).map((horizontalOffset, index) => {
       return <Fragment key={index}>
-        <Card
-          horizontalOffset={horizontalOffset}
-          verticalOffset={0}
-          src={`/images/card_${"back"}.svg`}
-        />
+        <HoverGlow>
+          <AttackToSentinelAnimation
+            scaleConstant={scaleConstant}
+            from={{x: horizontalOffset, y: -281}}
+          >
+            <Card
+              horizontalOffset={horizontalOffset}
+              verticalOffset={-281}
+              src={`/images/card_${"back"}.svg`}
+            />
+          </AttackToSentinelAnimation>
+        </HoverGlow>
       </Fragment>
     })}
   </>

@@ -38,6 +38,7 @@ export default function Card({
       x={((1920)*scaleConstant / 2) + (horizontalOffset*scaleConstant)}
       y={((1080)*scaleConstant / 2) - (verticalOffset*scaleConstant)}
       ref={ref}
+      label="card"
     >
       {texture ? (
         <pixiSprite 

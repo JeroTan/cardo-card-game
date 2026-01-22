@@ -66,7 +66,6 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
     }
   }, [currentFocus]);
 
-
   return <pixiContainer
     eventMode="dynamic"
     onPointerOver={()=>{
