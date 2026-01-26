@@ -51,7 +51,7 @@ function Composer(){
     }).map((horizontalOffset, index) => {
       return <Fragment key={index}>
         <HoverGlow>
-          {/* <AttackToSentinelAnimation
+          <AttackToSentinelAnimation
             scaleConstant={scaleConstant}
             from={{x: horizontalOffset, y: -281}}
           >
@@ -60,12 +60,12 @@ function Composer(){
               verticalOffset={-281}
               src={`/images/card_${"back"}.svg`}
             />
-          </AttackToSentinelAnimation> */}
-          <Card
+          </AttackToSentinelAnimation>
+          {/* <Card
               horizontalOffset={horizontalOffset}
               verticalOffset={-281}
               src={`/images/card_${"back"}.svg`}
-            />
+            /> */}
         </HoverGlow>
       </Fragment>
     })}
