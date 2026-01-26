@@ -5,14 +5,12 @@ import { Animator, curvatureCalculator, makeCoordinatesCenter } from "../utils/M
 import { findLabelCardInPixi } from "../utils/Card";
 
 export type AttackAnimationProps = {
-  from: {x: number, y:number},
   children?: React.ReactNode,
   scaleConstant?: number,
   animationDone?: ()=>void,
 };
 
 export function AttackToSentinelAnimation({
-  from,
   children,
   scaleConstant = 1,
   animationDone,
@@ -42,8 +40,18 @@ export function AttackToSentinelAnimation({
       animationLength*1
     ]);
 
+    // Calculate the location of cards from center
+    const currentCardLocationFromCenter = {
+      x: ( cardData.position.x - (1920 * scaleConstant * .5) ) / (scaleConstant ? scaleConstant : 1),
+      y: (1080 * .5) - (cardData.position.y / (scaleConstant ? scaleConstant : 1)),
+    }
+
     // From center to the x of from, calculate the angle of rotation
-    const finalRotationPoint = -(Math.atan2(from.y, from.x) + Math.PI / 2); // Calculate angle to point toward center (0,0)
+    const baseAngle = Math.atan2(currentCardLocationFromCenter.y, currentCardLocationFromCenter.x) + Math.PI / 2;
+    const finalRotationPoint = currentCardLocationFromCenter.y < 0 
+      ? -baseAngle              // Below center: flip rotation
+      : -(baseAngle - Math.PI);    // Above center: subtract 180 degrees
+
     const targetCenter = makeCoordinatesCenter({scaleConstant, rectHeight: 0, rectWidth: 0, x:0, y:0});
   
 
@@ -61,6 +69,7 @@ export function AttackToSentinelAnimation({
           finalTime: animator.getTimeToFrameBreakpoints(1),
           curvatureName: "easeInCirc",
         });
+        console.log(rotateAnimation,  id, " Rotation Animation", finalRotationPoint);
         cardData.rotation = rotateAnimation;
       }else if(animator.getTimeToFrameBreakpoints(2) < animator.framesRendered  && animator.framesRendered <= animator.getTimeToFrameBreakpoints(3)){
         const poxitionXAnimation = curvatureCalculator({
@@ -79,7 +88,7 @@ export function AttackToSentinelAnimation({
           finalTime: animator.getTimeToFrameBreakpoints(3),
           curvatureName: "easeInQuad",
         });
-        console.log(id, "poxitionXAnimation", poxitionXAnimation, "poxitionYAnimation", poxitionYAnimation, " Old Position:", {x: cardData.position.x, y: cardData.position.y}, " Target Center:", targetCenter);
+        // console.log(id, "poxitionXAnimation", poxitionXAnimation, "poxitionYAnimation", poxitionYAnimation, " Old Position:", {x: cardData.position.x, y: cardData.position.y}, " Target Center:", targetCenter);
         cardData.position.set(poxitionXAnimation, poxitionYAnimation);
       }
 

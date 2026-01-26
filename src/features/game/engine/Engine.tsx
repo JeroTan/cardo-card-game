@@ -4,7 +4,7 @@ import Card from "../components/Card";
 import HoverGlow from "../components/HoverGlow";
 import NavBar from "../components/NavBar";
 import { Pile } from "../components/Pile";
-import { FocusContextProvider } from "../Context/FocusContext";
+import { FocusContextProvider } from "../context/FocusContext";
 import { locateCardXFromCenter, useAppWithScaleConstant } from "../utils/Math";
 import Interface from "./Interface";
 import { useApplication } from '@pixi/react';
@@ -53,7 +53,6 @@ function Composer(){
         <HoverGlow>
           <AttackToSentinelAnimation
             scaleConstant={scaleConstant}
-            from={{x: horizontalOffset, y: -281}}
           >
             <Card
               horizontalOffset={horizontalOffset}
