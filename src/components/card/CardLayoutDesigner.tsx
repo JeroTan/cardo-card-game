@@ -34,7 +34,7 @@ export default function CardLayoutDesigner({
       // First Step: downsize the image to 400x600  but maintain the original image  aspect ratio. The overflow should be more than 400 if width or 600 if height whichever the case.
       // Second Step: Crop it to make 2x3 ratio
       // Last Step convert image to base64
-      const updatedImage = await resizeAndCropImage({rawImage, downsizingTo:{width:369, height:539}, targetCrop:`369x539`});
+      const updatedImage = await resizeAndCropImage({rawImage, downsizingTo:{width:400, height:600}, targetCrop:`400x600`});
       const base64Image = (await convertFileToBase64(updatedImage)) as string;
       refinedImageSet(base64Image);
     })
@@ -205,7 +205,7 @@ export default function CardLayoutDesigner({
         {refinedImage && (
           <image
             id={`image0_21_2${identifier}`}
-            width={250}
+            width={232}
             height={346}
             preserveAspectRatio="none"
             xlinkHref={refinedImage}
