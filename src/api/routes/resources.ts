@@ -11,7 +11,7 @@ export function ResourcesRoutes({app}:{app: Elysia}){
     .use(typedEnv)
     .group('/public/resources', (app) => {
       return app
-      .get("/card/:id", async ({params, env})=>{
+      .get("/card/:id", async ({params, query, env})=>{
         const image = await getCardImage({env, id: params.id});
         if(!image){
           return new Response(JSON.stringify({
@@ -25,12 +25,15 @@ export function ResourcesRoutes({app}:{app: Elysia}){
         return new Response(image, {
           headers: {
             'Content-Type': image.type,
-            'Cache-Control': 'public, max-age=31536000, immutable',
+            'Cache-Control': query.resetCache ? 'public, max-age=0, no-cache, no-store, must-revalidate/' : 'public, max-age=31536000, immutable',
           }
         });
       }, {
         params: t.Object({
           id: t.String()
+        }),
+        query: t.Object({
+          resetCache: t.Optional(t.Boolean())
         }),
         detail: {
           summary: 'Get card image by ID',

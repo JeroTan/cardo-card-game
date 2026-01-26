@@ -41,7 +41,7 @@ function CardEditComposer({id}:{id:string}){
 
   useEffectOnce(()=>{
     apiGetCardDetail(id).s200(async ({data}: {data: ModelCardWithPackItBelongsTo})=>{
-      const file = await linkToFile(data.card_art);
+      const file = await linkToFile(data.card_art+"?resetCache=true");
       oldDataSet({
         name: data.name,
         atk: data.atk,
