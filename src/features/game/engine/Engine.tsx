@@ -2,13 +2,14 @@ import { Fragment } from "react/jsx-runtime";
 import Board from "../components/Board";
 import Card from "../components/Card";
 import HoverGlow from "../components/HoverGlow";
-import NavBar from "../components/NavBar";
+import TopBar from "../components/TopBar";
 import { Pile } from "../components/Pile";
 import { FocusContextProvider } from "../context/FocusContext";
 import { locateCardXFromCenter, useAppWithScaleConstant } from "../utils/Math";
 import Interface from "./Interface";
 import { useApplication } from '@pixi/react';
 import { AttackToSentinelAnimation } from "../components/AttackAnimation";
+import BottomBar from "../components/BottomBar";
 
 export default function Engine(){
   return <>
@@ -24,7 +25,8 @@ function Composer(){
   const [app, scaleConstant] = useAppWithScaleConstant();
   return <>
     <Board />
-    <NavBar />
+    <TopBar />
+    <BottomBar />
     <HoverGlow>
       <Pile
         topCard={"/images/card_back.svg"}
