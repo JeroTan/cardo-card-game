@@ -1,7 +1,7 @@
-import { useAppWithScaleConstat } from "../utils/Math";
+import { useAppWithScaleConstant } from "../utils/Math";
 
 export default function NavBar(){
-  const [app, scaleConstant] = useAppWithScaleConstat();
+  const [app, scaleConstant] = useAppWithScaleConstant();
 
   return <>
     <pixiGraphics

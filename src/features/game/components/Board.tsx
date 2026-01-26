@@ -1,8 +1,8 @@
 import { Circle } from "pixi.js";
-import { makeCoordinatesCenter, useAppWithScaleConstat } from "../utils/Math";
+import { makeCoordinatesCenter, useAppWithScaleConstant } from "../utils/Math";
 
 export default function Board(){
-  const [app, scaleConstant] = useAppWithScaleConstat();
+  const [app, scaleConstant] = useAppWithScaleConstant();
 
   return <>
     <pixiGraphics
@@ -59,7 +59,7 @@ export default function Board(){
 }
 
 function JailGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: number}) {
-  const [, scaleConstant] = useAppWithScaleConstat();
+  const [, scaleConstant] = useAppWithScaleConstant();
 
   return <>
     <pixiGraphics draw={(graphics)=>{
@@ -86,7 +86,7 @@ function JailGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: n
 }
 
 function DrawerGraphics({x:horizontalOffset, y: verticalOffset} : {x: number, y: number}) {
-  const [, scaleConstant] = useAppWithScaleConstat();
+  const [, scaleConstant] = useAppWithScaleConstant();
 
   return <>
     <pixiGraphics draw={(graphics)=>{

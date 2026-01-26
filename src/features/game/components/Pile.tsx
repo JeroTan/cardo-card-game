@@ -1,5 +1,5 @@
 import { useEffect, useRef, type Ref } from "react";
-import { Animator, makeCoordinatesCenter, useAppWithScaleConstat } from "../utils/Math";
+import { Animator, makeCoordinatesCenter, useAppWithScaleConstant } from "../utils/Math";
 import Card from "./Card";
 import { Container, Ticker } from "pixi.js";
 
@@ -18,7 +18,7 @@ export function Pile({
   horizontalOffset = 0,
   verticalOffset = 0
 }: PileType){
-  const [app, scaleConstant] = useAppWithScaleConstat();
+  const [app, scaleConstant] = useAppWithScaleConstant();
   const {current: tickerTime} = useRef(new Ticker);
   const cardRef = useRef<Container|null>(null);
   const pileRef = useRef<Container|null>(null);

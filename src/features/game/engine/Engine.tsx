@@ -5,7 +5,7 @@ import HoverGlow from "../components/HoverGlow";
 import NavBar from "../components/NavBar";
 import { Pile } from "../components/Pile";
 import { FocusContextProvider } from "../Context/FocusContext";
-import { locateCardXFromCenter, useAppWithScaleConstat } from "../utils/Math";
+import { locateCardXFromCenter, useAppWithScaleConstant } from "../utils/Math";
 import Interface from "./Interface";
 import { useApplication } from '@pixi/react';
 import { AttackToSentinelAnimation } from "../components/AttackAnimation";
@@ -21,7 +21,7 @@ export default function Engine(){
 }
 
 function Composer(){
-  const [app, scaleConstant] = useAppWithScaleConstat();
+  const [app, scaleConstant] = useAppWithScaleConstant();
   return <>
     <Board />
     <NavBar />

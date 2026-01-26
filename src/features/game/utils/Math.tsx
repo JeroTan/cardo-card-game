@@ -2,7 +2,7 @@ import { useApplication } from "@pixi/react";
 import { Sprite } from "pixi.js";
 import { useCallback } from "react";
 
-export function useAppWithScaleConstat(props:{width?: number, height?: number} = {
+export function useAppWithScaleConstant(props:{width?: number, height?: number} = {
   width: 1920,
   height:1080,
 }) {

@@ -1,5 +1,5 @@
 import { Assets, Container, FillGradient, Texture } from "pixi.js";
-import { makeCoordinatesCenter, useAppWithScaleConstat } from "../utils/Math";
+import { makeCoordinatesCenter, useAppWithScaleConstant } from "../utils/Math";
 import { useEffect, useState, type Ref } from "react";
 
 export default function Card({
@@ -13,7 +13,7 @@ export default function Card({
   src?: string
   ref?: Ref<Container>|null,
 })  {
-  const [, scaleConstant] = useAppWithScaleConstat();
+  const [, scaleConstant] = useAppWithScaleConstant();
   const [texture, setTexture] = useState<Texture | null>(null);
 
   useEffect(() => {
