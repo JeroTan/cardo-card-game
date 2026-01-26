@@ -68,5 +68,32 @@ function Composer(){
         </HoverGlow>
       </Fragment>
     })}
+    {locateCardXFromCenter({
+      howMany: 7,
+      gap: 50,
+      canvasSize: 1490,
+      scaleConstant: scaleConstant,
+      midCoordinates: 0,
+      useCenter: true,
+    }).map((horizontalOffset, index) => {
+      return <Fragment key={index}>
+        <HoverGlow>
+          <AttackToSentinelAnimation
+            scaleConstant={scaleConstant}
+          >
+            <Card
+              horizontalOffset={horizontalOffset}
+              verticalOffset={281}
+              src={`/images/card_${"back"}.svg`}
+            />
+          </AttackToSentinelAnimation>
+          {/* <Card
+              horizontalOffset={horizontalOffset}
+              verticalOffset={-281}
+              src={`/images/card_${"back"}.svg`}
+            /> */}
+        </HoverGlow>
+      </Fragment>
+    })}
   </>
 }

@@ -22,7 +22,6 @@ export function AttackToSentinelAnimation({
   useEffectOnce(()=>{
     startAnimation();
   });
-  const id = useId();
 
   const startAnimation = useCallback(()=>{
     if(element.current == null || ticker.current == null) return;
@@ -69,7 +68,6 @@ export function AttackToSentinelAnimation({
           finalTime: animator.getTimeToFrameBreakpoints(1),
           curvatureName: "easeInCirc",
         });
-        console.log(rotateAnimation,  id, " Rotation Animation", finalRotationPoint);
         cardData.rotation = rotateAnimation;
       }else if(animator.getTimeToFrameBreakpoints(2) < animator.framesRendered  && animator.framesRendered <= animator.getTimeToFrameBreakpoints(3)){
         const poxitionXAnimation = curvatureCalculator({
