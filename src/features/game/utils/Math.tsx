@@ -11,7 +11,7 @@ export function useAppWithScaleConstant(props:{width?: number, height?: number} 
   const baseHeight = props.height || 1080;
   return [
     app,
-    app.renderer.width/ baseWidth ,
+    app.renderer.width / baseWidth ,
     app.renderer.height / baseHeight
   ] as const;
 }
@@ -244,4 +244,23 @@ export function locateCardXFromCenter({
   // console.log(`Basewidth: ${baseWidth}, CardWidth: ${cardWidth}, CardCenter: ${cardCenter}, Gap: ${netGap}, TotalWidth: ${totalWidth}, InitialOffset: ${initialOffset}, MidOffset: ${midOffset}`);
   // console.log(array);
   return array;
+}
+
+
+export function coordinateDivider({
+  total,
+  baseWidth = 1920,
+  baseHeight = 1080,
+}:{
+  total:number,
+  baseWidth?: number,
+  baseHeight?: number,
+}) {
+  return [...Array(total)].map((_,index)=>{
+    return {
+      size: (baseHeight/total),
+      x: (baseWidth/total) * index,
+      y: (baseHeight/total) * index,
+    };
+  })
 }

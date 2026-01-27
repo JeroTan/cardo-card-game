@@ -5,11 +5,13 @@ import HoverGlow from "../components/HoverGlow";
 import TopBar from "../components/TopBar";
 import { Pile } from "../components/Pile";
 import { FocusContextProvider } from "../context/FocusContext";
-import { locateCardXFromCenter, useAppWithScaleConstant } from "../utils/Math";
+import { coordinateDivider, locateCardXFromCenter, useAppWithScaleConstant } from "../utils/Math";
 import Interface from "./Interface";
-import { useApplication } from '@pixi/react';
 import { AttackToSentinelAnimation } from "../components/AttackAnimation";
 import BottomBar from "../components/BottomBar";
+import MainPlayerInfo from "../components/stat/MainPlayerInfo";
+import { TurnInfo } from "../components/stat/TurnInfo";
+import { BarContainer } from "../components/stat/BarContainer";
 
 export default function Engine(){
   return <>
@@ -26,7 +28,25 @@ function Composer(){
   return <>
     <Board />
     <TopBar />
+    {coordinateDivider({
+      total: 3
+    }).map((data, index)=>{
+      return <Fragment key={index}>
+        <BarContainer
+          width={data.size * (1+scaleConstant)}
+          x={data.x}
+          highlight={true}
+        />
+      </Fragment>
+    })}
     <BottomBar />
+    <BarContainer
+      y={1080 - 80}
+      highlight={true}
+    />
+
+    <MainPlayerInfo />
+
     <HoverGlow>
       <Pile
         topCard={"/images/card_back.svg"}

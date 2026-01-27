@@ -89,7 +89,6 @@ export function AttackToSentinelAnimation({
         // console.log(id, "poxitionXAnimation", poxitionXAnimation, "poxitionYAnimation", poxitionYAnimation, " Old Position:", {x: cardData.position.x, y: cardData.position.y}, " Target Center:", targetCenter);
         cardData.position.set(poxitionXAnimation, poxitionYAnimation);
       }
-      console.log("delta", t.deltaMS / 16.6667);
       animator.addFrames(t.deltaTime, true);
       if(animator.framesRendered > (animator.getTimeToFrameBreakpoints(3)-1)){
         ticker.current.stop();
