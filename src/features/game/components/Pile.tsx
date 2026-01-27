@@ -38,9 +38,10 @@ export function Pile({
       const initX = cardContainer.x;
       const initY = cardContainer.y;
       const initContainerWidth = cardContainer.width;
+      let previous = 0;
 
-      tickerTime.add(()=>{
-        if(animator.framesRendered == 0){
+      tickerTime.add((t)=>{
+        if(animator.framesRendered == 0 || previous > animator.framesRendered){
           cardContainer.width = initContainerWidth;
         }else if(animator.framesRendered <= animator.getTimeToFrameBreakpoints(1)){
           cardContainer.x = initX + ((animator.framesRendered * scaleConstant*moveScale) % (animator.getTimeToFrameBreakpoints(1) * scaleConstant*moveScale));
@@ -52,7 +53,8 @@ export function Pile({
           
           cardContainer.width = ((animator.getTimeToFrameBreakpoints(2) - animator.framesRendered)/animator.getTimeToFrameBreakpoints(2)) * initContainerWidth;
         }
-        animator.addFrames();
+        previous = animator.framesRendered;
+        animator.addFrames(t.deltaTime);
       });
     }else{
       tickerTime.stop();
