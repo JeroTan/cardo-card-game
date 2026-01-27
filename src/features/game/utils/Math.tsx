@@ -116,6 +116,7 @@ export class Animator{
   public readonly totalFramesToRender: number;
   public framesRendered: number;
   public timerBreakpoint: number[] = [];
+  public timerBreakpointCheck: boolean[] = [];
 
   constructor(
     public finalTargetTime: number, // in milliseconds
@@ -126,8 +127,9 @@ export class Animator{
     this.framesRendered = 0;
   }
 
-  addFrames(frames = 1){
-    this.framesRendered = (this.framesRendered + frames) % this.totalFramesToRender;
+  addFrames(frames = 1, noRepeat = false){
+    const newCalculatedFrames = this.framesRendered + frames;
+    this.framesRendered = noRepeat ? newCalculatedFrames : newCalculatedFrames % (this.totalFramesToRender);
     return this;
   }
 
@@ -145,6 +147,42 @@ export class Animator{
 
   setTimerBreakpoints(breakpoints: number[]){
     this.timerBreakpoint = breakpoints;
+    this.timerBreakpointCheck = breakpoints.map(() => false);
+    return this;
+  }
+  
+  isWithinBreakpoint(index: number){
+    if(this.timerBreakpoint.length === 0){
+      throw new Error("Timer breakpoints not set. Please set timer breakpoints before checking breakpoints.");
+    }
+    const frameBreakpoint = this.getTimeToFrameBreakpoints(index);
+    if(index == 0){
+      return this.framesRendered <= frameBreakpoint;
+    }else if(0 < index && index < this.timerBreakpoint.length -1){
+      const previousFrameBreakpoint = this.getTimeToFrameBreakpoints(index - 1);
+      return previousFrameBreakpoint < this.framesRendered && this.framesRendered <= frameBreakpoint;
+    }else if(index == this.timerBreakpoint.length -1){
+      return frameBreakpoint < this.framesRendered;
+    }
+  }
+
+  isBreakpointChecked(index: number){
+    if(this.timerBreakpoint.length === 0){
+      throw new Error("Timer breakpoints not set. Please set timer breakpoints before checking breakpoints.");
+    }
+    return this.timerBreakpointCheck[index];
+  }
+
+  markBreakpointChecked(index: number){
+    if(this.timerBreakpoint.length === 0){
+      throw new Error("Timer breakpoints not set. Please set timer breakpoints before marking breakpoints.");
+    }
+    this.timerBreakpointCheck[index] = true;
+    return this;
+  }
+
+  resetTimeBreakpoints(){
+    this.timerBreakpointCheck = this.timerBreakpoint.map(() => false);
     return this;
   }
 }

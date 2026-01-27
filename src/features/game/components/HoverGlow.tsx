@@ -28,14 +28,18 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
       const secondsRatio = targetTimer/1000; //Get ratio of seconds per millisecond
       const totalFramesToRender = 60*secondsRatio;
       let framesRendered = 0;
+      let animationDone = false;
       
-      ticker.current.add(()=>{
-        if(framesRendered >= totalFramesToRender){
+      ticker.current.add((t)=>{
+        if(framesRendered >= totalFramesToRender && animationDone){
           ticker.current.stop();
           framesRendered = 0;
           return;
         }
-        ++framesRendered;
+        framesRendered += t.deltaTime;
+        if(framesRendered >= totalFramesToRender){
+          animationDone = true;
+        }
         let newDistanceValue =  round(curvatureCalculator({
           currentTime: framesRendered,
           baseTargetValue: 1,

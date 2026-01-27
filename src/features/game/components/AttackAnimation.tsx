@@ -31,7 +31,7 @@ export function AttackToSentinelAnimation({
     if(cardData == null) return;
     
     // The Animation is simple, go to 0, 0 of the canvas
-    const animationLength = 2000; // in ms
+    const animationLength = 600; // in ms
     const animator = new Animator(animationLength).setTimerBreakpoints([
       animationLength*0, 
       animationLength*0.57, 
@@ -54,7 +54,7 @@ export function AttackToSentinelAnimation({
     const targetCenter = makeCoordinatesCenter({scaleConstant, rectHeight: 0, rectWidth: 0, x:0, y:0});
   
 
-    ticker.current.add(()=>{
+    ticker.current.add((t)=>{
 
       if(animator.framesRendered == animator.getTimeToFrameBreakpoints(0)){
         cardData.rotation = 0;
@@ -89,9 +89,9 @@ export function AttackToSentinelAnimation({
         // console.log(id, "poxitionXAnimation", poxitionXAnimation, "poxitionYAnimation", poxitionYAnimation, " Old Position:", {x: cardData.position.x, y: cardData.position.y}, " Target Center:", targetCenter);
         cardData.position.set(poxitionXAnimation, poxitionYAnimation);
       }
-
-      animator.addFrames(1);
-      if(animator.framesRendered == (animator.getTimeToFrameBreakpoints(3)-1)){
+      console.log("delta", t.deltaMS / 16.6667);
+      animator.addFrames(t.deltaTime, true);
+      if(animator.framesRendered > (animator.getTimeToFrameBreakpoints(3)-1)){
         ticker.current.stop();
         animationDone?.();
         return;
