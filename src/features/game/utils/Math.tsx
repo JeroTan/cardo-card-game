@@ -258,7 +258,7 @@ export function coordinateDivider({
 }) {
   return [...Array(total)].map((_,index)=>{
     return {
-      size: (baseHeight/total),
+      size: (baseWidth/total),
       x: (baseWidth/total) * index,
       y: (baseHeight/total) * index,
     };

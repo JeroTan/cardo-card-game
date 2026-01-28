@@ -9,7 +9,7 @@ import { coordinateDivider, locateCardXFromCenter, useAppWithScaleConstant } fro
 import Interface from "./Interface";
 import { AttackToSentinelAnimation } from "../components/AttackAnimation";
 import BottomBar from "../components/BottomBar";
-import MainPlayerInfo from "../components/stat/MainPlayerInfo";
+import PlayerInfo from "../components/stat/PlayerInfo";
 import { TurnInfo } from "../components/stat/TurnInfo";
 import { BarContainer } from "../components/stat/BarContainer";
 
@@ -33,9 +33,18 @@ function Composer(){
     }).map((data, index)=>{
       return <Fragment key={index}>
         <BarContainer
-          width={data.size * (1+scaleConstant)}
+          width={data.size}
           x={data.x}
           highlight={true}
+        />
+        <TurnInfo 
+          x={data.x+10}
+          y={20}
+        />
+        <PlayerInfo
+          playerName="Player 1"
+          x={data.x+120}
+          y={21}
         />
       </Fragment>
     })}
@@ -45,7 +54,17 @@ function Composer(){
       highlight={true}
     />
 
-    <MainPlayerInfo />
+    <TurnInfo 
+      x={10}
+      y={1080 - 60}
+      cardLeft={1}
+      turnPassed={5}
+    />
+    <PlayerInfo
+      playerName="Player 1"
+      x={120}
+      y={1080 - 60}
+    />
 
     <HoverGlow>
       <Pile
