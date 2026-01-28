@@ -12,6 +12,9 @@ import BottomBar from "../components/BottomBar";
 import PlayerInfo from "../components/stat/PlayerInfo";
 import { TurnInfo } from "../components/stat/TurnInfo";
 import { BarContainer } from "../components/stat/BarContainer";
+import { TipNote } from "../components/TipNote";
+import { AttackingStat } from "../components/stat/AttackingStat";
+import { DefendingStat } from "../components/stat/DefendingStat";
 
 export default function Engine(){
   return <>
@@ -27,6 +30,18 @@ function Composer(){
   const [app, scaleConstant] = useAppWithScaleConstant();
   return <>
     <Board />
+    <AttackingStat 
+      x={ 350 }
+      y={80}
+      value={10}
+    />
+
+    <DefendingStat 
+      x={ -350 }
+      y={-80}
+      value={8}
+    />
+
     <TopBar />
     {coordinateDivider({
       total: 3
@@ -64,6 +79,11 @@ function Composer(){
       playerName="Player 1"
       x={120}
       y={1080 - 60}
+    />
+    <TipNote 
+      tip={"This is a sample tip note to help the player understand the game mechanics better."}
+      x={1920 - 960}
+      y={1080 - 70}
     />
 
     <HoverGlow>
