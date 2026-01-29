@@ -1,5 +1,4 @@
 import { useApplication } from "@pixi/react";
-import { Sprite } from "pixi.js";
 import { useCallback } from "react";
 
 export function useAppWithScaleConstant(props:{width?: number, height?: number} = {
@@ -204,7 +203,7 @@ export class Animator{
  */
 export function locateCardXFromCenter({
   canvasSize = 1920,
-  scaleConstant, 
+  scaleConstant = 1, 
   howMany, 
   gap, 
   cardWidth, 
@@ -212,21 +211,23 @@ export function locateCardXFromCenter({
   midCoordinates,
 }:{
   canvasSize?: number,
-  scaleConstant:number, 
+  scaleConstant?:number, 
   howMany: number, 
   gap?: number, 
   cardWidth?: number, 
   useCenter?: boolean,
   midCoordinates?: number,
 }){
+  //If there is no scaleconstant, don't use it
   // Calculate the Total Size of the canvas
   const baseWidth = canvasSize * scaleConstant;
+  const canvasWidth = 1920 * scaleConstant;
 
   // We need to get the width of the card to calculate the definite size for positioning coordinates
-  cardWidth = cardWidth ?? 1920 * scaleConstant * 0.08;
+  cardWidth = cardWidth ?? ((canvasWidth*(1+0.01915708812260536398467432950192))* 0.080); // 0.01915708812260536398467432950192 is allowance value
   // Once we get the width we can now get the center by  dividing by 2
   const cardCenter = (cardWidth / 2);
-
+  
   // The netGap is the gap between each card adjusted by the scaleConstant also it should not be more than the baseWidth divided by howMany
   // An undefined gap meaning fill the available space equally
   let netGap = gap === undefined 
@@ -236,16 +237,14 @@ export function locateCardXFromCenter({
       : (gap * scaleConstant);
 
 
-  const totalWidth = (howMany * cardWidth) + ((howMany - 1) * netGap);
-  const initialOffset = useCenter ? ((baseWidth - totalWidth)/2) : 0;
-  const midOffset = midCoordinates !== undefined ? -((baseWidth/2) - midCoordinates) : 0;
+  const totalWidth = (howMany * cardWidth) + (netGap * (howMany - 1));
+  const initialOffset = useCenter ? ((canvasWidth - totalWidth)/2) : 0;
+  const midOffset = midCoordinates !== undefined ? -((canvasWidth/2) - midCoordinates) : 0;
   const array = [...Array(howMany)].map((_,index)=>{
-    const grossLocation =  initialOffset + cardCenter+ index*( cardWidth +netGap);
+    const grossLocation =  initialOffset + cardCenter+ (index*(  cardWidth + netGap ));
     const netLocation = grossLocation + midOffset;
     return netLocation;
   });
-  // console.log(`Basewidth: ${baseWidth}, CardWidth: ${cardWidth}, CardCenter: ${cardCenter}, Gap: ${netGap}, TotalWidth: ${totalWidth}, InitialOffset: ${initialOffset}, MidOffset: ${midOffset}`);
-  // console.log(array);
   return array;
 }
 
