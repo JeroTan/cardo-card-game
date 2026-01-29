@@ -43,7 +43,7 @@ export function DefendingStat({
       y={18}
     />
     <pixiText 
-      text={`${value}`}
+      text={`${value ? value : "--"}`}
       style={makeFontStyle({
         fontSize: 36*scaleConstant,
         fill: 0xD9D9D9,
