@@ -34,6 +34,7 @@ function Composer(){
       x={ 350 }
       y={80}
       value={10}
+      effects={"GLOWING_GREEN"}
     />
 
     <DefendingStat 

@@ -62,7 +62,7 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
       })
     }else{
       ticker.current.stop();
-      container.filters = []
+      container.filters = [];
     }
 
     return ()=>{

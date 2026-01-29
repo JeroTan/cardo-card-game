@@ -36,6 +36,7 @@ export function makeCoordinatesCenter(data:{scaleConstant:number, rectWidth:numb
 }
 
 export const curvatureAnimation = {
+  linear: "cubic-bezier(0.0, 0.0, 1.0, 1.0)",
   easeInQuad: "cubic-bezier(0.550, 0.085, 0.680, 0.530)",
 	easeOutQuad: "cubic-bezier(0.250, 0.460, 0.450, 0.940)",
 	easeInCubic: "cubic-bezier(0.550, 0.055, 0.675, 0.190)",
@@ -114,6 +115,7 @@ export class Animator{
 
   public readonly secondsRatio: number;
   public readonly totalFramesToRender: number;
+  public previousFrameRendered: number = 0;
   public framesRendered: number;
   public timerBreakpoint: number[] = [];
   public timerBreakpointCheck: boolean[] = [];
@@ -129,6 +131,7 @@ export class Animator{
 
   addFrames(frames = 1, noRepeat = false){
     const newCalculatedFrames = this.framesRendered + frames;
+    this.previousFrameRendered = this.framesRendered;
     this.framesRendered = noRepeat ? newCalculatedFrames : newCalculatedFrames % (this.totalFramesToRender);
     return this;
   }
