@@ -15,6 +15,7 @@ import { BarContainer } from "../components/stat/BarContainer";
 import { TipNote } from "../components/TipNote";
 import { AttackingStat } from "../components/stat/AttackingStat";
 import { DefendingStat } from "../components/stat/DefendingStat";
+import { Button } from "../components/Button";
 
 export default function Engine(){
   return <>
@@ -165,5 +166,24 @@ function Composer(){
         </HoverGlow>
       </Fragment>
     })}
+
+    <Button 
+      useCenterCoordinate
+      x={600}
+      y={30}
+      text="Draw Card"
+      disabled
+      color={0x3399FF}
+      minWidth={200}
+    />
+
+    <Button 
+      useCenterCoordinate
+      x={600}
+      y={-30}
+      text="End Turn"
+      color={0xFF5733}
+      minWidth={200}
+    />
   </>
 }
