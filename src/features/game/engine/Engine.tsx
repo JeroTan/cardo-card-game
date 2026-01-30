@@ -16,6 +16,7 @@ import { TipNote } from "../components/TipNote";
 import { AttackingStat } from "../components/stat/AttackingStat";
 import { DefendingStat } from "../components/stat/DefendingStat";
 import { Button } from "../components/Button";
+import Modal from "../components/Modal";
 
 export default function Engine(){
   return <>
@@ -173,7 +174,7 @@ function Composer(){
       y={30}
       text="Draw Card"
       disabled
-      color={0x3399FF}
+      color={0x3D5779}
       minWidth={200}
     />
 
@@ -182,8 +183,18 @@ function Composer(){
       x={600}
       y={-30}
       text="End Turn"
-      color={0xFF5733}
+      color={0xFF2222}
       minWidth={200}
     />
+
+    <Modal>
+      <pixiGraphics 
+        draw={(graphics)=>{
+          graphics.clear();
+          graphics.roundRect(0, 0, 400 * scaleConstant, 200 * scaleConstant, 12);
+          graphics.fill({ color: 0x4a4a4a, alpha: 1 });
+        }}
+      />
+    </Modal>
   </>
 }
