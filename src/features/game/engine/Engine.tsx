@@ -17,19 +17,28 @@ import { AttackingStat } from "../components/stat/AttackingStat";
 import { DefendingStat } from "../components/stat/DefendingStat";
 import { Button } from "../components/Button";
 import Modal from "../components/Modal";
+import FloatingMenu from "../components/FloatingMenu";
+import { useRef } from "react";
+import type { Container } from "pixi.js";
+import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/FloatingMenuContext";
+import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 
 export default function Engine(){
   return <>
-    <FocusContextProvider>
-      <Interface>
+  <FocusContextProvider>
+    <Interface>
+      <FloatingMenuContextProvider>
         <Composer />
-      </Interface>
-    </FocusContextProvider>
+      </FloatingMenuContextProvider>
+    </Interface>
+  </FocusContextProvider>
+   
   </>
 }
 
 function Composer(){
   const [app, scaleConstant] = useAppWithScaleConstant();
+  const {openFloatingMenu} = useFloatingMenuContext();
   return <>
     <Board />
     <AttackingStat 
@@ -89,22 +98,54 @@ function Composer(){
       y={1080 - 70}
     />
 
-    <HoverGlow>
-      <Pile
-        topCard={"/images/card_back.svg"}
-        horizontalOffset={-771}
-        verticalOffset={281}
-        pileSize={25}
-      />
-    </HoverGlow>
-    <HoverGlow>
-      <Pile
-        topCard={"/images/card_back.svg"}
-        horizontalOffset={771}
-        verticalOffset={-281}
-        pileSize={50}
-      />
-    </HoverGlow>
+    <UtilityContainer
+      onClick={(graphic)=>{
+        const card = findLabelCardInPixi(graphic!);
+        openFloatingMenu(card, <>
+           <pixiGraphics
+              draw={(graphics)=>{
+                graphics.clear();
+                graphics.roundRect(0, 0, 200 * scaleConstant, 100 * scaleConstant, 12);
+                graphics.fill({ color: 0x404346, alpha: 1 });
+              }}
+            />
+        </>);
+      }}
+    >
+      <HoverGlow>
+        <Pile
+          topCard={"/images/card_back.svg"}
+          horizontalOffset={-771}
+          verticalOffset={281}
+          pileSize={25}
+        />
+      </HoverGlow>
+    </UtilityContainer>
+   
+    <UtilityContainer
+      onClick={(graphic)=>{
+        const card = findLabelCardInPixi(graphic!);
+        openFloatingMenu(card, <>
+           <pixiGraphics
+              draw={(graphics)=>{
+                graphics.clear();
+                graphics.roundRect(0, 0, 200 * scaleConstant, 100 * scaleConstant, 12);
+                graphics.fill({ color: 0x404346, alpha: 1 });
+              }}
+            />
+        </>);
+      }}
+    >
+      <HoverGlow>
+        <Pile
+          topCard={"/images/card_back.svg"}
+          horizontalOffset={771}
+          verticalOffset={-281}
+          pileSize={50}
+        />
+      </HoverGlow>
+    </UtilityContainer>
+   
      {locateCardXFromCenter({
       howMany: 7,
       gap: 50,
@@ -113,27 +154,43 @@ function Composer(){
       useCenter: true,
     }).map((horizontalOffset, index) => {
       return <Fragment key={index}>
-        <HoverGlow>
-          <Card
-            horizontalOffset={horizontalOffset}
-            verticalOffset={281}
-            src={`/images/card_${"back"}.svg`}
-          />
-          {/* <AttackToSentinelAnimation
-            scaleConstant={scaleConstant}
-          >
+        <UtilityContainer
+          onClick={(graphic)=>{
+            const card = findLabelCardInPixi(graphic!);
+            openFloatingMenu(card, <>
+              <pixiGraphics
+                draw={(graphics)=>{
+                  graphics.clear();
+                  graphics.roundRect(0, 0, 200 * scaleConstant, 100 * scaleConstant, 12);
+                  graphics.fill({ color: 0x404346, alpha: 1 });
+                }}
+              />
+            </>)
+
+          }}
+        >
+          <HoverGlow>
             <Card
               horizontalOffset={horizontalOffset}
               verticalOffset={281}
               src={`/images/card_${"back"}.svg`}
             />
-          </AttackToSentinelAnimation> */}
-          {/* <Card
-              horizontalOffset={horizontalOffset}
-              verticalOffset={-281}
-              src={`/images/card_${"back"}.svg`}
-            /> */}
-        </HoverGlow>
+            {/* <AttackToSentinelAnimation
+              scaleConstant={scaleConstant}
+            >
+              <Card
+                horizontalOffset={horizontalOffset}
+                verticalOffset={281}
+                src={`/images/card_${"back"}.svg`}
+              />
+            </AttackToSentinelAnimation> */}
+            {/* <Card
+                horizontalOffset={horizontalOffset}
+                verticalOffset={-281}
+                src={`/images/card_${"back"}.svg`}
+              /> */}
+          </HoverGlow>
+        </UtilityContainer>
       </Fragment>
     })}
     {locateCardXFromCenter({
@@ -144,27 +201,43 @@ function Composer(){
       useCenter: true,
     }).map((horizontalOffset, index) => {
       return <Fragment key={index}>
-        <HoverGlow>
-          <Card
-            horizontalOffset={horizontalOffset}
-            verticalOffset={-281}
-            src={`/images/card_${"back"}.svg`}
-          />
-          {/* <AttackToSentinelAnimation
-            scaleConstant={scaleConstant}
-          >
+        <UtilityContainer
+          onClick={(graphic)=>{
+            const card = findLabelCardInPixi(graphic!);
+            openFloatingMenu(card, <>
+              <pixiGraphics
+                draw={(graphics)=>{
+                  graphics.clear();
+                  graphics.roundRect(0, 0, 200 * scaleConstant, 100 * scaleConstant, 12);
+                  graphics.fill({ color: 0x404346, alpha: 1 });
+                }}
+              />
+            </>)
+          }}
+        >
+          <HoverGlow>
             <Card
               horizontalOffset={horizontalOffset}
               verticalOffset={-281}
               src={`/images/card_${"back"}.svg`}
             />
-          </AttackToSentinelAnimation> */}
-          {/* <Card
-              horizontalOffset={horizontalOffset}
-              verticalOffset={-281}
-              src={`/images/card_${"back"}.svg`}
-            /> */}
-        </HoverGlow>
+            {/* <AttackToSentinelAnimation
+              scaleConstant={scaleConstant}
+            >
+              <Card
+                horizontalOffset={horizontalOffset}
+                verticalOffset={-281}
+                src={`/images/card_${"back"}.svg`}
+              />
+            </AttackToSentinelAnimation> */}
+            {/* <Card
+                horizontalOffset={horizontalOffset}
+                verticalOffset={-281}
+                src={`/images/card_${"back"}.svg`}
+              /> */}
+          </HoverGlow>
+        </UtilityContainer>
+       
       </Fragment>
     })}
 
@@ -185,16 +258,19 @@ function Composer(){
       text="End Turn"
       color={0xFF2222}
       minWidth={200}
+      onClick={()=>{
+        alert("end turn clicked")
+      }}
     />
 
-    <Modal>
+    {/* <Modal>
       <pixiGraphics 
         draw={(graphics)=>{
           graphics.clear();
           graphics.roundRect(0, 0, 400 * scaleConstant, 200 * scaleConstant, 12);
-          graphics.fill({ color: 0x4a4a4a, alpha: 1 });
+          graphics.fill({ color: 0x404346, alpha: 1 });
         }}
       />
-    </Modal>
+    </Modal> */}
   </>
 }

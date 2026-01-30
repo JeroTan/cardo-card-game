@@ -11,7 +11,7 @@ export default function Card({
   horizontalOffset?: number, 
   verticalOffset?: number, 
   src?: string
-  ref?: Ref<Container>|null,
+  ref?: Ref<Container|null>|null,
 })  {
   const [, scaleConstant] = useAppWithScaleConstant();
   const [texture, setTexture] = useState<Texture | null>(null);
