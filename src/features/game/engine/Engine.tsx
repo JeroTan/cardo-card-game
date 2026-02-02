@@ -23,23 +23,26 @@ import type { Container } from "pixi.js";
 import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/FloatingMenuContext";
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 import StaticGlow from "../components/StaticGlow";
+import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
 
 export default function Engine(){
   return <>
   <FocusContextProvider>
     <Interface>
-      <FloatingMenuContextProvider>
-        <Composer />
-      </FloatingMenuContextProvider>
+      <TipNoteContextProvider>
+        <FloatingMenuContextProvider>
+          <Composer />
+        </FloatingMenuContextProvider>
+      </TipNoteContextProvider>
     </Interface>
   </FocusContextProvider>
-   
   </>
 }
 
 function Composer(){
   const [app, scaleConstant] = useAppWithScaleConstant();
   const {openFloatingMenu} = useFloatingMenuContext();
+  const {changeNote, tipNote} = useTipNoteContext();
   return <>
     <Board />
     <AttackingStat 
@@ -94,7 +97,7 @@ function Composer(){
       y={1080 - 60}
     />
     <TipNote 
-      tip={"This is a sample tip note to help the player understand the game mechanics better."}
+      tip={tipNote ? tipNote : ""}
       x={1920 - 960}
       y={1080 - 70}
     />
@@ -206,13 +209,17 @@ function Composer(){
           onClick={(graphic)=>{
             const card = findLabelCardInPixi(graphic!);
             openFloatingMenu(card, <>
-              <pixiGraphics
-                draw={(graphics)=>{
-                  graphics.clear();
-                  graphics.roundRect(0, 0, 200 * scaleConstant, 100 * scaleConstant, 12);
-                  graphics.fill({ color: 0x404346, alpha: 1 });
-                }}
-              />
+              <pixiContainer>
+                <Button 
+                  text="Solo Attack"
+                  minWidth={200}
+                />
+                <Button 
+                  y={50}
+                  text="Combo Attack"
+                  minWidth={200}
+                />
+              </pixiContainer>
             </>)
           }}
         >
