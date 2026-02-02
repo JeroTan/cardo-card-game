@@ -2,17 +2,19 @@ import { useRef, useEffect, useState } from "react";
 import { useAppWithScaleConstant } from "../utils/Math";
 import { Container } from "pixi.js";
 
+export type ModalProps = {
+  children?: React.ReactNode,
+  closeButtonCallback?: ()=>void,
+  backgroundCallback?: ()=>void,
+  padding?: number,
+}
+
 export default function Modal({
   children,
   closeButtonCallback,
   backgroundCallback,
   padding = 40,
-}:{
-  children?: React.ReactNode,
-  closeButtonCallback?: ()=>void,
-  backgroundCallback?: ()=>void,
-  padding?: number,
-}){
+}:ModalProps){
   const [app, scaleConstant] = useAppWithScaleConstant();
   const childrenContainerRef = useRef<Container | null>(null);
   const [modalSize, setModalSize] = useState({ width: 0, height: 0 });

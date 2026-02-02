@@ -24,16 +24,19 @@ import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 import StaticGlow from "../components/StaticGlow";
 import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
+import { ModalContextProvider } from "../context/ModalContext";
 
 export default function Engine(){
   return <>
   <FocusContextProvider>
     <Interface>
-      <TipNoteContextProvider>
-        <FloatingMenuContextProvider>
-          <Composer />
-        </FloatingMenuContextProvider>
-      </TipNoteContextProvider>
+      <ModalContextProvider>
+        <TipNoteContextProvider>
+          <FloatingMenuContextProvider>
+            <Composer />
+          </FloatingMenuContextProvider>
+        </TipNoteContextProvider>
+      </ModalContextProvider>
     </Interface>
   </FocusContextProvider>
   </>
