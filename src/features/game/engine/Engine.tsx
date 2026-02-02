@@ -25,6 +25,23 @@ import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 import StaticGlow from "../components/StaticGlow";
 import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
 import { ModalContextProvider } from "../context/ModalContext";
+import type { ModelCardRaw } from "@/types/model/cards";
+
+
+export type GameEngineProps = {
+  mainPlayerId: string|number, //player id
+  mainPlayerHandCards: Array<ModelCardRaw>,
+  drawCards: (total:number)=> void,
+  cardAttack: (cardIds: Array<string|number>)=> void,
+  playerEndTurn: ()=> void,
+  players: Array<{
+    playerId: string|number,
+    active: boolean,
+    totalCardsInDeck: number,
+    totalCardsInJail: number,
+    totalHandCards: number,
+  }>;
+}
 
 export default function Engine(){
   return <>
