@@ -22,6 +22,7 @@ import { useRef } from "react";
 import type { Container } from "pixi.js";
 import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/FloatingMenuContext";
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
+import StaticGlow from "../components/StaticGlow";
 
 export default function Engine(){
   return <>
@@ -216,11 +217,18 @@ function Composer(){
           }}
         >
           <HoverGlow>
-            <Card
+            <StaticGlow>
+              <Card
+                horizontalOffset={horizontalOffset}
+                verticalOffset={-281}
+                src={`/images/card_${"back"}.svg`}
+              />
+            </StaticGlow>
+            {/* <Card
               horizontalOffset={horizontalOffset}
               verticalOffset={-281}
               src={`/images/card_${"back"}.svg`}
-            />
+            /> */}
             {/* <AttackToSentinelAnimation
               scaleConstant={scaleConstant}
             >
