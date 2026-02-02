@@ -1,9 +1,11 @@
 import { AdminRoutes } from '@/api/routes/admin';
+import { GameRoutes } from '@/api/routes/game';
 import { PlayerRoutes } from '@/api/routes/player';
 import { ResourcesRoutes } from '@/api/routes/resources';
 import { AdminAccountController } from '@/controller/adminAccount';
 import { CardController } from '@/controller/card';
 import { CardPackController } from '@/controller/cardPacks';
+import { CardGameController } from '@/controller/game';
 import { UserAccountController } from '@/controller/userAccount';
 import { handleContentTypeMismatch, handleFieldValidation } from '@/lib/api/general';
 import { AdminAccountService } from '@/services/adminAccount';
@@ -27,6 +29,7 @@ export function ApiContainer(app: Elysia){
     cardPack: new CardPackController(services.cardPack, services.card),
     adminAccount: new AdminAccountController(services.adminAccount),
     userAccount: new UserAccountController(services.userAccount),
+    cardGame: new CardGameController(),
   }
 
   //Validation Handler to return error of typebox with style
@@ -53,6 +56,10 @@ export function ApiContainer(app: Elysia){
   });
   ResourcesRoutes({
     app,
+  });
+  GameRoutes({
+    app,    
+    gameController: controller.cardGame,
   });
 
   return app;

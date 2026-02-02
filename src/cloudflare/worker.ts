@@ -2,6 +2,7 @@ import type { SSRManifest } from "astro";
 import { App } from "astro/app";
 import { handle } from "@astrojs/cloudflare/handler";
 import { ChatRoom } from "@/features/websocket/ChatRoom";
+import { CardGameRoom } from "@/features/websocket/CardGameRoom";
 // export * from '@/features/websocket/ChatRoom';
 
 export function createExports(manifest: SSRManifest) {
@@ -17,5 +18,6 @@ export function createExports(manifest: SSRManifest) {
 			},
 		} satisfies ExportedHandler<Cloudflare.Env>,
 		ChatRoom: ChatRoom,
+		CardGameRoom: CardGameRoom,
 	};
 }

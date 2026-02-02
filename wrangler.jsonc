@@ -32,15 +32,15 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "ChatRoom",
-				"name": "CHAT_ROOM",
+				"class_name": "CardGameRoom",
+				"name": "CARD_GAME_ROOM",
 			},
 		],
 	},
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_sqlite_classes": ["ChatRoom"],
+			"new_sqlite_classes": ["CardGameRoom"],
 		},
 	],
 	"r2_buckets": [
@@ -59,15 +59,15 @@
 			"durable_objects": {
 				"bindings": [
 					{
-						"class_name": "ChatRoom",
-						"name": "CHAT_ROOM",
+						"class_name": "CardGameRoom",
+						"name": "CARD_GAME_ROOM",
 					},
 				],
 			},
 			"migrations": [
 				{
 					"tag": "v1",
-					"new_sqlite_classes": ["ChatRoom"],
+					"new_sqlite_classes": ["CardGameRoom"],
 				},
 			],
 			"d1_databases": [
@@ -97,15 +97,15 @@
 			"durable_objects": {
 				"bindings": [
 					{
-						"class_name": "ChatRoom",
-						"name": "CHAT_ROOM",
+						"class_name": "CardGameRoom",
+						"name": "CARD_GAME_ROOM",
 					},
 				],
 			},
 			"migrations": [
 				{
 					"tag": "v1",
-					"new_sqlite_classes": ["ChatRoom"],
+					"new_sqlite_classes": ["CardGameRoom"],
 				},
 			],
 			
@@ -133,15 +133,15 @@
 			"durable_objects": {
 				"bindings": [
 					{
-						"class_name": "ChatRoom",
-						"name": "CHAT_ROOM",
+						"class_name": "CardGameRoom",
+						"name": "CARD_GAME_ROOM",
 					},
 				],
 			},
 			"migrations": [
 				{
 					"tag": "v1",
-					"new_sqlite_classes": ["ChatRoom"],
+					"new_sqlite_classes": ["CardGameRoom"],
 				},
 			],
 			
