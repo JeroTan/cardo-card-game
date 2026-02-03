@@ -1,0 +1,230 @@
+---
+interface Props {
+  cards: Array<string>; // URL of cards but for testing
+  alreadyFalling?: boolean;
+  cardScale?: number; // 1 means normal size
+  cardOnScreen?: number;
+}
+const {cards, alreadyFalling = false, cardScale = 1.5, cardOnScreen =10} = Astro.props;
+
+const backOfTheCard = "/images/card_back.svg"
+
+// Always show exactly 10 cards
+const CARD_WIDTH = 120 * cardScale;
+const CARD_HEIGHT = 180 * cardScale;
+
+// Randomly pick 10 cards to start with
+const cardInstances = Array.from({ length: cardOnScreen }, (_, index) => {
+  const randomCard = cards[Math.floor(Math.random() * cards.length)];
+  const duration = 5 + Math.random() * 3; // Random duration per card
+  return {
+    url: randomCard,
+    key: `card-${index}`,
+    duration: duration,
+    delay: alreadyFalling ? -(Math.random() * duration) : (index * 0.8) // Stagger by 0.8s each
+  };
+});
+---
+
+<div class="falling-cards-container" data-cards={JSON.stringify(cards)} data-back={backOfTheCard}>
+  {cardInstances.map((instance) => (
+    <div 
+      class="falling-card" 
+      data-key={instance.key}
+      style={`
+        --card-width: ${CARD_WIDTH}px;
+        --card-height: ${CARD_HEIGHT}px;
+        --fall-duration: ${instance.duration}s;
+        --fall-delay: ${instance.delay}s;
+        --rotate-x: ${Math.random() * 720 - 360}deg;
+        --rotate-y: ${Math.random() * 720 - 360}deg;
+        --rotate-z: ${Math.random() * 360 - 180}deg;
+        --start-x: ${Math.random() * 100}%;
+        --scale: ${0.6 + Math.random() * 0.8};
+        --horizontal-drift: ${Math.random() * 200 - 100}px;
+      `}
+    >
+      <div class="card-3d">
+        <div class="card-face card-front" style={`background-image: url('${instance.url}');`}></div>
+        <div class="card-face card-back" style={`background-image: url('${backOfTheCard}');`}></div>
+        <div class="card-face card-edge-top"></div>
+        <div class="card-face card-edge-bottom"></div>
+        <div class="card-face card-edge-left"></div>
+        <div class="card-face card-edge-right"></div>
+      </div>
+    </div>
+  ))}
+</div>
+
+<script>
+  // Load images in background and track which are ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.querySelector('.falling-cards-container') as HTMLElement;
+    if (!container) return;
+    
+    const cards = JSON.parse(container.dataset.cards || '[]');
+    const backOfTheCard = container.dataset.back || '';
+    
+    // Track which images are loaded
+    const loadedImages = new Set<string>();
+    
+    // Start loading all images in background
+    const allImages = [...cards, backOfTheCard];
+    allImages.forEach(url => {
+      const img = new Image();
+      img.onload = () => {
+        loadedImages.add(url);
+      };
+      img.onerror = () => {
+        // Skip failed images
+      };
+      img.src = url;
+    });
+    
+    // Setup card randomization on each animation loop
+    const fallingCards = container.querySelectorAll('.falling-card');
+    
+    fallingCards.forEach((fallingCard) => {
+      const card3d = fallingCard.querySelector('.card-3d') as HTMLElement;
+      const cardFront = fallingCard.querySelector('.card-front') as HTMLElement;
+      
+      if (!card3d || !cardFront) return;
+      
+      // Change to random card on each animation iteration
+      card3d.addEventListener('animationiteration', () => {
+        // Only pick from loaded images
+        const availableCards = cards.filter((url: string) => loadedImages.has(url));
+        
+        if (availableCards.length > 0) {
+          const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+          cardFront.style.backgroundImage = `url('${randomCard}')`;
+        }
+        
+        // Randomize rotation for next cycle
+        const fallingCardEl = fallingCard as HTMLElement;
+        fallingCardEl.style.setProperty('--rotate-x', `${Math.random() * 720 - 360}deg`);
+        fallingCardEl.style.setProperty('--rotate-y', `${Math.random() * 720 - 360}deg`);
+        fallingCardEl.style.setProperty('--rotate-z', `${Math.random() * 360 - 180}deg`);
+        fallingCardEl.style.setProperty('--horizontal-drift', `${Math.random() * 200 - 100}px`);
+      });
+    });
+  });
+</script>
+
+<style>
+  .falling-cards-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .falling-card {
+    position: absolute;
+    top: -30%;
+    left: var(--start-x);
+    width: var(--card-width);
+    height: var(--card-height);
+    animation: fall var(--fall-duration) linear var(--fall-delay) infinite;
+  }
+
+  .card-3d {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: rotate3d var(--fall-duration) linear var(--fall-delay) infinite;
+  }
+
+  .card-face {
+    position: absolute;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .card-front,
+  .card-back {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-front {
+    transform: translateZ(0.5px);
+  }
+
+  .card-back {
+    transform: rotateY(180deg) translateZ(0.5px);
+  }
+
+  /* Card edges/sides for thickness */
+  .card-edge-top,
+  .card-edge-bottom {
+    width: var(--card-width);
+    height: 1px;
+    background: #1a1a1a;
+    left: 0;
+  }
+
+  .card-edge-top {
+    top: 0;
+    transform: rotateX(90deg) translateY(-0.5px);
+    transform-origin: top;
+  }
+
+  .card-edge-bottom {
+    bottom: 0;
+    transform: rotateX(-90deg) translateY(0.5px);
+    transform-origin: bottom;
+  }
+
+  .card-edge-left,
+  .card-edge-right {
+    width: 1px;
+    height: var(--card-height);
+    background: #1a1a1a;
+    top: 0;
+  }
+
+  .card-edge-left {
+    left: 0;
+    transform: rotateY(-90deg) translateX(-0.5px);
+    transform-origin: left;
+  }
+
+  .card-edge-right {
+    right: 0;
+    transform: rotateY(90deg) translateX(0.5px);
+    transform-origin: right;
+  }
+
+  @keyframes fall {
+    0% {
+      top: -30%;
+    }
+    100% {
+      top: 110%;
+    }
+  }
+
+  @keyframes rotate3d {
+    0% {
+      transform: 
+        translateX(0) 
+        scale(var(--scale))
+        rotateX(0deg)
+        rotateY(0deg)
+        rotateZ(0deg);
+    }
+    100% {
+      transform: 
+        translateX(var(--horizontal-drift)) 
+        scale(var(--scale))
+        rotateX(var(--rotate-x))
+        rotateY(var(--rotate-y))
+        rotateZ(var(--rotate-z));
+    }
+  }
+</style>

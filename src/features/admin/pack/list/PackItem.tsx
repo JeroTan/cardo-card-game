@@ -30,7 +30,7 @@ export default function PackItem({data}:{data:ModelCardPackRaw}){
 
   return <>
     <Card 
-      className="hover:bg-gray-800 cursor-pointer duration-200 transition-shadow"
+      className="hover:bg-zinc-800 cursor-pointer duration-200 transition-shadow"
       onClick={()=>{
         location.href = `/admin/card-pack/edit/${data.id}`;
       }}

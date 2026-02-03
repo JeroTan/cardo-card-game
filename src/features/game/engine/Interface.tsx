@@ -32,17 +32,15 @@ export default function Interface({
   // }))
 
   return <>
-    <div className='flex justify-center'>
-      <div ref={wrapperRef} className='h-[calc(100vh-5rem)] aspect-video'>
-        <Application
-          resizeTo={wrapperRef}
-          // defaultTextStyle={basicFontStyle.current}
-          background={"0x28282B"}
-          antialias={true}
-        >
-          {children}
-        </Application>
-      </div>
+    <div ref={wrapperRef} className='w-full h-full'>
+      <Application
+        resizeTo={wrapperRef}
+        // defaultTextStyle={basicFontStyle.current}
+        background={"0x28282B"}
+        antialias={true}
+      >
+        {children}
+      </Application>
     </div>
   </>
 }

@@ -49,10 +49,14 @@ export function AdminRoutes({
       const { queryProps, pageProps } = convertQueriesToPageAndQueryProps(query);
       return cardController.getAllCardsNoPacks({env, origin: urlData.origin, queryProps, pageProps});
     }, {
+      query: t.Composite([tboxQueryParams, tboxPaginationParams]),
       detail: {
         summary: 'Get all cards as flat list or a simple one without the pack it belongs to',
         tags: ['Admin Cards Management']
       },
+      transform({query}){
+        getQueryTransformer(query);
+      }
     })
     //====================================================================================//
     .get("/cards/:id", ({params, env, urlData})=>{
@@ -90,6 +94,10 @@ export function AdminRoutes({
     }, {
       type: "multipart/form-data",
       body: tboxCardUpdate,
+      detail: {
+        summary: 'Update a card by ID',
+        tags: ['Admin Cards Management']
+      },
       transform({body}){
         if(body?.atk && typeof body.atk === 'string'){
           body.atk = Number(body.atk);

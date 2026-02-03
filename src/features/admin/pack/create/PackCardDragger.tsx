@@ -73,7 +73,7 @@ export default function PackCardDragger({
         { ...({...listeners, ...attributes}) }
       >
         { holdTriggerCounter[0] > 0 && 
-          <div className='absolute w-full h-full flex justify-center items-center z-10 bg-gray-900/75 rounded-lg'>
+          <div className='absolute w-full h-full flex justify-center items-center z-10 bg-zinc-900/75 rounded-lg'>
             <div className='w-16 aspect-square stroke-zinc-100'>
               <ProgressCircle 
                 percent={ holdTriggerCounter[0] / (delayTimer*0.25) }

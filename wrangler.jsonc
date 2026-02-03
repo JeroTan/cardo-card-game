@@ -18,6 +18,13 @@
 		"enabled": true,
 		"head_sampling_rate": 1,
 	},
+	"kv_namespaces": [
+		{
+			"binding": "KV",
+			"id": "2a1bb4c599f543499f4ae42eec629c54",
+			"remote": true,
+		}
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",
@@ -69,6 +76,13 @@
 					"tag": "v1",
 					"new_sqlite_classes": ["CardGameRoom"],
 				},
+			],
+			"kv_namespaces": [
+				{
+					"binding": "KV",
+					"id": "2a1bb4c599f543499f4ae42eec629c54",
+					"remote": true
+				}
 			],
 			"d1_databases": [
 				{
