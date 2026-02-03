@@ -4,25 +4,28 @@ import GameStart from "@/features/game/GameStart";
 import PagePlate from "@/layouts/PagePlate.astro";
 import type { ModelCardRaw } from "@/types/model/cards";
 
-const {KV} = Astro.locals.runtime.env;
 let cardList: string[] = [];
-if(!KV) {
-  cardList = [
-    "https://placehold.co/400x600",
-  ];
-}else{
-  const cacheResult = await KV.get("card_animation_background_cached");
-  if(!cacheResult){
-    const cardResponse = await fetch(Astro.url.origin+"/api/admin/cards-no-packs?limit=50");
-    const rawResult = await cardResponse.json() as {data: ModelCardRaw[]};
-    cardList = rawResult.data.map(c=>c.card_art);
-    await KV.put("card_animation_background_cached", JSON.stringify(cardList), {expirationTtl: 60*60*24*7}); // Expires in 7 days
+try{
+  const {KV} = Astro.locals.runtime.env;
+  if(!KV) {
+    cardList = [
+      "https://placehold.co/400x600",
+    ];
   }else{
-    try{
+    const cacheResult = await KV.get("card_animation_background_cached");
+    if(!cacheResult){
+      const cardResponse = await fetch(Astro.url.origin+"/api/admin/cards-no-packs?limit=50");
+      const rawResult = await cardResponse.json() as {data: ModelCardRaw[]};
+      cardList = rawResult.data.map(c=>c.card_art);
+      await KV.put("card_animation_background_cached", JSON.stringify(cardList), {expirationTtl: 60*60*24*7}); // Expires in 7 days
+    }else{
       cardList = JSON.parse(cacheResult);
-    }catch{}
+    }
   }
+}catch(e){
+  console.error("Failed to load card list for falling cards background", e);
 }
+
 ---
 
 <PagePlate title="CardO - Game Room">
