@@ -1,29 +1,39 @@
 import type { ModelCardRaw } from "../model/cards"
 
-export type Player = {
+export type PlayerGameInfo = {
   players: Array<{
     id: string,
     name: string,
     cards:Array<ModelCardRaw>,
     jailedCards: Array<ModelCardRaw>,
     turnLeft: number,
+    timeLeft: string,
   }>
 }
 
 export const eventTypes = [
+  "PLAYER_JOIN",
+  "PLAYER_OUT",
+  "GAME_START",
   "START_TURN",
   "ATTACKING",
   "CHANGE_SENTINEL",
   "DRAW_CARD",
   "JAIL_CARD",
+  "GAME_END",
 ] as const;
 
 export type EventType = (typeof eventTypes)[number];
 
-export type TurnEvent = {
-  type: EventType,
+export type TurnEvent = ({
+  type: "PLAYER_JOIN",
   playerId: string,
-}&({
+}|{
+  type: "PLAYER_OUT",
+  playerId: string,
+}|{
+  type: "GAME_START",
+}|{
   type: "START_TURN",
   playerId: string,
 }|{

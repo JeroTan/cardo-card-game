@@ -1,17 +1,33 @@
-import { Button } from "@/components/ui/button"
-import { Play } from "lucide-react"
+import { ModalProvider, useModalContext } from "@/stores/components/ModalContext"
+import StartButton from "./StartButton"
+import { makeDefaultModal, makeInfoModal } from "@/components/overlay/ModalBase";
+import GameMenu from "./GameMenu";
 
 export default function GameStart(){
-
   return <>
-    <div>
-      <div className="flex justify-center pb-2">
-        <Button className="rounded-full size-fit hover:bg-zinc-200 hover:outline-solid outline-2 outline-zinc-700 aspect-square" variant={"ghost"}>
-          <Play className="smLsize-50 size-40 p-2"  fill="black" stroke="#8C8C8C"/>
-        </Button>
-      </div>
-      
-      <div className="text-center sm:text-xl text-base">Click the Play Button to Start the Game</div>
-    </div>
+    <ModalProvider>
+      <Composer />
+    </ModalProvider>
+  </>
+}
+
+
+function Composer(){
+  const [,modalDispatch] = useModalContext();
+  return <>
+    <StartButton 
+      onClick={()=>{
+        modalDispatch(makeInfoModal({
+          title: "Choose Game Mode",
+          width: "700px",
+          message: undefined,
+          acceptButton: false,
+          rejectButton: false,
+          additionalBody: <>
+            <GameMenu />
+          </>
+        }))
+      }}
+    />
   </>
 }
