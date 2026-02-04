@@ -1,4 +1,5 @@
 import  { CardGameController } from "@/controller/game";
+import { getTemporaryUser, getUserAuthInformation, setTemporaryUser } from "@/lib/authentication/userAuth";
 import { typedAstroCookies, typedEnv, typedUrlData } from "@/lib/elysia";
 import type Elysia from "elysia";
 import { t } from "elysia";
@@ -16,11 +17,39 @@ export function GameRoutes({
     .use(typedUrlData)
     .use(typedAstroCookies)
     .group("/game", (app)=>{
-      app.get("/room:id", ({params, env, request})=>{
+      app.get("/find-match", ({env, astroCookies, request})=>{
+        const {data: userInfo, error} = getUserAuthInformation(astroCookies);
+        if(error != null){
+          const {data: userInfo, error} = getTemporaryUser(astroCookies);
+          const info = {
+            username: "Guest",
+            id: "",
+          }
+          if(error != null){
+            const newTemporaryUser = setTemporaryUser(astroCookies);
+            info.id = newTemporaryUser.id;
+            info.username = newTemporaryUser.username;
+          }else{
+            info.id = userInfo.id;
+            info.username = userInfo.username;
+          }
+          return gameController.createRoom({playerId: info.id, env: env});
+        }
+        return gameController.createRoom({playerId: userInfo.id, env: env});
+      }, {
+        detail:{
+          summary: "Create a new game room",
+          tags: ["Game Room"],
+        },
+      })
+      app.get("/find-quick-match", ({env, astroCookies})=>{
+       
+      }, {})
+
+      app.get("/room/:id", ({params, env, request})=>{
         return gameController.prepareRoom({
           roomId: params.id,
           env: env,
-          request: request,
         })
       }, {
         detail:{

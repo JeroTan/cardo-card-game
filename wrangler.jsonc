@@ -42,6 +42,10 @@
 				"class_name": "CardGameRoom",
 				"name": "CARD_GAME_ROOM",
 			},
+			{
+				"class_name": "MatchmakingPlayer",
+				"name": "MATCHMAKING_PLAYER",
+			},
 		],
 	},
 	"migrations": [
@@ -69,6 +73,10 @@
 						"class_name": "CardGameRoom",
 						"name": "CARD_GAME_ROOM",
 					},
+					{
+					"class_name": "MatchmakingPlayer",
+					"name": "MATCHMAKING_PLAYER",
+				},
 				],
 			},
 			"migrations": [
@@ -113,6 +121,10 @@
 					{
 						"class_name": "CardGameRoom",
 						"name": "CARD_GAME_ROOM",
+					},
+					{
+						"class_name": "MatchmakingPlayer",
+						"name": "MATCHMAKING_PLAYER",
 					},
 				],
 			},

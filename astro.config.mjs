@@ -16,7 +16,7 @@ export default defineConfig({
         imageService: "compile",
         workerEntryPoint: {
             path: "src/cloudflare/worker.ts",
-            namedExports: ["CardGameRoom"],
+            namedExports: ["CardGameRoom", "MatchmakingPlayer"],
         },
     }),
     image: {

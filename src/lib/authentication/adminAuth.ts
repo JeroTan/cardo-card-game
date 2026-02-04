@@ -14,7 +14,7 @@ export async function generateJWTForAdmin({userId}:{userId:string}){
   return jwtResult.data ? jwtResult.data : null;
 }
 
-export function getAdminAuthToken(cookie: AstroCookies):{data: string, error: null|undefined}|{data: null, error: string}{
+export function getAdminAuthToken(cookie: AstroCookies):{data: string, error: null}|{data: null, error: string}{
   const data =  cookie.get("CDO_ADMIN_AUTH_TOKEN")?.value || null;
   if(!data){
     return {data: null, error: "No admin auth token found"};
@@ -62,7 +62,7 @@ export function setAdminAuthInformation(cookie: AstroCookies, info: CookieAdminA
   });
 }
 
-export function getAdminAuthInformation(cookie: AstroCookies):{data: CookieAdminAuthInformation, error: null|undefined}|{data: null, error: string}{
+export function getAdminAuthInformation(cookie: AstroCookies):{data: CookieAdminAuthInformation, error: null}|{data: null, error: string}{
   const data =  cookie.get("CDO_ADMIN_INFO")?.value || null;
   if(!data){
     return {data: null, error: "No admin auth information found"};
