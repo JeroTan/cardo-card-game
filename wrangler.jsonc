@@ -51,7 +51,15 @@
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_sqlite_classes": ["CardGameRoom"],
+			"new_sqlite_classes": ["ChatRoom"],
+		},
+		{
+			"tag": "v2",
+			"deleted_classes": ["ChatRoom"],
+		},
+		{
+			"tag": "v3",
+			"new_sqlite_classes": ["CardGameRoom", "MatchmakingPlayer"],
 		},
 	],
 	"r2_buckets": [
@@ -82,7 +90,15 @@
 			"migrations": [
 				{
 					"tag": "v1",
-					"new_sqlite_classes": ["CardGameRoom"],
+					"new_sqlite_classes": ["ChatRoom"],
+				},
+				{
+					"tag": "v2",
+					"deleted_classes": ["ChatRoom"],
+				},
+				{
+					"tag": "v3",
+					"new_sqlite_classes": ["CardGameRoom", "MatchmakingPlayer"],
 				},
 			],
 			"kv_namespaces": [
@@ -131,7 +147,15 @@
 			"migrations": [
 				{
 					"tag": "v1",
-					"new_sqlite_classes": ["CardGameRoom"],
+					"new_sqlite_classes": ["ChatRoom"],
+				},
+				{
+					"tag": "v2",
+					"deleted_classes": ["ChatRoom"],
+				},
+				{
+					"tag": "v3",
+					"new_sqlite_classes": ["CardGameRoom", "MatchmakingPlayer"],
 				},
 			],
 			
@@ -167,7 +191,15 @@
 			"migrations": [
 				{
 					"tag": "v1",
-					"new_sqlite_classes": ["CardGameRoom"],
+					"new_sqlite_classes": ["ChatRoom"],
+				},
+				{
+					"tag": "v2",
+					"deleted_classes": ["ChatRoom"],
+				},
+				{
+					"tag": "v3",
+					"new_sqlite_classes": ["CardGameRoom", "MatchmakingPlayer"],
 				},
 			],
 			
