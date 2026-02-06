@@ -12,11 +12,13 @@ export class MatchmakingPlayer {
 
   async fetch(request: Request) {
     const method = request.method;
+    console.log(`MatchmakingPlayer received request: ${method} ${request.url}`);
     switch (method) {
       case "POST": {
         const body = await request.json() as { type: string, playerId: string };
 
         if (body.type === "JOIN_QUEUE") {
+          console.log(`Player ${body.playerId} requested to join matchmaking queue`);
           if (!body.playerId) {
             return Response.json({ error: "playerId is required" }, { status: 400 });
           }
@@ -95,8 +97,9 @@ export class MatchmakingPlayer {
         const stub = roomDO.get(id);
 
         // Pre-initialize the room with player data
-        await stub.fetch(new Request("https://internal/init", {
+        await stub.fetch("https://internal/init", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             roomId,
             players: [
@@ -104,7 +107,7 @@ export class MatchmakingPlayer {
               { playerId: player2.playerId }
             ]
           })
-        }));
+        });
       }
 
       // Notify both players they matched
