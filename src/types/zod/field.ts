@@ -65,6 +65,7 @@ export function zodAddress({fieldName = "Address", minLength = 5, maxLength = 15
   .regex(/^[A-Za-z0-9 !"&'()+,\-./:;=\\_]+$/u, {
     message: `${fieldName} should only contain letters, numbers, spaces and some essential characters.`,
   })
+  .min(minLength, { message: `${fieldName} must be at least ${minLength} characters long.` })
   .max(maxLength, { message: `${fieldName} must be at most ${maxLength} characters long.` });
 }
 

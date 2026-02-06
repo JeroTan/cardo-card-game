@@ -10,7 +10,7 @@ import { AlertContext } from "@/stores/components/AlertContext";
 import { ModalContext } from "@/stores/components/ModalContext";
 import type { Error422Result } from "@/types/api/result";
 import { Mail, Key } from "lucide-react"
-import { useCallback, useContext, useState, useTransition } from "react";
+import { useCallback, useContext, useTransition } from "react";
 
 type Props = {
   role?: "admin" | "user";

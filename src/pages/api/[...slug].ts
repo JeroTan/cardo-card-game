@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia'
 import { CloudflareAdapter } from 'elysia/adapter/cloudflare-worker'
-import { fromTypes, openapi } from '@elysiajs/openapi'
+import { openapi } from '@elysiajs/openapi'
 import getCorsConfig from '@/api/config/cors'
 import { ApiContainer } from '@/container/apiContainer';
 import type { APIRoute } from 'astro';

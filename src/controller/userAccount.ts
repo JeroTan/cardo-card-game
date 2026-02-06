@@ -1,4 +1,3 @@
-import { setAdminAuthToken } from "@/lib/authentication/adminAuth";
 import { createInitialUsername, decryptJWTForPasswordResetWithToken, generateJWTForPasswordResetWithToken } from "@/lib/authentication/generalUtility";
 import { generateGoogleOAuthPayloadForRequest, generateGoogleOAuthPayloadForVerification, generateJWTForUser } from "@/lib/authentication/userAuth";
 import { hash, verifyHash } from "@/lib/crypto/hash";

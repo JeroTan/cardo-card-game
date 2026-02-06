@@ -1,7 +1,7 @@
 import type { ModelCardRaw } from "@/types/model/cards";
 import { isEqual } from "lodash";
 import countBy from "lodash/countBy";
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 
 export type typePackPreviousFormContext = {
   previousName: string,

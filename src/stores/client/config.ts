@@ -1,6 +1,5 @@
 // import { listOfIndexedDb } from "./indexedDBDefinition";
 import { listOfStorage } from "./localStorageDefinition";
-import { UseDB } from "@jsarmyknife/native--storage";
 import { Storage } from "@jsarmyknife/native--storage";
 
 export const currentVersion = 1;

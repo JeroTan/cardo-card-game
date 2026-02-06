@@ -1,7 +1,7 @@
-import type { ZodTypeAny } from "zod";
+import type { ZodType } from "zod";
 
 
-export function zodValidateSchema<T>(input:T, schema:ZodTypeAny):{error:true, message: string[]}|{error:false, message: undefined} {
+export function zodValidateSchema<T>(input:T, schema:ZodType):{error:true, message: string[]}|{error:false, message: undefined} {
   const parsed = schema.safeParse(input);
   if(parsed.success){
     return { error: false,  message: undefined };

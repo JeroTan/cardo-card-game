@@ -1,5 +1,5 @@
 import { Assets, type Texture } from "pixi.js";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppWithScaleConstant } from "../../utils/Math";
 import { useEffectOnce } from "react-use";
 

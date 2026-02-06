@@ -17,7 +17,6 @@ export default function CardItem({
   atk,
   def,
   created_at,
-  updated_at,
   packs,
   deleteCallback,
 }: Props){

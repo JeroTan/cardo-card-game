@@ -1,4 +1,4 @@
-import { useEffect, useRef, type Ref, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useAppWithScaleConstant } from "../utils/Math";
 import { Container, type Graphics, type Sprite } from "pixi.js";
 import { DropShadowFilter } from "pixi-filters";

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useCallback, type PropsWithChildren, useRef } from "react";
+import { createContext, useContext, useState, useCallback, type PropsWithChildren } from "react";
 
 export type PaginationContextType = {
 	page: number;

@@ -66,7 +66,9 @@ export function tboxAddress({fieldName = "Address", minLength = 5, maxLength = 1
     maxLength,
     description: fieldName,
     error: `${fieldName} should only contain letters, numbers, spaces and some essential characters.`
-  });
+  })
+  .min(minLength, { message: `${fieldName} must be at least ${minLength} characters long.` })
+  ;
 }
 
 export function tbox0To9({fieldName = "Field"}:{fieldName?: string} = {}){

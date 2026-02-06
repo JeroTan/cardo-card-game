@@ -1,4 +1,4 @@
-import { Users, Package, CreditCard, Settings, BarChart3, ShoppingBag } from "lucide-react";
+import { Users, Package, CreditCard } from "lucide-react";
 import DashboardQuickAction from "./DashboardQuickAction";
 import { Card, CardContent } from "@/components/ui/card";
 import type { DashboardStats } from "./types";

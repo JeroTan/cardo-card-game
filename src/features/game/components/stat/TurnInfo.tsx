@@ -1,4 +1,3 @@
-import { Text } from "pixi.js";
 import { makeFontStyle } from "../font/FontStyles";
 import { useAppWithScaleConstant } from "../../utils/Math";
 

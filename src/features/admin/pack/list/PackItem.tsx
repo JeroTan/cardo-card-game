@@ -1,4 +1,4 @@
-import { apiGetCardDetail, apiGetCardPackDetail } from "@/api/client/card";
+import { apiGetCardPackDetail } from "@/api/client/card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyHeader } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";

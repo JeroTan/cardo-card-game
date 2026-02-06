@@ -90,6 +90,7 @@ export function curvatureCalculator({
   const [ , p0, p1, p2, p3] = curveValue.map(Number);
 
   // Cubic Bezier formula: B(t) = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
+  p0; p2;
   const u = 1 - t;
   const tt = t * t;
   const uu = u * u;

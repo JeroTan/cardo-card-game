@@ -58,11 +58,11 @@ export class ChatRoom extends DurableObject {
 	}
 
 	async webSocketClose(ws: WebSocket, code: number, reason: string, wasClean: boolean) {
-		console.log(`WebSocket closed. Code: ${code}, Reason: ${reason}`);
+		console.log(`WebSocket closed. Code: ${code}, Reason: ${reason}, WasClean: ${wasClean}`);
 		ws.close(code, "Durable Object is closing WebSocket");
 	}
 
 	async webSocketError(ws: WebSocket, error: unknown) {
-		console.error("WebSocket error:", error);
+		console.error("WebSocket error:", error, ws);
 	}
 }

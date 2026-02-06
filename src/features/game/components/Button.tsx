@@ -1,6 +1,5 @@
 import { useAppWithScaleConstant } from "../utils/Math";
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { Container, FederatedPointerEvent } from "pixi.js";
 
 export function Button({
   text = "Button",

@@ -4,14 +4,12 @@ import { ModalProvider } from "@/stores/components/ModalContext";
 import { PackMetaProvider, usePackMetaContext } from "@/stores/card/CardPackMetaContext";
 import CardPackBuilderProvider, { useCardPackBuilderContext, type deckCopyKeyType } from "@/stores/card/CardPackBuilderContext";
 import { CardCacheProvider, useCardCacheContext } from "@/stores/card/CardCacheContext";
-import { useMemo, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useEffectOnce } from "react-use";
 import { apiGetCardPackDetail } from "@/api/client/card";
 import type { ModelCardRaw } from "@/types/model/cards";
 import type { ModelCardPackRaw } from "@/types/model/cardPack";
 import uniqby from "lodash/uniqby";
-import countBy from "lodash/countBy";
-import isEqual from "lodash/isEqual";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PackPreviousFormProvider, usePackPreviousFormProvider } from "./PreviousForm";
 
@@ -56,8 +54,8 @@ export default function PackEditPage({
 function Composer({
   id
 }:{id: string}){
-  const {updateName, name} = usePackMetaContext();
-  const {addToDeck, listCards} = useCardPackBuilderContext();
+  const {updateName} = usePackMetaContext();
+  const {addToDeck} = useCardPackBuilderContext();
   const [fetchingCurrent, fetchingCurrentStart] = useTransition();
   const {setCardData} = useCardCacheContext();
   const {updateOldName,updateOldCards} = usePackPreviousFormProvider();

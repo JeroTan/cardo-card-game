@@ -1,5 +1,5 @@
 import { useEffect, useRef, type Ref } from "react";
-import { Animator, makeCoordinatesCenter, useAppWithScaleConstant } from "../utils/Math";
+import { Animator, useAppWithScaleConstant } from "../utils/Math";
 import Card from "./Card";
 import { Container, Ticker } from "pixi.js";
 
@@ -18,7 +18,7 @@ export function Pile({
   horizontalOffset = 0,
   verticalOffset = 0
 }: PileType){
-  const [app, scaleConstant] = useAppWithScaleConstant();
+  const [,scaleConstant] = useAppWithScaleConstant();
   const {current: tickerTime} = useRef(new Ticker);
   const cardRef = useRef<Container|null>(null);
   const pileRef = useRef<Container|null>(null);
@@ -26,7 +26,6 @@ export function Pile({
   useEffect(()=>{
     if(cardRef.current == null || pileRef.current == null) return;
     const cardContainer = cardRef.current;
-    const pileContainer = pileRef.current;
 
     if(animateShuffling){
       tickerTime.start();
@@ -36,7 +35,7 @@ export function Pile({
       ]);
       const moveScale = pileRef.current.width * 0.2;
       const initX = cardContainer.x;
-      const initY = cardContainer.y;
+      // const initY = cardContainer.y;
       const initContainerWidth = cardContainer.width;
       let previous = 0;
 

@@ -1,4 +1,4 @@
-import { apiUpdateCard, apiUpdatePackCards, apiUpdatePackMeta } from "@/api/client/card";
+import { apiUpdatePackCards, apiUpdatePackMeta } from "@/api/client/card";
 import { makeErrorModal, makeInfoModal, makeLoadingModal, makeWarningModal } from "@/components/overlay/ModalBase";
 import { Button } from "@/components/ui/button";
 import { useCardPackBuilderContext, type deckCopyKeyType } from "@/stores/card/CardPackBuilderContext";
@@ -8,7 +8,6 @@ import PackCardDeck from "../create/PackCardDeck";
 import { SortProvider } from "@/stores/components/SortContext";
 import { PaginationProvider } from "@/stores/components/PaginationContext";
 import PackCardDrawer from "../create/PackCardDrawer";
-import type { ModelCardRaw } from "@/types/model/cards";
 import { RefreshCcw } from "lucide-react";
 import { usePackPreviousFormProvider } from "./PreviousForm";
 import { useMemo } from "react";

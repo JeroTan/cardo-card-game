@@ -17,6 +17,7 @@ extend({
   Graphics,
   Sprite,
   Text,
+  TextStyle
 });
 
 export default function Interface({

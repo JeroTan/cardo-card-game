@@ -32,7 +32,7 @@ export default function PackCreateForm(){
           apiCreatePack({
             name,
             cards: listCards.map((card)=>card.id),
-          }).s200((e)=>{
+          }).s200(()=>{
             modalDispatch(makeInfoModal({
               title: "Pack Created",
               message: `The card pack has been successfully created.`,
