@@ -28,6 +28,9 @@ export class MatchmakingPlayer {
 
     const [client, server] = Object.values(new WebSocketPair());
 
+    // Accept the WebSocket connection in Durable Object state
+    this.state.acceptWebSocket(server);
+
     // Add player to waiting list immediately
     this.waitingPlayers.set(playerId, {
       playerId,
