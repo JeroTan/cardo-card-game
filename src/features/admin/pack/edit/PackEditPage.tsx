@@ -9,9 +9,21 @@ import { useEffectOnce } from "react-use";
 import { apiGetCardPackDetail } from "@/api/client/card";
 import type { ModelCardRaw } from "@/types/model/cards";
 import type { ModelCardPackRaw } from "@/types/model/cardPack";
-import uniqby from "lodash/uniqby";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PackPreviousFormProvider, usePackPreviousFormProvider } from "./PreviousForm";
+
+// Helper function to get unique items by a specific key
+function uniqueBy<T>(arr: T[], key: keyof T): T[] {
+  const seen = new Set();
+  return arr.filter(item => {
+    const value = item[key];
+    if (seen.has(value)) {
+      return false;
+    }
+    seen.add(value);
+    return true;
+  });
+}
 
 export default function PackEditPage({
   id,
@@ -68,7 +80,7 @@ function Composer({
         fetchingCurrentStart(()=>{
           updateName(data.data.cardPackDetails.name);
           updateOldName(data.data.cardPackDetails.name);
-          setCardData(uniqby(data.data.cards, "id"));
+          setCardData(uniqueBy(data.data.cards, "id"));
           updateOldCards(data.data.cards);
           data.data.cards.forEach((card)=>{
             addToDeck(`${card.atk}/${card.def}` as deckCopyKeyType, card);
