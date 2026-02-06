@@ -44,22 +44,20 @@ export function GameRoutes({
         const id = MATCHMAKING_PLAYER.idFromName("global-queue");
         const stub = MATCHMAKING_PLAYER.get(id);
         
-        // Forward the WebSocket upgrade request with playerId
-        const url = new URL(request.url);
-        url.searchParams.set("playerId", playerId);
+        // Create a new URL with playerId parameter
+        const doUrl = `https://internal/matchmaking?playerId=${encodeURIComponent(playerId)}`;
         
-        const response = await stub.fetch(new URL(url.pathname + url.search, "https://internal").toString(), {
-          method: request.method,
-          headers: request.headers,
+        // Forward the WebSocket upgrade request
+        const response = await stub.fetch(doUrl, {
+          method: "GET",
+          headers: {
+            "Upgrade": "websocket",
+            "Connection": "Upgrade",
+          },
         });
         
-        // Return the WebSocket upgrade response
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: new Headers(response.headers),
-          webSocket: (response as any).webSocket
-        });
+        // Return the WebSocket upgrade response directly
+        return response;
       }, {
         detail:{
           summary: "Create a new game room",
