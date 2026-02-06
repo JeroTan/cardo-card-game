@@ -39,12 +39,26 @@ export function GameRoutes({
           playerId = userInfo.id;
         }
         
-        const response = await gameController.createRoom({playerId, env});
-        // Clone the response to make it mutable for Elysia
+        // Get the Durable Object for matchmaking
+        const { MATCHMAKING_PLAYER } = env;
+        const id = MATCHMAKING_PLAYER.idFromName("global-queue");
+        const stub = MATCHMAKING_PLAYER.get(id);
+        
+        // Forward the WebSocket upgrade request with playerId
+        const url = new URL(request.url);
+        url.searchParams.set("playerId", playerId);
+        
+        const response = await stub.fetch(new URL(url.pathname + url.search, "https://internal").toString(), {
+          method: request.method,
+          headers: request.headers,
+        });
+        
+        // Return the WebSocket upgrade response
         return new Response(response.body, {
           status: response.status,
           statusText: response.statusText,
-          headers: new Headers(response.headers)
+          headers: new Headers(response.headers),
+          webSocket: (response as any).webSocket
         });
       }, {
         detail:{

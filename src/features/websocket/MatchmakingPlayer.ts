@@ -11,76 +11,52 @@ export class MatchmakingPlayer {
   }
 
   async fetch(request: Request) {
-    const method = request.method;
-    console.log(`MatchmakingPlayer received request: ${method} ${request.url}`);
-    switch (method) {
-      case "POST": {
-        const body = await request.json() as { type: string, playerId: string };
-
-        if (body.type === "JOIN_QUEUE") {
-          console.log(`Player ${body.playerId} requested to join matchmaking queue`);
-          if (!body.playerId) {
-            return Response.json({ error: "playerId is required" }, { status: 400 });
-          }
-
-          return Response.json({ 
-            success: true, 
-            message: "Join matchmaking via WebSocket",
-            playerId: body.playerId 
-          });
-        }
-
-        return Response.json({ error: "Unknown type" }, { status: 404 });
-      }
-
-      case "GET":
-      default: {
-        // Handle WebSocket upgrade
-        const upgradeHeader = request.headers.get("Upgrade");
-        if (!upgradeHeader || upgradeHeader !== "websocket") {
-          return new Response("Expected Upgrade: websocket", { status: 426 });
-        }
-
-        const url = new URL(request.url);
-        const playerId = url.searchParams.get("playerId");
-
-        if (!playerId) {
-          return Response.json({ error: "playerId is required" }, { status: 400 });
-        }
-
-        const [client, server] = Object.values(new WebSocketPair());
-
-        // Add player to waiting list immediately
-        this.waitingPlayers.set(playerId, {
-          playerId,
-          joinedAt: Date.now(),
-          socket: server,
-        });
-
-        // Send initial waiting status
-        server.send(
-          JSON.stringify({
-            status: "waiting",
-            queuePosition: this.waitingPlayers.size,
-          })
-        );
-
-        // Check if we have 2+ players to match
-        this.tryMatchPlayers();
-
-        server.addEventListener("close", () => {
-          // Remove player from queue if they disconnect
-          this.waitingPlayers.delete(playerId);
-        });
-
-        server.addEventListener("error", () => {
-          // Remove player from queue on error
-          this.waitingPlayers.delete(playerId);
-        });
-
-        return new Response(null, { status: 101, webSocket: client });
-      }
+    const url = new URL(request.url);
+    console.log(`MatchmakingPlayer received request: ${request.method} ${request.url}`);
+    
+    // Handle WebSocket upgrade
+    const upgradeHeader = request.headers.get("Upgrade");
+    if (!upgradeHeader || upgradeHeader !== "websocket") {
+      return new Response("Expected Upgrade: websocket", { status: 426 });
     }
+
+    const playerId = url.searchParams.get("playerId");
+
+    if (!playerId) {
+      return Response.json({ error: "playerId is required" }, { status: 400 });
+    }
+
+    const [client, server] = Object.values(new WebSocketPair());
+
+    // Add player to waiting list immediately
+    this.waitingPlayers.set(playerId, {
+      playerId,
+      joinedAt: Date.now(),
+      socket: server,
+    });
+
+    // Send initial waiting status
+    server.send(
+      JSON.stringify({
+        status: "waiting",
+        queuePosition: this.waitingPlayers.size,
+      })
+    );
+
+    // Check if we have 2+ players to match
+    this.tryMatchPlayers();
+
+    server.addEventListener("close", () => {
+      // Remove player from queue if they disconnect
+      this.waitingPlayers.delete(playerId);
+    });
+
+    server.addEventListener("error", () => {
+      // Remove player from queue on error
+      this.waitingPlayers.delete(playerId);
+    });
+
+    return new Response(null, { status: 101, webSocket: client });
   }
 
   private async tryMatchPlayers() {
