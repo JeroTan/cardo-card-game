@@ -17,8 +17,9 @@ export function GameRoutes({
     .use(typedUrlData)
     .use(typedAstroCookies)
     .group("/game", (app)=>{
-      app.get("/find-match", ({env, astroCookies, request})=>{
+      app.get("/find-match", async ({env, astroCookies, request})=>{
         const {data: userInfo, error} = getUserAuthInformation(astroCookies);
+        let playerId: string;
         if(error != null){
           const {data: userInfo, error} = getTemporaryUser(astroCookies);
           const info = {
@@ -33,9 +34,18 @@ export function GameRoutes({
             info.id = userInfo.id;
             info.username = userInfo.username;
           }
-          return gameController.createRoom({playerId: info.id, env: env});
+          playerId = info.id;
+        } else {
+          playerId = userInfo.id;
         }
-        return gameController.createRoom({playerId: userInfo.id, env: env});
+        
+        const response = await gameController.createRoom({playerId, env});
+        // Clone the response to make it mutable for Elysia
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: new Headers(response.headers)
+        });
       }, {
         detail:{
           summary: "Create a new game room",
@@ -46,11 +56,17 @@ export function GameRoutes({
        
       }, {})
 
-      app.get("/room/:id", ({params, env, request})=>{
-        return gameController.prepareRoom({
+      app.get("/room/:id", async ({params, env, request})=>{
+        const response = await gameController.prepareRoom({
           roomId: params.id,
           env: env,
-        })
+        });
+        // Clone the response to make it mutable for Elysia
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: new Headers(response.headers)
+        });
       }, {
         detail:{
           summary: "Get game room info through websocket",
