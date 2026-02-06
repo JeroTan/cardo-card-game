@@ -4,7 +4,7 @@ import Card from "../components/Card";
 import HoverGlow from "../components/HoverGlow";
 import TopBar from "../components/TopBar";
 import { Pile } from "../components/Pile";
-import { FocusContextProvider } from "../context_temp/FocusContext";
+import { FocusContextProvider } from "../context/FocusContext";
 import { coordinateDivider, locateCardXFromCenter, useAppWithScaleConstant } from "../utils/Math";
 import Interface from "./Interface";
 import { AttackToSentinelAnimation } from "../components/AttackAnimation";
@@ -20,11 +20,11 @@ import Modal from "../components/Modal";
 import FloatingMenu from "../components/FloatingMenu";
 import { useRef } from "react";
 import type { Container } from "pixi.js";
-import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context_temp/FloatingMenuContext";
+import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/FloatingMenuContext";
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 import StaticGlow from "../components/StaticGlow";
-import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context_temp/TipNoteContext";
-import { ModalContextProvider } from "../context_temp/ModalContext";
+import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
+import { ModalContextProvider } from "../context/ModalContext";
 import type { ModelCardRaw } from "@/types/model/cards";
 
 

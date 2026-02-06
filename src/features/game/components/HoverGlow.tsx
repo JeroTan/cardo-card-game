@@ -1,5 +1,5 @@
 import {GlowFilter} from "pixi-filters";
-import { useFocusContext } from "../context_temp/FocusContext";
+import { useFocusContext } from "../context/FocusContext";
 import { useId, useRef } from "react";
 import { Container, Ticker } from "pixi.js";
 import { useUpdateEffect } from "react-use";
