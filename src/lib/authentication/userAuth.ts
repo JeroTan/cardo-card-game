@@ -1,6 +1,7 @@
 import { SECRET_USER_JWT_SECRET_KEY } from "astro:env/server";
 import { jwtEncrypt } from "../crypto/jwt";
-import { PUBLIC_GOOGLE_CLIENT_ID, SECRET_GOOGLE_CLIENT_SECRET} from "astro:env/server";
+import { SECRET_GOOGLE_CLIENT_SECRET} from "astro:env/server";
+import { PUBLIC_GOOGLE_CLIENT_ID } from "astro:env/client";
 import { PUBLIC_APP_URL } from "astro:env/client";
 import type { AstroCookies } from "astro";
 import type { CookieUserAuthInformation } from "@/types/auth/user/types";
@@ -62,7 +63,7 @@ export function getUserAuthInformation(cookie: AstroCookies):{data: CookieUserAu
 
 export function setTemporaryUser(cookie: AstroCookies){
   const info = {
-    id: sample(Array.from({length: 1000000}, (_, i) => (i + 1).toString().padStart(6, '0'))) || "000001",
+    id: (sample(Array.from({length: 1000000}, (_, i) => (i + 1).toString().padStart(6, '0'))) || "000001") + "-temp-" + Date.now().toString(),
     username: generateTemporaryUsername(),
   }
   const expiryDate = new Date();
