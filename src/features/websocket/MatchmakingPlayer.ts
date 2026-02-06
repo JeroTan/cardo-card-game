@@ -12,7 +12,6 @@ export class MatchmakingPlayer {
 
   async fetch(request: Request) {
     const method = request.method;
-
     switch (method) {
       case "POST": {
         const body = await request.json() as { type: string, playerId: string };

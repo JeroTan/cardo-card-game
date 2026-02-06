@@ -20,13 +20,19 @@ export class CardGameController {
 		const stub = MATCHMAKING_PLAYER.get(id);
 
 		// Send join matchmaking event
-		return stub.fetch(new Request("https://internal/join", {
-			method: "POST",
-			body: JSON.stringify({
-				type: "JOIN_QUEUE",
-				playerId,
-			}),
-		}));
+		try{
+			return await stub.fetch("https://internal/join", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					type: "JOIN_QUEUE",
+					playerId,
+				}),
+			});
+		}catch(error){
+			console.error("Error joining matchmaking:", error);
+			return Response.json({message: "Failed to join matchmaking"}, {status: 500});
+		}
 	}
 
   async prepareRoom({roomId, playerId, env}: {roomId: string, playerId?: string, env: Env}){
@@ -44,14 +50,15 @@ export class CardGameController {
 		const stub = CARD_GAME_ROOM.get(id);
 
 		// Send join room event
-		return stub.fetch(new Request("https://internal/join", {
+		return await stub.fetch("https://internal/join", {
 			method: "POST",
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				roomId,
 				playerId,
 				type: "JOIN_ROOM",
 			}),
-		}));
+		});
   }
 
 	async drawCard({roomId, playerId, cardToDraw, env}: {roomId: string, playerId: string, cardToDraw: string[], env: Env}){
@@ -73,14 +80,15 @@ export class CardGameController {
 		const stub = CARD_GAME_ROOM.get(id);
 
 		// Send draw card event to the room
-		return stub.fetch(new Request("https://internal/event", {
+		return await stub.fetch("https://internal/event", {
 			method: "POST",
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				type: "DRAW_CARD",
 				playerId,
 				cardIds: cardToDraw,
 			}),
-		}));
+		});
 	}
 
 	async attackSentinel({roomId, playerId, attackingCard, env}: {roomId: string, playerId: string, attackingCard: string[], env: Env}){
@@ -102,13 +110,14 @@ export class CardGameController {
 		const stub = CARD_GAME_ROOM.get(id);
 
 		// Send attack event to the room
-		return stub.fetch(new Request("https://internal/event", {
+		return await stub.fetch("https://internal/event", {
 			method: "POST",
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				type: "ATTACKING",
 				playerId,
 				cardIds: attackingCard,
 			}),
-		}));
+		});
 	}
 }
