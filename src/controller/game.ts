@@ -12,7 +12,7 @@ export class CardGameController {
 		}
 
 		// Get the Durable Object binding
-		const MATCHMAKING_PLAYER = env.MATCHMAKING_PLAYER as DurableObjectNamespace<MatchmakingPlayer>;
+		const {MATCHMAKING_PLAYER} = env;
 		// Create a unique ID for the global matchmaking queue
 		const stub = MATCHMAKING_PLAYER.get(MATCHMAKING_PLAYER.idFromName("global-queue"));
 
