@@ -24,16 +24,15 @@ export class CardGameController {
 
 		// Send join matchmaking event
 		try{
-			const [url, request] = stabRequest();
+			const [url, constructRequest] = stabRequest(request);
 			url.searchParams.set("playerId", playerId);
-			
-			return await stub.fetch(...request());
+			return await stub.fetch(...constructRequest());
 		}catch(error){
 			console.error("Error joining matchmaking:", error);
 			return Response.json({message: "Failed to join matchmaking"}, {status: 500});
 		}
 	}
-
+ 
   async prepareRoom({roomId, playerId, env}: {roomId: string, playerId?: string, env: Env}){
 		if (!roomId) {
 			return Response.json({ message: "Room ID is required" }, { status: 400 });

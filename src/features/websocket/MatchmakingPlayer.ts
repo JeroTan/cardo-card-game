@@ -19,7 +19,6 @@ export class MatchmakingPlayer extends DurableObject {
       return Response.json({ error: "playerId is required" }, { status: 400 });
     }
 
-
     // Generate4 Websocket pair for communication
     const [client, server] = Object.values(new WebSocketPair());
     // Accept the WebSocket connection in Durable Object state
