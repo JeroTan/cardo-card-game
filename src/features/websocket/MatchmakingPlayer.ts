@@ -1,120 +1,71 @@
 import { generateRoomId } from "@/features/game/utils/room";
+import { MatchmakingLogic } from "@/services/game/MatchmakingLogic";
+import { DurableObject } from "cloudflare:workers";
 
-export class MatchmakingPlayer {
-  state: DurableObjectState;
-  waitingPlayers: Map<string, { playerId: string; joinedAt: number; socket: WebSocket }> = new Map();
-  env: Env;
-
-  constructor(state: DurableObjectState, env: Env) {
-    this.state = state;
-    this.env = env;
-  }
+export class MatchmakingPlayer extends DurableObject {
+  public matchMaker: MatchmakingLogic;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.matchMaker = new MatchmakingLogic(this.ctx.storage);
+  } 
 
   async fetch(request: Request) {
+    console.log(`MatchmakingPlayer received request from id: ${this.ctx.id.toString()}`);
+
+    // We need to check first if the request has player id to proceed with matchmaking
     const url = new URL(request.url);
-    console.log(`MatchmakingPlayer received request: ${request.method} ${request.url}`);
-    
-    // Handle WebSocket upgrade
-    const upgradeHeader = request.headers.get("Upgrade");
-    if (!upgradeHeader || upgradeHeader !== "websocket") {
-      return new Response("Expected Upgrade: websocket", { status: 426 });
-    }
-
     const playerId = url.searchParams.get("playerId");
-
     if (!playerId) {
       return Response.json({ error: "playerId is required" }, { status: 400 });
     }
 
+
+    // Generate4 Websocket pair for communication
     const [client, server] = Object.values(new WebSocketPair());
-
     // Accept the WebSocket connection in Durable Object state
-    this.state.acceptWebSocket(server);
+    this.ctx.acceptWebSocket(server);
 
-    // Add player to waiting list immediately
-    this.waitingPlayers.set(playerId, {
-      playerId,
-      joinedAt: Date.now(),
-      socket: server,
-    });
+    
+    // If yes add it to the matchmaking queue and wait for opponent
+    await this.matchMaker.addPlayer(playerId);
+    // Serialize the websocket with playerId for later use
+    server.serializeAttachment({ playerId });
 
-    // Send initial waiting status
-    server.send(
-      JSON.stringify({
-        status: "waiting",
-        queuePosition: this.waitingPlayers.size,
-      })
-    );
-
-    // Check if we have 2+ players to match
-    this.tryMatchPlayers();
-
-    server.addEventListener("close", () => {
-      // Remove player from queue if they disconnect
-      this.waitingPlayers.delete(playerId);
-    });
-
-    server.addEventListener("error", () => {
-      // Remove player from queue on error
-      this.waitingPlayers.delete(playerId);
-    });
+    server.send(JSON.stringify({
+      type: "JOINED_QUEUE",
+      message: "You have joined the matchmaking queue. Waiting for an opponent...",
+    }))
 
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  private async tryMatchPlayers() {
-    if (this.waitingPlayers.size >= 2) {
-      const players = Array.from(this.waitingPlayers.values());
-      const player1 = players[0];
-      const player2 = players[1];
-      const roomId = generateRoomId();
+  webSocketClose(ws: WebSocket, code: number, reason: string, wasClean: boolean): void | Promise<void> {
+    if(!ws.deserializeAttachment || !ws.deserializeAttachment().playerId){
+      console.warn("WebSocket closed without playerId attachment");
+    }
+    const playerId = ws.deserializeAttachment()?.playerId as string;
+    this.matchMaker.removePlayer(playerId);
+  }
 
-      // Initialize the CardGameRoom with both players
-      if (this.env?.CARD_GAME_ROOM) {
-        const roomDO = this.env.CARD_GAME_ROOM;
-        const id = roomDO.idFromName(roomId);
-        const stub = roomDO.get(id);
+  webSocketError(ws: WebSocket, error: unknown): void | Promise<void> {
+    console.error("WebSocket error:", error);
+    ws.close(1011, "WebSocket error");
+  }
 
-        // Pre-initialize the room with player data
-        await stub.fetch("https://internal/init", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            roomId,
-            players: [
-              { playerId: player1.playerId },
-              { playerId: player2.playerId }
-            ]
-          })
-        });
-      }
-
-      // Notify both players they matched
-      player1.socket.send(
-        JSON.stringify({
-          status: "matched",
-          roomId,
-          opponent: player2.playerId,
-        })
-      );
-
-      player2.socket.send(
-        JSON.stringify({
-          status: "matched",
-          roomId,
-          opponent: player1.playerId,
-        })
-      );
-
-      // Remove matched players
-      this.waitingPlayers.delete(player1.playerId);
-      this.waitingPlayers.delete(player2.playerId);
-
-      // Close sockets after match notification
-      setTimeout(() => {
-        player1.socket.close(1000, "Matched");
-        player2.socket.close(1000, "Matched");
-      }, 100);
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
+    const matchReport = await this.matchMaker.isMatchReady();
+    if(matchReport.ok){
+      ws.send(JSON.stringify({
+        type: "MATCH_FOUND",
+        roomId: generateRoomId(),
+      }));
+    }else{
+      ws.send(JSON.stringify({
+        type: "WAITING_FOR_OPPONENT",
+        playersInQueue: matchReport.players.length,
+      }));
     }
   }
+  
+  
 }

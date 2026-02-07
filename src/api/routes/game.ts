@@ -1,6 +1,7 @@
 import  { CardGameController } from "@/controller/game";
 import { getTemporaryUser, getUserAuthInformation, setTemporaryUser } from "@/lib/authentication/userAuth";
 import { typedAstroCookies, typedEnv, typedUrlData } from "@/lib/elysia";
+import { getPlayerOnSession } from "@/services/game/MatchmakingLogic";
 import type Elysia from "elysia";
 import { t } from "elysia";
 
@@ -18,46 +19,8 @@ export function GameRoutes({
     .use(typedAstroCookies)
     .group("/game", (app)=>{
       app.get("/find-match", async ({env, astroCookies, request})=>{
-        const {data: userInfo, error} = getUserAuthInformation(astroCookies);
-        let playerId: string;
-        if(error != null){
-          const {data: userInfo, error} = getTemporaryUser(astroCookies);
-          const info = {
-            username: "Guest",
-            id: "",
-          }
-          if(error != null){
-            const newTemporaryUser = setTemporaryUser(astroCookies);
-            info.id = newTemporaryUser.id;
-            info.username = newTemporaryUser.username;
-          }else{
-            info.id = userInfo.id;
-            info.username = userInfo.username;
-          }
-          playerId = info.id;
-        } else {
-          playerId = userInfo.id;
-        }
-        
-        // Get the Durable Object for matchmaking
-        const { MATCHMAKING_PLAYER } = env;
-        const id = MATCHMAKING_PLAYER.idFromName("global-queue");
-        const stub = MATCHMAKING_PLAYER.get(id);
-        
-        // Create a new URL with playerId parameter
-        const doUrl = `https://internal/matchmaking?playerId=${encodeURIComponent(playerId)}`;
-        
-        // Forward the WebSocket upgrade request
-        const response = await stub.fetch(doUrl, {
-          method: "GET",
-          headers: {
-            "Upgrade": "websocket",
-            "Connection": "Upgrade",
-          },
-        });
-        
-        // Return the WebSocket upgrade response directly
-        return response;
+        const {playerId} = getPlayerOnSession(astroCookies);
+        return gameController.findMatch({playerId, env, request});
       }, {
         detail:{
           summary: "Create a new game room",

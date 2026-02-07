@@ -1,34 +1,33 @@
+import type { MatchmakingPlayer } from "@/features/websocket/MatchmakingPlayer";
+import { stabRequest } from "@/lib/durableObject";
+
 
 
 export class CardGameController {
-  constructor(){
+  constructor(){}
 
-  }
-
-	async createRoom({playerId, env}:{playerId: string, env: Env}){
+	async findMatch({playerId, env, request}:{playerId: string, env: Env, request: Request}){
 		if(!playerId){
 			return Response.json({message: "Player ID is required"}, {status: 400});
 		}
 
 		// Get the Durable Object binding
-		const { MATCHMAKING_PLAYER } = env;
-
+		const MATCHMAKING_PLAYER = env.MATCHMAKING_PLAYER as DurableObjectNamespace<MatchmakingPlayer>;
 		// Create a unique ID for the global matchmaking queue
-		const id = MATCHMAKING_PLAYER.idFromName("global-queue");
+		const stub = MATCHMAKING_PLAYER.get(MATCHMAKING_PLAYER.idFromName("global-queue"));
 
-		// Get the Durable Object stub
-		const stub = MATCHMAKING_PLAYER.get(id);
+		// Check if it is a websocket request
+		const upgradeHeader = request.headers.get("Upgrade");
+		if(!upgradeHeader || upgradeHeader.toLowerCase() !== "websocket"){
+			return Response.json({message: "This endpoint only accepts websocket requests"}, {status: 400});
+		}
 
 		// Send join matchmaking event
 		try{
-			return await stub.fetch("https://internal/join", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					type: "JOIN_QUEUE",
-					playerId,
-				}),
-			});
+			const [url, request] = stabRequest();
+			url.searchParams.set("playerId", playerId);
+			
+			return await stub.fetch(...request());
 		}catch(error){
 			console.error("Error joining matchmaking:", error);
 			return Response.json({message: "Failed to join matchmaking"}, {status: 500});
