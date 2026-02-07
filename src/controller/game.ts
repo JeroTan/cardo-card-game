@@ -1,5 +1,5 @@
 import type { MatchmakingPlayer } from "@/features/websocket/MatchmakingPlayer";
-import { stabRequest } from "@/lib/durableObject";
+import { makeWSResponse, stabRequest } from "@/lib/durableObject";
 
 
 
@@ -26,7 +26,7 @@ export class CardGameController {
 		try{
 			const [url, constructRequest] = stabRequest(request);
 			url.searchParams.set("playerId", playerId);
-			return await stub.fetch(...constructRequest());
+			return makeWSResponse(await stub.fetch(...constructRequest()));
 		}catch(error){
 			console.error("Error joining matchmaking:", error);
 			return Response.json({message: "Failed to join matchmaking"}, {status: 500});

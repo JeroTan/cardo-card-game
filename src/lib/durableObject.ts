@@ -33,3 +33,10 @@ export function stabRequest(originalRequest?: Request){
     constructRequest,
   ] as const;
 }
+
+export function makeWSResponse(response: Response){
+  return new Response(null, {
+    status: 101,
+    webSocket: response.webSocket,
+  });
+}
