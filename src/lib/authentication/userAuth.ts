@@ -93,7 +93,7 @@ export function getTemporaryUser(cookie: AstroCookies):{data: Omit<CookieUserAut
       typeof dataParsed !== "object" 
       || dataParsed === null 
       || !("id" in dataParsed) 
-      || !("email" in dataParsed)
+      || !("username" in dataParsed)
     ){
       return {data: null, error: "Invalid temporary user information format"};
     }

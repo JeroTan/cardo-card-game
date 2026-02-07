@@ -38,5 +38,8 @@ export function makeWSResponse(response: Response){
   return new Response(null, {
     status: 101,
     webSocket: response.webSocket,
+    headers: {
+      "Content-Type": "application/json",
+    }
   });
 }

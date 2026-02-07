@@ -39,6 +39,22 @@ export class MatchmakingLogic {
     }
     return {ok: true, players: playerList.slice(0, playerRequired)};
   }
+
+  async isMatchReadyFor(playerId: string, playerRequired: number = 1) {
+    const playerList:MatchMakingInfo[] = (await this.storage.get("waitingPlayers")) ?? [];
+    const playerIndex = playerList.findIndex(player => player.playerId == playerId);
+    if(playerIndex === -1){
+      return {ok: false, players: playerList};
+    }
+    // Filter out the current player to get other players
+    const otherPlayers = playerList.filter((_, index) => index !== playerIndex);
+    if(otherPlayers.length < playerRequired){
+      return {ok: false, players: otherPlayers};
+    }
+    const chosenPlayers = [playerList[playerIndex], ...otherPlayers.slice(0, playerRequired)];
+    return {ok: true, players: chosenPlayers};
+  }
+
 }
 
 

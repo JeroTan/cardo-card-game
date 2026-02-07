@@ -2,6 +2,7 @@ import { Middleware } from "@/lib/middleware/main";
 import { sequence, defineMiddleware } from "astro/middleware";
 import { CheckIfLive, CheckIfMaintenance } from "./callbacks/maintenance";
 import { BlockWhenAdminAuth, BlockWhenNotAdminAuth } from "./callbacks/admin";
+import { checkTemporaryUser } from "./callbacks/player";
 
 /*|------------------------------------------------------------------------------------------|*/
 /*|               Entry Point                                                                |*/
@@ -28,7 +29,8 @@ function Main() {
 		// Middleware Utility
 		const mid = new Middleware(context, next);
 
-		// Grouping Example
+		// Add ONs
+		checkTemporaryUser(context);
 
 		// 1st Group Middleware
 		await mid.group(async (mid) => {
