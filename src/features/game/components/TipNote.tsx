@@ -15,14 +15,14 @@ export function TipNote({
     x={x * scaleConstant}
     y={y * scaleConstant}
   >
-    <pixiGraphics 
+    {tip !== "" && <pixiGraphics 
       draw={(graphics)=>{
         graphics.clear();
 
         graphics.circle(0, 15*scaleConstant, 7 * scaleConstant);
         graphics.fill({ color: 0x22FFFF });
       }}
-    />
+    />}
     <pixiText 
       text={tip}
       style={makeFontStyle({
