@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useAppWithScaleConstant } from "../../utils/Math";
+import type { Graphics } from "pixi.js";
 
 
 export function BarContainer({
@@ -8,14 +9,19 @@ export function BarContainer({
   width: RawWidth = 1920,
   height: RawHeight = 80,
   highlight= false,
+  bgColor = 0x3F3F41,
 }:{
   x?: number,
   y?: number,
   width?: number,
   height?: number,
   highlight?: boolean,
+  bgColor?: number,
 }){
   const [, scaleConstant] = useAppWithScaleConstant();
+
+  const refAnimateBorder = useRef<Graphics|null>(null);
+  const refMaskForAnimateBorder = useRef<Graphics|null>(null);
 
   const {width, height} = useMemo(()=>{
     return {
@@ -31,6 +37,14 @@ export function BarContainer({
     }
   }, [scaleConstant, RawX, RawY]);
 
+  useEffect(()=>{
+    if(!refAnimateBorder.current || !refMaskForAnimateBorder.current) return;
+    const animateBorder = refAnimateBorder.current;
+    const maskForAnimateBorder = refMaskForAnimateBorder.current;
+
+    animateBorder.mask = maskForAnimateBorder;
+  }, []);
+
   return <pixiContainer
     x={x}
     y={y}
@@ -40,7 +54,7 @@ export function BarContainer({
         graphics.clear();
    
         graphics.rect(0, 0, width, height);
-        graphics.fill({ color: highlight ? 0x3F3F41 : 0x1F1F21 });  
+        graphics.fill({ color: highlight ? bgColor : 0x1F1F21 });  
       }}
     />
     <pixiGraphics

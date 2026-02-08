@@ -26,6 +26,7 @@ import StaticGlow from "../components/StaticGlow";
 import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
 import { ModalContextProvider } from "../context/ModalContext";
 import type { ModelCardRaw } from "@/types/model/cards";
+import { BarWiper } from "../components/stat/BarWiper";
 
 
 export type GameEngineProps = {
@@ -88,6 +89,12 @@ function Composer(){
           x={data.x}
           highlight={true}
         />
+        <BarWiper 
+          width={data.size}
+          y={75}
+          x={data.x}
+          wipeBorder={0.5}
+        />
         <TurnInfo 
           x={data.x+10}
           y={20}
@@ -104,7 +111,11 @@ function Composer(){
       y={1080 - 80}
       highlight={true}
     />
-
+    <BarWiper 
+      y={1080 - 80 + 75}
+      width={960 - 30}
+      wipeBorder={0.1}
+    />
     <TurnInfo 
       x={10}
       y={1080 - 60}
@@ -115,6 +126,14 @@ function Composer(){
       playerName="Player 1"
       x={120}
       y={1080 - 60}
+    />
+    <BarContainer
+      width={960 + 30}
+      height={55}
+      x={1920 - 960 -30}
+      y={1080 -80}
+      highlight={true}
+      bgColor={0x353535}
     />
     <TipNote 
       tip={tipNote ? tipNote : ""}
