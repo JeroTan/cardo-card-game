@@ -31,7 +31,7 @@ export class CardPackController {
   }
 
   public async getCardPackById({env, id, origin}: {env: Env, id: string, origin: string}) {
-    const { data: cardPackDetails, error } = await this.cardPackService.getById(env, id);  
+    const { data: cardPackDetails, error } = await this.cardPackService.getById({env, id});  
     if(error || !cardPackDetails) {
       return Response.json({
         message: error || "Card pack not found",
@@ -170,7 +170,7 @@ export class CardPackController {
   }
 
   public async deleteCardPack({env, id}: {env: Env, id: string}) {
-    const { data: deleteResult, error } = await this.cardPackService.delete(env, id);
+    const { data: deleteResult, error } = await this.cardPackService.delete({env, id});
     if(error) {
       return Response.json({
         message: error || "Failed to delete card pack",

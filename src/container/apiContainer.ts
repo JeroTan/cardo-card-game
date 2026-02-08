@@ -29,7 +29,7 @@ export function ApiContainer(app: Elysia){
     cardPack: new CardPackController(services.cardPack, services.card),
     adminAccount: new AdminAccountController(services.adminAccount),
     userAccount: new UserAccountController(services.userAccount),
-    cardGame: new CardGameController(),
+    cardGame: new CardGameController(services.cardPack, services.card),
   }
 
   //Validation Handler to return error of typebox with style

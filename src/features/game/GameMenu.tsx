@@ -1,8 +1,8 @@
 import { WSCreateRoom } from "@/api/client/game";
-import { makeLoadingModal } from "@/components/overlay/ModalBase";
+import { makeInfoModal, makeLoadingModal } from "@/components/overlay/ModalBase";
 import { Button } from "@/components/ui/button"
 import { useModalContext } from "@/stores/components/ModalContext"
-import { Box, Computer, Joystick, Sword, User } from "lucide-react"
+import { Box, Computer, Sword } from "lucide-react"
 import type { PropsWithChildren } from "react"
 
 export default function GameMenu (){
@@ -18,7 +18,22 @@ export default function GameMenu (){
           const ws = WSCreateRoom();
           ws.open();
           ws.receiver((message)=>{
-            console.log("WebSocket Message:", message);
+            const data = JSON.parse(message.data);
+            if(data.type === "MATCH_FOUND"){
+              modalDispatch(makeInfoModal({
+                title: "Match Found!",
+                message: "Redirecting you to the game room...",
+                acceptButton: false,
+                rejectButton: false,
+                backdropTrigger: false,
+                closeButton: false,
+              }));
+              ws.close();
+              setTimeout(()=>{
+                location.href = "/room/" + data.roomId;
+              }, 2000);
+            }
+
           })
           
         }}

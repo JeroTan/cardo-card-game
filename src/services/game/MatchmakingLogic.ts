@@ -1,5 +1,5 @@
 import { getTemporaryUser, getUserAuthInformation, setTemporaryUser } from "@/lib/authentication/userAuth";
-import type { MatchMakingInfo } from "@/types/game/events";
+import type { MatchMakingInfo } from "@/types/game/matchmaking";
 import type { AstroCookies } from "astro";
 
 export class MatchmakingLogic {

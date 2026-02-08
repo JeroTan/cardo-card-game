@@ -1,30 +1,28 @@
 import { describe, it, expect } from "vitest";
 import { validateGameEvent } from "@/features/game/utils/room";
-import type { RoomState, TurnEvent } from "@/types/game/events";
+import type { GameState, TurnEvent } from "@/types/game/events";
 
 describe("validateGameEvent", () => {
-  const createMockRoomState = (events: TurnEvent[] = []): RoomState => ({
+  const createMockRoomState = (events: TurnEvent[] = []): GameState => ({
     roomId: "TEST123",
-    playerInfo: {
-      players: [
-        {
-          id: "player1",
-          username: "Player 1",
-          cardsInDeck: Array(50).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }),
-          jailedCards: [],
-          turnLeft: 0,
-          timeLeft: new Date(Date.now() + 60000).toISOString(),
-        },
-        {
-          id: "player2",
-          username: "Player 2",
-          cardsInDeck: Array(50).fill({ id: "2", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }),
-          jailedCards: [],
-          turnLeft: 0,
-          timeLeft: new Date(Date.now() + 60000).toISOString(),
-        },
-      ],
-    },
+    playerInfo: [
+      {
+        id: "player1",
+        username: "Player 1",
+        cardsInDeck: Array(50).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }),
+        jailedCards: [],
+        turnCount: 0,
+        timeLeft: new Date(Date.now() + 60000).toISOString(),
+      },
+      {
+        id: "player2",
+        username: "Player 2",
+        cardsInDeck: Array(50).fill({ id: "2", name: "Card", atk: 5, def: 5, card_art: "" }),
+        jailedCards: [],
+        turnCount: 0,
+        timeLeft: new Date(Date.now() + 60000).toISOString(),
+      },
+    ],
     events,
     createdAt: new Date().toISOString(),
     status: "waiting",
@@ -33,14 +31,14 @@ describe("validateGameEvent", () => {
   describe("Rule 1: First event must be PLAYER_JOIN", () => {
     it("should accept PLAYER_JOIN as first event", () => {
       const roomState = createMockRoomState([]);
-      const event: TurnEvent = { type: "PLAYER_JOIN", playerId: "player1" };
+      const event: TurnEvent = { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
     });
 
     it("should reject GAME_START as first event", () => {
       const roomState = createMockRoomState([]);
-      const event: TurnEvent = { type: "GAME_START" };
+      const event: TurnEvent = { type: "GAME_START", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
       expect(result.error).toBe("First event must be PLAYER_JOIN");
@@ -50,21 +48,21 @@ describe("validateGameEvent", () => {
   describe("Rule 2: GAME_START should only appear once", () => {
     it("should accept GAME_START after PLAYER_JOIN", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "PLAYER_JOIN", playerId: "player2" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "PLAYER_JOIN", playerId: "player2", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "GAME_START" };
+      const event: TurnEvent = { type: "GAME_START", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
     });
 
     it("should reject second GAME_START", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "PLAYER_JOIN", playerId: "player2" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "PLAYER_JOIN", playerId: "player2", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "GAME_START" };
+      const event: TurnEvent = { type: "GAME_START", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
       expect(result.error).toBe("GAME_START can only appear once");
@@ -74,21 +72,21 @@ describe("validateGameEvent", () => {
   describe("Rule 3: GAME_END should only appear once", () => {
     it("should accept GAME_END", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "GAME_END" };
+      const event: TurnEvent = { type: "GAME_END", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
     });
 
     it("should reject second GAME_END", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
-        { type: "GAME_END" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "GAME_END", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "GAME_END" };
+      const event: TurnEvent = { type: "GAME_END", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
       expect(result.error).toBe("GAME_END can only appear once");
@@ -98,21 +96,21 @@ describe("validateGameEvent", () => {
   describe("Rule 4: PLAYER_LOSE and PLAYER_WIN only once per player", () => {
     it("should accept PLAYER_LOSE for a player", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "PLAYER_LOSE", playerId: "player1" };
+      const event: TurnEvent = { type: "PLAYER_LOSE", playerId: "player1", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
     });
 
     it("should reject second PLAYER_LOSE for same player", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
-        { type: "PLAYER_LOSE", playerId: "player1" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "PLAYER_LOSE", playerId: "player1", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "PLAYER_LOSE", playerId: "player1" };
+      const event: TurnEvent = { type: "PLAYER_LOSE", playerId: "player1", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
       expect(result.error).toContain("already has PLAYER_LOSE event");
@@ -120,21 +118,21 @@ describe("validateGameEvent", () => {
 
     it("should accept PLAYER_WIN for a player", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "PLAYER_WIN", playerId: "player1" };
+      const event: TurnEvent = { type: "PLAYER_WIN", playerId: "player1", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
     });
 
     it("should reject second PLAYER_WIN for same player", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
-        { type: "PLAYER_WIN", playerId: "player1" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "PLAYER_WIN", playerId: "player1", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "PLAYER_WIN", playerId: "player1" };
+      const event: TurnEvent = { type: "PLAYER_WIN", playerId: "player1", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
       expect(result.error).toContain("already has PLAYER_WIN event");
@@ -144,16 +142,17 @@ describe("validateGameEvent", () => {
   describe("Rule 5: DRAW_CARD validation", () => {
     it("should accept drawing 1-3 cards", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
       const event: TurnEvent = {
         type: "DRAW_CARD",
         playerId: "player1",
         drawn_cards: [
-          { id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
-          { id: "2", name: "Card", atk: 3, def: 7, card_art: "", created_at: "", updated_at: "" },
+          { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "2", name: "Card", atk: 3, def: 7, card_art: "" },
         ],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
@@ -161,18 +160,19 @@ describe("validateGameEvent", () => {
 
     it("should reject drawing more than 3 cards", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
       const event: TurnEvent = {
         type: "DRAW_CARD",
         playerId: "player1",
         drawn_cards: [
-          { id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
-          { id: "2", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
-          { id: "3", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
-          { id: "4", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
+          { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "2", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "3", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "4", name: "Card", atk: 5, def: 5, card_art: "" },
         ],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -181,21 +181,22 @@ describe("validateGameEvent", () => {
 
     it("should reject drawing more cards than available in deck", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
       // Override player1 to have only 1 card
-      roomState.playerInfo.players[0].cardsInDeck = [
-        { id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
+      roomState.playerInfo[0].cardsInDeck = [
+        { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
       ];
 
       const event: TurnEvent = {
         type: "DRAW_CARD",
         playerId: "player1",
         drawn_cards: [
-          { id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
-          { id: "2", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
+          { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "2", name: "Card", atk: 5, def: 5, card_art: "" },
         ],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -206,15 +207,16 @@ describe("validateGameEvent", () => {
   describe("Rule 6: JAIL_CARD validation", () => {
     it("should accept jailing 1-3 cards", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
       const event: TurnEvent = {
         type: "JAIL_CARD",
         playerId: "player1",
         jailed_cards: [
-          { id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
+          { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
         ],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
@@ -222,13 +224,14 @@ describe("validateGameEvent", () => {
 
     it("should reject jailing more than 3 cards in one event", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
       const event: TurnEvent = {
         type: "JAIL_CARD",
         playerId: "player1",
-        jailed_cards: Array(4).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }),
+        jailed_cards: Array(4).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }),
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -237,27 +240,26 @@ describe("validateGameEvent", () => {
 
     it("should reject jailing if total would exceed 50", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
       // Set player1 to have 49 jailed cards
-      roomState.playerInfo.players[0].jailedCards = Array(49).fill({
+      roomState.playerInfo[0].jailedCards = Array(49).fill({
         id: "1",
         name: "Card",
         atk: 5,
         def: 5,
         card_art: "",
-        created_at: "",
-        updated_at: "",
       });
 
       const event: TurnEvent = {
         type: "JAIL_CARD",
         playerId: "player1",
         jailed_cards: [
-          { id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
-          { id: "2", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
+          { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "2", name: "Card", atk: 5, def: 5, card_art: "" },
         ],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -268,21 +270,23 @@ describe("validateGameEvent", () => {
   describe("Rule 7: ATTACKING validation", () => {
     it("should accept valid attack with 1-3 cards", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "PLAYER_JOIN", playerId: "player2" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "PLAYER_JOIN", playerId: "player2", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
         {
           type: "CHANGE_SENTINEL",
           playerId: "player1",
-          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }],
+          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
         },
       ]);
       const event: TurnEvent = {
         type: "ATTACKING",
         playerId: "player2",
         card_used: [
-          { id: "2", name: "Card", atk: 6, def: 4, card_art: "", created_at: "", updated_at: "" },
+          { id: "2", name: "Card", atk: 6, def: 4, card_art: "" },
         ],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
@@ -290,13 +294,14 @@ describe("validateGameEvent", () => {
 
     it("should reject attack with more than 3 cards", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
       const event: TurnEvent = {
         type: "ATTACKING",
         playerId: "player1",
-        card_used: Array(4).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }),
+        card_used: Array(4).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }),
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -305,18 +310,20 @@ describe("validateGameEvent", () => {
 
     it("should reject sentinel owner attacking their own sentinel", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
         {
           type: "CHANGE_SENTINEL",
           playerId: "player1",
-          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }],
+          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
         },
       ]);
       const event: TurnEvent = {
         type: "ATTACKING",
         playerId: "player1",
-        card_used: [{ id: "2", name: "Card", atk: 6, def: 4, card_art: "", created_at: "", updated_at: "" }],
+        card_used: [{ id: "2", name: "Card", atk: 6, def: 4, card_art: "" }],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -325,19 +332,21 @@ describe("validateGameEvent", () => {
 
     it("should reject attack when ATK <= DEF", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "PLAYER_JOIN", playerId: "player2" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "PLAYER_JOIN", playerId: "player2", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
         {
           type: "CHANGE_SENTINEL",
           playerId: "player1",
-          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }],
+          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
         },
       ]);
       const event: TurnEvent = {
         type: "ATTACKING",
         playerId: "player2",
-        card_used: [{ id: "2", name: "Card", atk: 4, def: 6, card_art: "", created_at: "", updated_at: "" }],
+        card_used: [{ id: "2", name: "Card", atk: 4, def: 6, card_art: "" }],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -346,22 +355,24 @@ describe("validateGameEvent", () => {
 
     it("should accept single 0 card defeating any non-zero sentinel", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "PLAYER_JOIN", playerId: "player2" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "PLAYER_JOIN", playerId: "player2", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
         {
           type: "CHANGE_SENTINEL",
           playerId: "player1",
           new_sentinel: [
-            { id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
-            { id: "2", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" },
+            { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+            { id: "2", name: "Card", atk: 5, def: 5, card_art: "" },
           ],
+          timestamp: new Date().toISOString(),
         },
       ]);
       const event: TurnEvent = {
         type: "ATTACKING",
         playerId: "player2",
-        card_used: [{ id: "3", name: "Zero", atk: 0, def: 0, card_art: "", created_at: "", updated_at: "" }],
+        card_used: [{ id: "3", name: "Zero", atk: 0, def: 0, card_art: "" }],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
@@ -369,21 +380,23 @@ describe("validateGameEvent", () => {
 
     it("should reject single 0 card against zero-only sentinel", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "PLAYER_JOIN", playerId: "player2" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "PLAYER_JOIN", playerId: "player2", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
         {
           type: "CHANGE_SENTINEL",
           playerId: "player1",
           new_sentinel: [
-            { id: "1", name: "Zero", atk: 0, def: 0, card_art: "", created_at: "", updated_at: "" },
+            { id: "1", name: "Zero", atk: 0, def: 0, card_art: "" },
           ],
+          timestamp: new Date().toISOString(),
         },
       ]);
       const event: TurnEvent = {
         type: "ATTACKING",
         playerId: "player2",
-        card_used: [{ id: "2", name: "Zero", atk: 0, def: 0, card_art: "", created_at: "", updated_at: "" }],
+        card_used: [{ id: "2", name: "Zero", atk: 0, def: 0, card_art: "" }],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -394,18 +407,20 @@ describe("validateGameEvent", () => {
   describe("Rule 8: CHANGE_SENTINEL validation", () => {
     it("should accept CHANGE_SENTINEL after ATTACKING", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
         {
           type: "ATTACKING",
           playerId: "player1",
-          card_used: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }],
+          card_used: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
         },
       ]);
       const event: TurnEvent = {
         type: "CHANGE_SENTINEL",
         playerId: "player1",
-        new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }],
+        new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
@@ -413,13 +428,14 @@ describe("validateGameEvent", () => {
 
     it("should reject CHANGE_SENTINEL without preceding ATTACKING", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
       const event: TurnEvent = {
         type: "CHANGE_SENTINEL",
         playerId: "player1",
-        new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }],
+        new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -428,18 +444,20 @@ describe("validateGameEvent", () => {
 
     it("should reject sentinel with more than 3 cards", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
         {
           type: "ATTACKING",
           playerId: "player1",
-          card_used: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }],
+          card_used: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
         },
       ]);
       const event: TurnEvent = {
         type: "CHANGE_SENTINEL",
         playerId: "player1",
-        new_sentinel: Array(4).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }),
+        new_sentinel: Array(4).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }),
+        timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
@@ -450,19 +468,19 @@ describe("validateGameEvent", () => {
   describe("Rule 9: START_TURN validation", () => {
     it("should accept START_TURN after GAME_START", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "START_TURN", playerId: "player1" };
+      const event: TurnEvent = { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
     });
 
     it("should reject START_TURN before GAME_START", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "START_TURN", playerId: "player1" };
+      const event: TurnEvent = { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
       expect(result.error).toBe("START_TURN can only appear after GAME_START");
@@ -470,15 +488,16 @@ describe("validateGameEvent", () => {
 
     it("should accept START_TURN after CHANGE_SENTINEL", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
         {
           type: "CHANGE_SENTINEL",
           playerId: "player1",
-          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "", created_at: "", updated_at: "" }],
+          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
         },
       ]);
-      const event: TurnEvent = { type: "START_TURN", playerId: "player2" };
+      const event: TurnEvent = { type: "START_TURN", playerId: "player2", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
     });
@@ -487,19 +506,19 @@ describe("validateGameEvent", () => {
   describe("Rule 10: PLAYER_JOIN only before GAME_START", () => {
     it("should accept PLAYER_JOIN before GAME_START", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "PLAYER_JOIN", playerId: "player2" };
+      const event: TurnEvent = { type: "PLAYER_JOIN", playerId: "player2", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
     });
 
     it("should reject PLAYER_JOIN after GAME_START", () => {
       const roomState = createMockRoomState([
-        { type: "PLAYER_JOIN", playerId: "player1" },
-        { type: "GAME_START" },
+        { type: "PLAYER_JOIN", playerId: "player1", timestamp: new Date().toISOString() },
+        { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
-      const event: TurnEvent = { type: "PLAYER_JOIN", playerId: "player2" };
+      const event: TurnEvent = { type: "PLAYER_JOIN", playerId: "player2", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
       expect(result.error).toBe("Cannot add PLAYER_JOIN after GAME_START");

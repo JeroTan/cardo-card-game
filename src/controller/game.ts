@@ -1,10 +1,15 @@
 import type { MatchmakingPlayer } from "@/features/websocket/MatchmakingPlayer";
 import { makeWSResponse, stabRequest } from "@/lib/durableObject";
+import type { CardService } from "@/services/card";
+import type { CardPackService } from "@/services/cardPack";
 
 
 
 export class CardGameController {
-  constructor(){}
+  constructor(
+		public cardPackService: CardPackService,
+		public cardService: CardService,
+	){}
 
 	async findMatch({playerId, env, request}:{playerId: string, env: Env, request: Request}){
 		if(!playerId){

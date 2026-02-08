@@ -39,7 +39,7 @@ export class CardPackService {
     }
   }
 
-  async getById(env:Env, id: string): Promise<ServiceResult<ModelCardPackRaw | null>> {
+  async getById({env, id}: {env:Env, id: string}): Promise<ServiceResult<ModelCardPackRaw | null>> {
     const fields = ['id', 'status', 'name', 'pack_price', 'publish_start_date', 'publish_end_date', 'created_at', 'updated_at'];
     try {
       const data = await query('card_pack')
@@ -183,7 +183,7 @@ export class CardPackService {
         .where('id', '=', id)
         .update(toUpdate)
         .run(env.DB);
-      return this.getById(env, id);
+      return this.getById({env, id});
     }
     catch(error){
       console.error('Error updating card pack:', error);
@@ -192,9 +192,9 @@ export class CardPackService {
     }
   }
 
-  async delete(env:Env, id:string): Promise<ServiceResult<ModelCardPackRaw | null>> {
+  async delete({env, id}: {env:Env, id:string}): Promise<ServiceResult<ModelCardPackRaw | null>> {
     try {
-      const cardPack = await this.getById(env, id);
+      const cardPack = await this.getById({env, id});
       if(cardPack.error || !cardPack.data) {
         return { data: null, error: 'Card pack not found' };
       }

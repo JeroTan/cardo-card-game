@@ -1,41 +1,34 @@
 import type { ModelCardRaw } from "../model/cards"
 
+export type GameCard = Omit<ModelCardRaw, 'created_at' | 'updated_at'>;
 export type PlayerGameInfo = {
-  players: Array<{
     id: string, // player ID
     username: string, // player username
-    cardsInDeck:Array<ModelCardRaw>, // initial deck is 50 cards
-    jailedCards: Array<ModelCardRaw>, // 0 start
-    turnLeft: number, // 0 start
+    cardsInDeck:Array<GameCard>, // initial deck is 50 cards
+    jailedCards: Array<GameCard>, // 0 start
+    turnCount: number, // 0 start
     timeLeft: string, // 60 seconds but the format is whole date in utc form. A simple example is right now is 2026-05-01T12:00:00Z then to become 60 seconds 2026-05-01T12:01:00Z
-  }>
-}
+  }
 
-export type PlayerGameInfoForClient = {
-  players: Array<{
+export type PlayerGameInfoClient = {
     id: string, // player ID
     username: string, // player username
     totalCardsInDeck: number, // initial deck is 50 cards
-    jailedCards: Array<ModelCardRaw>, // 0 start
-    turnLeft: number, // 0 start
+    jailedCards: Array<GameCard>, // 0 start
+    turnCount: number, // 0 start
     timeLeft: string, // 60 seconds but the format is whole date in utc form. A simple example is right now is 2026-05-01T12:00:00Z then to become 60 seconds 2026-05-01T12:01:00Z
-  }>
-}
+  }
 
-export type RoomState = {
+export type GameState = {
   roomId: string,
-  playerInfo: PlayerGameInfo,
+  playerInfo: PlayerGameInfo[],
   events: TurnEventsLog,
   createdAt: string,
   status: "waiting" | "playing" | "finished",
 }
 
-export type RoomStateForClient = {
-  roomId: string,
-  playerInfo: PlayerGameInfoForClient,
-  events: TurnEventsLog,
-  createdAt: string,
-  status: "waiting" | "playing" | "finished",
+export type GameStateClient = Omit<GameState, "playerInfo"> & {
+  playerInfo: PlayerGameInfoClient[],
 }
 
 export const eventTypes = [
@@ -54,7 +47,9 @@ export const eventTypes = [
 
 export type EventType = (typeof eventTypes)[number];
 
-export type TurnEvent = ({
+export type TurnEvent = {
+  timestamp: string, // ISO string of when the event happened
+}&({
   type: "PLAYER_JOIN",
   playerId: string,
 }|{
@@ -67,19 +62,19 @@ export type TurnEvent = ({
   playerId: string,
 }|{
   type: "ATTACKING",
-  card_used: Array<ModelCardRaw>,
+  card_used: Array<GameCard>,
   playerId: string,
 }|{
   type: "CHANGE_SENTINEL",
-  new_sentinel: Array<ModelCardRaw>,
+  new_sentinel: Array<GameCard>,
   playerId: string,
 }|{
   type: "DRAW_CARD",
-  drawn_cards: Array<ModelCardRaw>,
+  drawn_cards: Array<GameCard>,
   playerId: string,
 }|{
   type: "JAIL_CARD",
-  jailed_cards: Array<ModelCardRaw>,
+  jailed_cards: Array<GameCard>,
   playerId: string,
 }|{
   type: "GAME_END",
@@ -93,11 +88,3 @@ export type TurnEvent = ({
 
 export type TurnEventsLog = Array<TurnEvent>;
 
-/**
- * MatchMakingInfo represents information about a player in the matchmaking queue.
- * joinedAt is a timestamp (in milliseconds) indicating when the player joined the queue. It is UTC-based.
- */
-export type MatchMakingInfo = {
-  playerId: string,
-  joinedAt: number,
-}

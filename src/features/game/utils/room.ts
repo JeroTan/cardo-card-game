@@ -1,4 +1,4 @@
-import type { RoomState, RoomStateForClient, TurnEvent, TurnEventsLog } from "@/types/game/events";
+import type { GameState, GameStateClient, TurnEvent } from "@/types/game/events";
 
 export function generateRoomId(length = 8){
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -8,7 +8,6 @@ export function generateRoomId(length = 8){
     const randomIndex = Math.floor(Math.random() * characters.length);
     roomId += characters[randomIndex];
   }
-  
   return roomId;
 }
 
@@ -16,19 +15,17 @@ export function generateRoomId(length = 8){
  * Converts server RoomState to client-safe version
  * Hides actual cards in deck, only shows count
  */
-export function convertRoomStateForClient(serverState: RoomState): RoomStateForClient {
+export function convertRoomStateForClient(serverState: GameState): GameStateClient {
   return {
     roomId: serverState.roomId,
-    playerInfo: {
-      players: serverState.playerInfo.players.map(player => ({
+    playerInfo: serverState.playerInfo.map(player => ({
         id: player.id,
         username: player.username,
         totalCardsInDeck: player.cardsInDeck.length,
         jailedCards: player.jailedCards,
-        turnLeft: player.turnLeft,
+        turnCount: player.turnCount,
         timeLeft: player.timeLeft,
-      }))
-    },
+      })),
     events: serverState.events,
     createdAt: serverState.createdAt,
     status: serverState.status,
@@ -47,7 +44,7 @@ type ValidationResult = {
  * @param serverState - The current server room state
  * @returns Validation result with the event to append if valid
  */
-export function validateGameEvent(receiveEvent: TurnEvent, serverState: RoomState): ValidationResult {
+export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameState): ValidationResult {
   const events = serverState.events;
   const playerInfo = serverState.playerInfo;
 
@@ -107,7 +104,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: RoomStat
     }
 
     // Check if player has enough cards in deck
-    const player = playerInfo.players.find(p => p.id === playerId);
+    const player = playerInfo.find(p => p.id === playerId);
     if (!player) {
       return { valid: false, error: `Player ${playerId} not found`, event: receiveEvent };
     }
@@ -129,7 +126,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: RoomStat
     }
 
     // Check if player's total jailed cards won't exceed 50
-    const player = playerInfo.players.find(p => p.id === playerId);
+    const player = playerInfo.find(p => p.id === playerId);
     if (!player) {
       return { valid: false, error: `Player ${playerId} not found`, event: receiveEvent };
     }
@@ -231,7 +228,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: RoomStat
         .map(e => 'playerId' in e ? e.playerId : null)
         .filter(id => id !== null);
       
-      const activePlayers = playerInfo.players.filter(p => !lostPlayerIds.includes(p.id));
+      const activePlayers = playerInfo.filter(p => !lostPlayerIds.includes(p.id));
       
       if (activePlayers.length === 0) {
         return { valid: false, error: "No active players remaining", event: receiveEvent };
