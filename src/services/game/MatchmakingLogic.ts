@@ -17,6 +17,7 @@ export class MatchmakingLogic {
     playerList.push({
       playerId,
       joinedAt: Date.now(),
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expires in 24 hours
     });
     await this.storage.put("waitingPlayers", playerList);
   }
@@ -55,6 +56,22 @@ export class MatchmakingLogic {
     return {ok: true, players: chosenPlayers};
   }
 
+
+  async poolCleanse(expiresWhen = Date.now()){
+    const playerList:MatchMakingInfo[] = (await this.storage.get("waitingPlayers")) ?? [];
+    if(playerList.length === 0){
+      const filteredPlayers = playerList.filter(player=>{
+        if(player.expiresAt === undefined || typeof player.expiresAt !== "number"){
+          return false;
+        }
+        return player.expiresAt > expiresWhen;
+      });
+      if(filteredPlayers.length !== playerList.length){
+        console.log(`Cleaned up ${playerList.length - filteredPlayers.length} expired player(s) from matchmaking storage`);
+        await this.storage.put("waitingPlayers", filteredPlayers);
+      }
+    }
+  }
 }
 
 
@@ -81,4 +98,5 @@ export function getPlayerOnSession(astroCookies: AstroCookies){
     playerId,
     playerUsername,
   }
+
 }

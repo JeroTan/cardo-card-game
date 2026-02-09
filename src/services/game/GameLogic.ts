@@ -15,6 +15,7 @@ export class GameProcessLogic {
       events: [],
       createdAt: new Date().toISOString(),
       status: "waiting",
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expires in 24 hours
     }
     await this.storage.put(`game__${roomId}`, gameData);
     return {ok: true, message: "Game created successfully", gameData};

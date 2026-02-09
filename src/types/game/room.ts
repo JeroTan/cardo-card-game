@@ -27,6 +27,7 @@ export type RoomInfo = {
   name: string,
   players: PlayerRoomInfo[],
   joinCondition: RoomJoinCondition,
+  expiresAt: number,
 }
 
 export const roomEventTypes = [

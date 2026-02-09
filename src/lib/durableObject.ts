@@ -107,3 +107,39 @@ export function convertMessageToJSON<T extends object>(message: ArrayBuffer | st
   }
   return JSON.parse(messageString) as T;
 }
+
+
+export async function cleanseDurableObjectStorage(storage: DurableObjectStorage, expiresWhen = Date.now()){
+  const entries = await storage.list();
+  console.log(`Starting storage cleanup. Total entries: ${entries.size}`);
+  for(const [key, value] of entries){
+    //Check if it is an object that is not array
+    if(value === null){
+      await storage.delete(key);
+    }
+    if(typeof value === "object" && !Array.isArray(value)){
+      //Check if it has expiresAt field and if it is expired
+      if("expiresAt" in value! && typeof value.expiresAt === "number" && value.expiresAt < expiresWhen){
+        await storage.delete(key);
+      }
+      //Check if it doesn't have expiresAt field. Then delete it completely as we don't know when it expires
+      if(!("expiresAt" in value!)){
+        await storage.delete(key);
+      }
+    }
+    
+    // Specific Data
+    if(key === "waitingPlayers" && Array.isArray(value)){
+      const filteredPlayers = value.filter(player=>{
+        if(player.expiresAt === undefined || typeof player.expiresAt !== "number"){
+          return false;
+        }
+        return player.expiresAt > expiresWhen;
+      });
+      if(filteredPlayers.length !== value.length){
+        console.log(`Cleaned up ${value.length - filteredPlayers.length} expired player(s) from matchmaking storage`);
+        await storage.put(key, filteredPlayers);
+      }
+    }
+  }
+}

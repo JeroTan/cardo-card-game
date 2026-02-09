@@ -25,9 +25,10 @@ export type GameState = {
   events: TurnEventsLog,
   createdAt: string,
   status: "waiting" | "playing" | "finished",
+  expiresAt: number,
 }
 
-export type GameStateClient = Omit<GameState, "playerInfo"> & {
+export type GameStateClient = Omit<GameState, "playerInfo" | "expiresAt"> & {
   playerInfo: PlayerGameInfoClient[],
 }
 

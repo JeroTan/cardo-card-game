@@ -69,6 +69,12 @@
 			"remote": true
 		}
 	],
+  "triggers": {
+    "crons": [
+      "0 0 * * *" // Every day at 12:00 AM UTC
+			// You can add more cron timer trigger as needed. In worker.ts you need to to use event.cron (condition) in callback of event in schedule handler to specify which cron trigger it is.
+    ]
+  },
 	"env": {
 		"development": {
 			"name": "cardo-card-game-development",

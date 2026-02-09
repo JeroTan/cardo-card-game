@@ -1,5 +1,5 @@
 import { generateRoomId } from "@/features/game/utils/room";
-import { stabRequest, stabRequestBody } from "@/lib/durableObject";
+import { cleanseDurableObjectStorage, stabRequest, stabRequestBody } from "@/lib/durableObject";
 import { MatchmakingLogic } from "@/services/game/MatchmakingLogic";
 import { DurableObject } from "cloudflare:workers";
 
@@ -99,5 +99,8 @@ export class MatchmakingPlayer extends DurableObject {
     
   }
   
+  async __cleanupStorage(){
+    this.matchMaker.poolCleanse();
+  }
   
 }

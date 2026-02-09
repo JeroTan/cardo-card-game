@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import type { TurnEvent } from "@/types/game/events";
 import { convertRoomStateForClient, validateGameEvent } from "@/features/game/utils/room";
 import { RoomLogic } from "@/services/game/RoomLogic";
-import { convertMessageToJSON, makeWSServer, makeWSServerResponse } from "@/lib/durableObject";
+import { cleanseDurableObjectStorage, convertMessageToJSON, makeWSServer, makeWSServerResponse } from "@/lib/durableObject";
 import type { WebsocketMessageForRoom } from "@/types/game/room";
 import { CardPackService } from "@/services/cardPack";
 import { CardService } from "@/services/card";
@@ -36,7 +36,7 @@ export class CardGameRoom extends DurableObject {
 		switch(requestType){
 			case "PREPARE_ROOM_FOR_PRE_MADE_MATCH":{
 				const { playerIds } = await request.json() as {playerIds: string[]};
-				this.roomLogic.setPreMadeRoom(roomId, playerIds.map(id=>({id})));
+				await this.roomLogic.setPreMadeRoom(roomId, playerIds.map(id=>({id})));
 				break;
 			}
 			case "JOIN_ROOM":{
@@ -110,5 +110,9 @@ export class CardGameRoom extends DurableObject {
 	async webSocketError(ws: WebSocket, error: unknown) {
 		console.error("WebSocket error:", error);
     ws.close(1011, "WebSocket error");
+	}
+
+	async __cleanupStorage(){
+		cleanseDurableObjectStorage(this.ctx.storage);
 	}
 }

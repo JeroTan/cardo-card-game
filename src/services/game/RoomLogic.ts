@@ -8,8 +8,8 @@ export class RoomLogic {
    * @param roomId 
    * @param playerInfo 
    */
-  setPreMadeRoom(roomId: string, playerInfo: Pick<PlayerRoomInfo, "id">[]){
-    this.storage.put(roomId, {
+  async setPreMadeRoom(roomId: string, playerInfo: Pick<PlayerRoomInfo, "id">[]){
+    await this.storage.put(roomId, {
       id: roomId,
       name: "Room " + roomId,
       players: playerInfo.map(player=>{
@@ -21,7 +21,17 @@ export class RoomLogic {
         }
       ),
       joinCondition: "INVITE_ONLY", 
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expires in 24 hours
+    } as RoomInfo);
+  }
 
+  async createRoom(roomId: string, roomName: string, joinCondition: RoomJoinCondition){
+    await this.storage.put(roomId, {
+      id: roomId,
+      name: roomName,
+      players: [],
+      joinCondition,
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expires in 24 hours
     } as RoomInfo);
   }
 
@@ -147,8 +157,6 @@ export class RoomLogic {
     }
     return {ok: true, message: "Everyone is ready", roomInfo} as const;
   }
-
-
   clearRoom(roomId: string){
     this.storage.delete(roomId);
   }

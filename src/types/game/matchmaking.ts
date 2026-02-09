@@ -5,4 +5,5 @@
 export type MatchMakingInfo = {
   playerId: string,
   joinedAt: number,
+  expiresAt: number, // Timestamp in milliseconds indicating when the matchmaking entry expires (e.g., 24 hours after joinedAt)
 }
