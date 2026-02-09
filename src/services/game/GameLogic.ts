@@ -100,4 +100,8 @@ export class GameProcessLogic {
 
     this.addInitialPlayers(roomInfo.id, playersForGame);
    }
+
+   clearRoom(roomId: string){
+      this.storage.delete(`game__${roomId}`); 
+   }
 }

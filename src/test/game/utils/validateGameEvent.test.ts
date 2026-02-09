@@ -26,6 +26,7 @@ describe("validateGameEvent", () => {
     events,
     createdAt: new Date().toISOString(),
     status: "waiting",
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
   });
 
   describe("Rule 1: First event must be PLAYER_JOIN", () => {
