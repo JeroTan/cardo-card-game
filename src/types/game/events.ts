@@ -89,3 +89,12 @@ export type TurnEvent = {
 
 export type TurnEventsLog = Array<TurnEvent>;
 
+export const websocketStatus =[
+  "ERROR",
+  "RECONNECTED",
+  "JOINED_ROOM",
+  "EVERYONE_READY",
+  "NEXT_EVENT"
+] as const;
+
+export type WebsocketStatus = (typeof websocketStatus)[number];

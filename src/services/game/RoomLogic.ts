@@ -157,6 +157,22 @@ export class RoomLogic {
     }
     return {ok: true, message: "Everyone is ready", roomInfo} as const;
   }
+
+  async isPlayerDisconnected(roomId: string, playerId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    const player = roomInfo.players.find(player=>player.id === playerId);
+    if(!player){
+      return {ok: false, message: "Player not found in the room", roomInfo} as const;
+    }
+    if(player.status !== "DISCONNECTED"){
+      return {ok: false, message: "Player is not disconnected", roomInfo} as const;
+    }
+    return {ok: true, message: "Player is disconnected", roomInfo} as const;
+  }
+
   clearRoom(roomId: string){
     this.storage.delete(roomId);
   }

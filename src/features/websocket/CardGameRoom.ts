@@ -41,18 +41,40 @@ export class CardGameRoom extends DurableObject {
 			}
 			case "JOIN_ROOM":{
 				const playerData = await request.json() as {id: string, username: string};
-				let result = await this.roomLogic.joinRoom(roomId, [playerData]);
-				if(!result.ok){
-					result = await this.roomLogic.reconnectToRoom(roomId, playerData);
-				}
-				if(!result.ok){
-					return Response.json({error: result.message}, {status: 404});
+				const isPlayerDisconnected = await this.roomLogic.isPlayerDisconnected(roomId, playerData.id);	
+				let joinStatus:"JOINED"|"RECONNECTED" = "JOINED";
+				if(isPlayerDisconnected.ok){
+					const result = await this.roomLogic.reconnectToRoom(roomId, playerData);
+					if(!result.ok){
+						return Response.json({error: result.message}, {status: 404});
+					}
+					joinStatus = "RECONNECTED";
+				}else{
+					const result = await this.roomLogic.joinRoom(roomId, [playerData]);
+					if(!result.ok){
+						return Response.json({error: result.message}, {status: 404});
+					}
+					joinStatus = "JOINED";
 				}
 
 				// Make Websocket
 				const {response, server} = makeWSServer(this.ctx);
 				server.serializeAttachment({ playerId: playerData.id, roomId });
 				this.wsPlayerBinderMap.set(playerData.id, server);
+				
+				// Send the current room state to the player who just joined or reconnected
+				if(joinStatus === "RECONNECTED"){
+					server.send(JSON.stringify({
+						type: "RECONNECTED_TO_ROOM",
+						message: "You have reconnected to the room",
+					}));
+				}else{
+					server.send(JSON.stringify({
+						type: "JOINED_ROOM",
+						message: "You have joined the room",
+					}));
+				}
+
 
 				return response;
 			} 
@@ -78,6 +100,7 @@ export class CardGameRoom extends DurableObject {
 						message: result.message,
 					}));
 				}
+
 				// Check if everyone is ready and if yes start the game
 				const isReadyReport = await this.roomLogic.isEveryoneReady(roomId);
 				if(isReadyReport.ok){
@@ -104,7 +127,14 @@ export class CardGameRoom extends DurableObject {
 	}
 
 	async webSocketClose(ws: WebSocket, code: number, reason: string, wasClean: boolean) {
-		
+		console.log(`WebSocket closed. Code: ${code}, Reason: ${reason}, WasClean: ${wasClean}`);
+		if(!ws.deserializeAttachment || !ws.deserializeAttachment().playerId || !ws.deserializeAttachment().roomId){
+			console.warn("WebSocket closed without proper attachment");
+			return;
+		}
+		const { playerId, roomId } = ws.deserializeAttachment() as { playerId: string, roomId: string };
+		this.roomLogic.playerDisconnected(roomId, playerId);
+		this.wsPlayerBinderMap.delete(playerId);
 	}
 
 	async webSocketError(ws: WebSocket, error: unknown) {

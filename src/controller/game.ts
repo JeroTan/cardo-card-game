@@ -1,5 +1,5 @@
 import type { MatchmakingPlayer } from "@/features/websocket/MatchmakingPlayer";
-import { makeWSResponse, stabRequest } from "@/lib/durableObject";
+import { makeWSResponse, stabRequest, stabRequestBody } from "@/lib/durableObject";
 import type { CardService } from "@/services/card";
 import type { CardPackService } from "@/services/cardPack";
 
@@ -38,30 +38,37 @@ export class CardGameController {
 		}
 	}
  
-  async prepareRoom({roomId, playerId, env}: {roomId: string, playerId?: string, env: Env}){
+  async joinRoom({roomId, playerId, playerUsername, env, request}: {roomId: string, playerId?: string, playerUsername?: string, env: Env, request: Request}){
+		if(!playerId || !playerUsername){
+			return Response.json({message: "Player ID and username are required"}, {status: 400});
+		}
 		if (!roomId) {
 			return Response.json({ message: "Room ID is required" }, { status: 400 });
 		}
 
 		// Get the Durable Object binding
 		const { CARD_GAME_ROOM } = env;
+		const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(roomId));
 
-		// Create a unique ID for this room
-		const id = CARD_GAME_ROOM.idFromName(roomId);
-
-		// Get the Durable Object stub
-		const stub = CARD_GAME_ROOM.get(id);
+		// Check if it is a websocket request
+		const upgradeHeader = request.headers.get("Upgrade");
+		if(!upgradeHeader || upgradeHeader.toLowerCase() !== "websocket"){
+			return Response.json({message: "This endpoint only accepts websocket requests"}, {status: 400});
+		}
 
 		// Send join room event
-		return await stub.fetch("https://internal/join", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				roomId,
-				playerId,
-				type: "JOIN_ROOM",
-			}),
-		});
+		try{
+			const [url, body, constructRequest] = stabRequestBody(request);
+			url.searchParams.set("roomId", roomId);
+			body({
+				id: playerId,
+				username: playerUsername,
+			});
+			return makeWSResponse(await stub.fetch(...constructRequest()));
+		}catch(error){
+			console.error("Error preparing room:", error);
+			return Response.json({message: "Failed to prepare room"}, {status: 500});
+		}
   }
 
 	async drawCard({roomId, playerId, cardToDraw, env}: {roomId: string, playerId: string, cardToDraw: string[], env: Env}){

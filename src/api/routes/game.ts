@@ -31,16 +31,14 @@ export function GameRoutes({
        
       }, {})
 
-      app.get("/room/:id", async ({params, env, request})=>{
-        const response = await gameController.prepareRoom({
+      app.get("/room/:id", async ({params, env, request, astroCookies})=>{
+        const {playerId, playerUsername} = getPlayerOnSession(astroCookies);
+        return await gameController.joinRoom({
           roomId: params.id,
           env: env,
-        });
-        // Clone the response to make it mutable for Elysia
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: new Headers(response.headers)
+          playerId,
+          playerUsername,
+          request,
         });
       }, {
         detail:{
