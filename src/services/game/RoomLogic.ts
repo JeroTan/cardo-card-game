@@ -173,6 +173,15 @@ export class RoomLogic {
     return {ok: true, message: "Player is disconnected", roomInfo} as const;
   }
 
+  async isRoomExist(roomId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    return {ok: true, message: "Room exists", roomInfo} as const;
+  }
+
+
   clearRoom(roomId: string){
     this.storage.delete(roomId);
   }

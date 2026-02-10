@@ -1,4 +1,4 @@
-import { generateRoomId } from "@/features/game/utils/room";
+import { generateRoomId } from "@/services/game/General";
 import { cleanseDurableObjectStorage, stabRequest, stabRequestBody } from "@/lib/durableObject";
 import { MatchmakingLogic } from "@/services/game/MatchmakingLogic";
 import { DurableObject } from "cloudflare:workers";

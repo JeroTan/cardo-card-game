@@ -15,13 +15,14 @@ export function generateRoomId(length = 8){
  * Converts server RoomState to client-safe version
  * Hides actual cards in deck, only shows count
  */
-export function convertRoomStateForClient(serverState: GameState): GameStateClient {
+export function convertRoomStateForClient(serverState: GameState, showCardsInHandForPlayerId?:string): GameStateClient {
   return {
     roomId: serverState.roomId,
     playerInfo: serverState.playerInfo.map(player => ({
         id: player.id,
         username: player.username,
         totalCardsInDeck: player.cardsInDeck.length,
+        cardsInHand: showCardsInHandForPlayerId === player.id ? player.cardsInHand : player.cardsInHand.length, // only show count of cards in hand for other players
         jailedCards: player.jailedCards,
         turnCount: player.turnCount,
         timeLeft: player.timeLeft,
@@ -48,10 +49,10 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
   const events = serverState.events;
   const playerInfo = serverState.playerInfo;
 
-  // Rule 1: At the very start, only PLAYER_JOIN is allowed
+  // Rule 1: At the very start, only GAME_START is allowed
   if (events.length === 0) {
-    if (receiveEvent.type !== "PLAYER_JOIN") {
-      return { valid: false, error: "First event must be PLAYER_JOIN", event: receiveEvent };
+    if (receiveEvent.type !== "GAME_START") {
+      return { valid: false, error: "First event must be GAME_START", event: receiveEvent };
     }
     return { valid: true, event: receiveEvent };
   }
@@ -62,15 +63,33 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     if (gameStartCount > 0) {
       return { valid: false, error: "GAME_START can only appear once", event: receiveEvent };
     }
-    // GAME_START can only come after all PLAYER_JOIN events
-    const lastEvent = events[events.length - 1];
-    if (lastEvent.type !== "PLAYER_JOIN") {
-      return { valid: false, error: "GAME_START must come after PLAYER_JOIN events", event: receiveEvent };
-    }
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 3: GAME_END should only appear once
+  // Rule 3: STARTING_CARDS should come after GAME_START and before any other gameplay events
+  if (receiveEvent.type === "STARTING_CARDS") {
+    if (gameStartCount === 0) {
+      return { valid: false, error: "STARTING_CARDS must come after GAME_START", event: receiveEvent };
+    }
+    
+    // Check if this player already has a STARTING_CARDS event
+    const playerId = receiveEvent.playerId;
+    const playerStartingCardsCount = events.filter(e => e.type === "STARTING_CARDS" && e.playerId === playerId).length;
+    
+    if (playerStartingCardsCount > 0) {
+      return { valid: false, error: `Player ${playerId} already has STARTING_CARDS event`, event: receiveEvent };
+    }
+    
+    // STARTING_CARDS should only come after GAME_START or other STARTING_CARDS events
+    const lastEvent = events[events.length - 1];
+    if (lastEvent.type !== "GAME_START" && lastEvent.type !== "STARTING_CARDS") {
+      return { valid: false, error: "STARTING_CARDS must come directly after GAME_START or other STARTING_CARDS events", event: receiveEvent };
+    }
+    
+    return { valid: true, event: receiveEvent };
+  }
+
+  // Rule 4: GAME_END should only appear once
   const gameEndCount = events.filter(e => e.type === "GAME_END").length;
   if (receiveEvent.type === "GAME_END") {
     if (gameEndCount > 0) {
@@ -79,7 +98,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 4: PLAYER_LOSE and PLAYER_WIN should only appear once per player
+  // Rule 5: PLAYER_LOSE and PLAYER_WIN should only appear once per player
   if (receiveEvent.type === "PLAYER_LOSE" || receiveEvent.type === "PLAYER_WIN") {
     const playerId = receiveEvent.playerId;
     const playerLoseCount = events.filter(e => e.type === "PLAYER_LOSE" && e.playerId === playerId).length;
@@ -94,12 +113,15 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 5: DRAW_CARD validation
+  // Rule 6: DRAW_CARD validation
   if (receiveEvent.type === "DRAW_CARD") {
     const { drawn_cards, playerId } = receiveEvent;
     
+    // Get the count of cards being drawn
+    const drawnCount = typeof drawn_cards === "number" ? drawn_cards : drawn_cards.length;
+    
     // Max 3 cards can be drawn
-    if (drawn_cards.length > 3) {
+    if (drawnCount > 3) {
       return { valid: false, error: "Cannot draw more than 3 cards", event: receiveEvent };
     }
 
@@ -109,14 +131,14 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
       return { valid: false, error: `Player ${playerId} not found`, event: receiveEvent };
     }
 
-    if (player.cardsInDeck.length < drawn_cards.length) {
-      return { valid: false, error: `Not enough cards in deck. Has ${player.cardsInDeck.length}, trying to draw ${drawn_cards.length}`, event: receiveEvent };
+    if (player.cardsInDeck.length < drawnCount) {
+      return { valid: false, error: `Not enough cards in deck. Has ${player.cardsInDeck.length}, trying to draw ${drawnCount}`, event: receiveEvent };
     }
 
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 6: JAIL_CARD validation
+  // Rule 7: JAIL_CARD validation
   if (receiveEvent.type === "JAIL_CARD") {
     const { jailed_cards, playerId } = receiveEvent;
     
@@ -138,7 +160,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 7: ATTACKING validation
+  // Rule 8: ATTACKING validation
   if (receiveEvent.type === "ATTACKING") {
     const { card_used, playerId } = receiveEvent;
     
@@ -185,7 +207,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 8: CHANGE_SENTINEL validation
+  // Rule 9: CHANGE_SENTINEL validation
   if (receiveEvent.type === "CHANGE_SENTINEL") {
     const { new_sentinel } = receiveEvent;
     
@@ -203,7 +225,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 9: START_TURN validation
+  // Rule 10: START_TURN validation
   if (receiveEvent.type === "START_TURN") {
     const lastEvent = events[events.length - 1];
     
@@ -212,8 +234,14 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
       return { valid: false, error: "START_TURN can only appear after GAME_START", event: receiveEvent };
     }
 
+    // All players must have STARTING_CARDS before any START_TURN
+    const startingCardsEvents = events.filter(e => e.type === "STARTING_CARDS");
+    if (startingCardsEvents.length < playerInfo.length) {
+      return { valid: false, error: "All players must have STARTING_CARDS before START_TURN", event: receiveEvent };
+    }
+
     // Valid previous events for START_TURN
-    const validPreviousTypes = ["GAME_START", "DRAW_CARD", "CHANGE_SENTINEL", "JAIL_CARD", "PLAYER_LOSE"];
+    const validPreviousTypes = ["STARTING_CARDS", "DRAW_CARD", "CHANGE_SENTINEL", "JAIL_CARD", "PLAYER_LOSE"];
     if (!validPreviousTypes.includes(lastEvent.type)) {
       return { valid: false, error: `START_TURN cannot follow ${lastEvent.type}`, event: receiveEvent };
     }
@@ -254,14 +282,6 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
       }
     }
 
-    return { valid: true, event: receiveEvent };
-  }
-
-  // Rule 10: PLAYER_JOIN can only be added before GAME_START
-  if (receiveEvent.type === "PLAYER_JOIN") {
-    if (gameStartCount > 0) {
-      return { valid: false, error: "Cannot add PLAYER_JOIN after GAME_START", event: receiveEvent };
-    }
     return { valid: true, event: receiveEvent };
   }
 

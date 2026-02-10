@@ -3,7 +3,7 @@ import StartButton from "./StartButton"
 import { makeInfoModal } from "@/components/overlay/ModalBase";
 import GameMenu from "./GameMenu";
 
-export default function GameStart(){
+export default function GameModalHome(){
   return <>
     <ModalProvider>
       <Composer />

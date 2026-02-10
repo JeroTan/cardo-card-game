@@ -1,9 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
-import type { TurnEvent } from "@/types/game/events";
-import { convertRoomStateForClient, validateGameEvent } from "@/features/game/utils/room";
+import type { GameCard, TurnEvent } from "@/types/game/events";
+import { convertRoomStateForClient, validateGameEvent } from "@/services/game/General";
 import { RoomLogic } from "@/services/game/RoomLogic";
-import { cleanseDurableObjectStorage, convertMessageToJSON, makeWSServer, makeWSServerResponse } from "@/lib/durableObject";
-import type { WebsocketMessageForRoom } from "@/types/game/room";
+import { cleanseDurableObjectStorage, convertMessageToJSON, makeWSServer } from "@/lib/durableObject";
+import type { WebsocketStatusForRoom } from "@/types/game/events";
 import { CardPackService } from "@/services/cardPack";
 import { CardService } from "@/services/card";
 import { GameProcessLogic } from "@/services/game/GameLogic";
@@ -89,7 +89,7 @@ export class CardGameRoom extends DurableObject {
 			console.warn("WebSocket message received without proper attachment");
 			return;
 		}
-		const jsonData = convertMessageToJSON(message) as WebsocketMessageForRoom<any>;
+		const jsonData = convertMessageToJSON(message) as WebsocketStatusForRoom<any>;
 		switch(jsonData.type){
 			case "PLAYER_IS_READY":{
 				const result = await this.roomLogic.readyThePlayer(roomId, [playerId]);
@@ -113,15 +113,58 @@ export class CardGameRoom extends DurableObject {
 						cardService: this.cardService,
 						env: this.env,
 					});
+					await this.gameProcessLogic.startTheGame(roomId);
+					await this.gameProcessLogic.addInitialCardsForPlayers({roomId});
 
-					allWS.forEach(([, playerWS])=>{
+					allWS.forEach(([playerId, playerWS])=>{
 						playerWS.send(JSON.stringify({
-							type: "EVERYONE_READY",
-							message: "All players are ready. Starting the game...",
+							type: "INITIAL_CARD_IS_READY",
+							message: "All players' cards are ready. Starting please confirm...",
 						}));
 					});
 				}
 				break;
+			}
+			case "REQUEST_DRAW_CARD":{
+				const { cardToDraw } = jsonData.data as { cardToDraw: number };
+				if(!cardToDraw || typeof cardToDraw !== "number" || cardToDraw <= 0 || cardToDraw > 3){
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: "cardToDraw is required and should be a non-empty array",
+					}));
+					return;
+				}
+				const result = await this.gameProcessLogic.drawCards({roomId,playerId, cardsToDraw: cardToDraw});
+				if(!result.ok){
+					console.error("Error drawing cards:", result.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: result.message,
+					}));
+					return;
+				}
+				const nextEvent = result.nextEvent as TurnEvent;
+				// Broadcast the state of how many card is drawn to opponents but send the actual drawn cards to the player himself
+				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+				if(nextEvent.type === "DRAW_CARD"){
+					allWS.forEach(([id, playerWS])=>{
+						if(id === playerId){
+							playerWS.send(JSON.stringify({
+								type: "NEXT_EVENT",
+								data: result.nextEvent,
+							}));
+						}
+						else{
+							playerWS.send(JSON.stringify({
+								type: "NEXT_EVENT",
+								data: {
+									...result.nextEvent,
+									drawn_cards: (nextEvent.drawn_cards as Array<GameCard>).length, // only send the number of drawn cards to opponents
+								}
+							}));
+						}
+					});
+				}
 			}
 		}
 	}
@@ -142,7 +185,24 @@ export class CardGameRoom extends DurableObject {
     ws.close(1011, "WebSocket error");
 	}
 
+	async __getGameState(roomId: string){
+		const gameState = await this.gameProcessLogic.getGameState(roomId);
+		return gameState;
+	}
+
 	async __cleanupStorage(){
 		cleanseDurableObjectStorage(this.ctx.storage);
+	}
+
+	async __roomExist(roomId: string){
+		const roomResult = await this.roomLogic.isRoomExist(roomId);
+		if(!roomResult.ok){
+			return false;
+		}
+		const gameRoomResult = await this.gameProcessLogic.isGameExist(roomId);
+		if(!gameRoomResult.ok){
+			return false;
+		}
+		return true;
 	}
 }

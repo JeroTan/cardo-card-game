@@ -11,15 +11,14 @@ if (roomId == undefined) {
 
 <PagePlate title="CardO - Game Room">
 	<div class="py-10">
-		<div class='flex justify-center'>
-      <div class='h-[calc(100vh-5rem)] aspect-video relative'>
-				<MainGame client:only="react" roomId={roomId} />
+		<div class="flex justify-center">
+			<div class="h-[calc(100vh-4rem)] aspect-video relative">
+				<MainGame client:only="react" roomId={roomId}>
+					<div slot="fallback" class="size-full relative">
+						<Skeleton client:load className="size-full" />
+					</div>
+				</MainGame>
 			</div>
-		</div>
-	</div>
-	<div slot="fallback" class="flex justify-center px-5 py-10">
-		<div class="basis-full">
-			<Skeleton client:load className="w-full h-[calc(100vh-4rem)]" />
 		</div>
 	</div>
 </PagePlate>

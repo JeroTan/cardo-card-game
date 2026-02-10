@@ -49,6 +49,29 @@ export function GameRoutes({
           id: t.Required(t.String())
         }),
       })
+      app.get("/room/:id/check", async ({params, env})=>{
+        return await gameController.checkRoom({roomId: params.id, env});
+      }, {
+        detail:{
+          summary: "Check if room is available",
+          tags: ["Game Room"],
+        },
+        params: t.Object({
+          id: t.Required(t.String())
+        }),
+      })
+      app.get("/room/:id/game-state", async ({params, env, astroCookies})=>{
+        const  {playerId} = getPlayerOnSession(astroCookies);
+        return await gameController.getGameState({roomId: params.id, env, playerId});
+      }, {
+        detail:{
+          summary: "Get current game state of the room",
+          tags: ["Game Room"],
+        },
+        params: t.Object({
+          id: t.Required(t.String())
+        }),
+      })
       return app;
     })
 }

@@ -21,3 +21,18 @@ export function apiAdmin(){
   });
   return http;
 }
+
+export const clientEndpointsForClient = [
+  "/game/find-match",
+  "/game/room/{roomId}" as `/game/room/${string|number}`,
+  "/game/room/{roomId}/check" as `/game/room/${string|number}/check`,
+
+];
+type ClientClientEndpoint = typeof clientEndpointsForClient[number];
+
+export function apiClient(){
+  const http = new HttpNativePlate<ClientClientEndpoint>( `${location.origin}/api`, {
+    "Content-Type": "application/json",
+  });
+  return http;
+}

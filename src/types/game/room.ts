@@ -29,13 +29,3 @@ export type RoomInfo = {
   joinCondition: RoomJoinCondition,
   expiresAt: number,
 }
-
-export const roomEventTypes = [
-  "PLAYER_IS_READY",
-] as const;
-export type RoomEventType = typeof roomEventTypes[number];
-
-export type WebsocketMessageForRoom<T> = {
-  type: RoomEventType,
-  data: T
-}

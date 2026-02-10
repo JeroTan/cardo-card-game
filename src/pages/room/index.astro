@@ -1,43 +1,37 @@
 ---
 import FallingCards from "@/features/game/FallingCards.astro";
-import GameStart from "@/features/game/GameStart";
+import GameModalHome from "@/features/game/menu/GameModalHome";
 import PagePlate from "@/layouts/PagePlate.astro";
 import type { ModelCardRaw } from "@/types/model/cards";
 
-const {KV} = Astro.locals.runtime.env;
+const { KV } = Astro.locals.runtime.env;
 let cardList: string[] = [];
-if(!KV) {
-  cardList = [
-    "https://placehold.co/400x600",
-  ];
-}else{
-  const cacheResult = await KV.get("card_animation_background_cached");
-  if(!cacheResult){
-    const cardResponse = await fetch(Astro.url.origin+"/api/admin/cards-no-packs?limit=50");
-    const rawResult = await cardResponse.json() as {data: ModelCardRaw[]};
-    cardList = rawResult.data.map(c=>c.card_art);
-    await KV.put("card_animation_background_cached", JSON.stringify(cardList), {expirationTtl: 60*60*24*7}); // Expires in 7 days
-  }else{
-    try{
-      cardList = JSON.parse(cacheResult);
-    }catch{}
-  }
+if (!KV) {
+	cardList = ["https://placehold.co/400x600"];
+} else {
+	const cacheResult = await KV.get("card_animation_background_cached");
+	if (!cacheResult) {
+		const cardResponse = await fetch(Astro.url.origin + "/api/admin/cards-no-packs?limit=50");
+		const rawResult = (await cardResponse.json()) as { data: ModelCardRaw[] };
+		cardList = rawResult.data.map((c) => c.card_art);
+		await KV.put("card_animation_background_cached", JSON.stringify(cardList), { expirationTtl: 60 * 60 * 24 * 7 }); // Expires in 7 days
+	} else {
+		try {
+			cardList = JSON.parse(cacheResult);
+		} catch {}
+	}
 }
 ---
 
 <PagePlate title="CardO - Game Room">
-  <div class="w-full h-[calc(100vh-2rem)] pointer-events-none bg-gradient-to-t from-black/80 to-zinc-700 absolute">
-    <div class="opacity-40 w-full h-full">
-      <FallingCards 
-        cards={cardList}
-        alreadyFalling
-      />
-    </div>
-    
-  </div>
-  <div class="relative z-50 w-full flex justify-center">
-    <div class='pt-[20vh]'>
-      <GameStart client:load/>
-    </div>
+	<div class="w-full h-[calc(100vh-2rem)] pointer-events-none bg-gradient-to-t from-black/80 to-zinc-700 absolute">
+		<div class="opacity-40 w-full h-full">
+			<FallingCards cards={cardList} alreadyFalling />
+		</div>
+	</div>
+	<div class="relative z-50 w-full flex justify-center">
+		<div class="pt-[20vh]">
+			<GameModalHome client:load />
+		</div>
 	</div>
 </PagePlate>
