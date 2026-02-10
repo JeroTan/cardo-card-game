@@ -46,14 +46,10 @@ export default function RoomCreation({
 
     // Send a signal that this player is ready
     ws.getSocket()?.send(JSON.stringify({
-      type: "PLAYER_IS_READY",
+      type: "PLAYER_CONFIRM",
       roomId,
     }));
 
-    ws.getSocket()?.send(JSON.stringify({
-      type: "PLAYER_IS_READY",
-      roomId,
-    }));
     ws.receiver((message)=>{
       const data = getWSObject(message);
       if(data.type == "INITIAL_CARD_IS_READY"){

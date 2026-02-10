@@ -91,7 +91,7 @@ export class CardGameRoom extends DurableObject {
 		}
 		const jsonData = convertMessageToJSON(message) as WebsocketStatusForRoom<any>;
 		switch(jsonData.type){
-			case "PLAYER_IS_READY":{
+			case "PLAYER_CONFIRM":{
 				const result = await this.roomLogic.readyThePlayer(roomId, [playerId]);
 				if(!result.ok){
 					console.error("Error marking player as ready:", result.message);

@@ -92,7 +92,7 @@ export const websocketStatus =[
   "ERROR",
   "RECONNECTED",
   "JOINED_ROOM",
-  "PLAYER_IS_READY",
+  "PLAYER_CONFIRM",
   "INITIAL_CARD_IS_READY",
   "EVERYONE_READY",
   "NEXT_EVENT",
