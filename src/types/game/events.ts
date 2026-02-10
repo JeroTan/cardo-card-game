@@ -94,9 +94,12 @@ export const websocketStatus =[
   "JOINED_ROOM",
   "PLAYER_CONFIRM",
   "INITIAL_CARD_IS_READY",
+  "PLAYER_READY",
   "EVERYONE_READY",
   "NEXT_EVENT",
   "REQUEST_DRAW_CARD",
+  "REQUEST_ATTACK",
+  "REQUEST_END_TURN"
 ] as const;
 
 export type WebsocketStatus = (typeof websocketStatus)[number];

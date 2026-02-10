@@ -119,10 +119,14 @@ export class CardGameRoom extends DurableObject {
 					allWS.forEach(([playerId, playerWS])=>{
 						playerWS.send(JSON.stringify({
 							type: "INITIAL_CARD_IS_READY",
-							message: "All players' cards are ready. Starting please confirm...",
+							message: "All players' cards are ready. Starting, please confirm again...",
 						}));
 					});
 				}
+				break;
+			}
+			case "PLAYER_READY":{ // When player says this meaning turn 1 can be started
+
 				break;
 			}
 			case "REQUEST_DRAW_CARD":{
@@ -165,6 +169,15 @@ export class CardGameRoom extends DurableObject {
 						}
 					});
 				}
+				break;
+			}
+			case "REQUEST_ATTACK":{
+
+				break;
+			}
+			case "REQUEST_END_TURN":{
+
+				break;
 			}
 		}
 	}
