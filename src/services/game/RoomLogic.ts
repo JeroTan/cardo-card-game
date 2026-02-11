@@ -121,7 +121,7 @@ export class RoomLogic {
     return {ok: true, message: "Player has been marked as disconnected", roomInfo: updatedRoomInfo} as const;
   }
 
-  async readyThePlayer(roomId:string, playerIds: string[]){
+  async readyTheConnection(roomId:string, playerIds: string[]){
     const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
     if(!roomInfo){
       return {ok: false, message: "Room not found", roomInfo: null} as const;
@@ -132,7 +132,7 @@ export class RoomLogic {
       if(playerIds.includes(player.id)){
         return {
           ...player,
-          status: "READY" as const,
+          status: "CONNECTION_READY" as const,
         }
       }
       return player;
@@ -146,16 +146,52 @@ export class RoomLogic {
     return {ok: true, message: "Players are ready", roomInfo: updatedRoomInfo} as const;
   }
 
-  async isEveryoneReady(roomId: string){
+  async readyThePlayer(roomId:string, playerIds: string[]){
     const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
     if(!roomInfo){
       return {ok: false, message: "Room not found", roomInfo: null} as const;
     }
-    const everyoneReady = roomInfo.players.every(player=>player.status === "READY");
+    // Update players by mapping over playerIds and finding them in roomInfo
+    const updatedPlayers = roomInfo.players.map(player => {
+      if(playerIds.includes(player.id)){
+        return {
+          ...player,
+          status: "READY_TO_PLAY" as const,
+        }
+      }
+      return player;
+    });
+
+    const updatedRoomInfo: RoomInfo = {
+      ...roomInfo,
+      players: updatedPlayers,
+    }
+    await this.storage.put(roomId, updatedRoomInfo);
+    return {ok: true, message: "Players are ready to play", roomInfo: updatedRoomInfo} as const;
+  }
+
+  async isEveryoneConnectionConfirm(roomId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    const everyoneReady = roomInfo.players.every(player=>player.status === "CONNECTION_READY");
     if(!everyoneReady){
       return {ok: false, message: "Not everyone is ready", roomInfo} as const;
     }
     return {ok: true, message: "Everyone is ready", roomInfo} as const;
+  }
+
+  async isEveryoneReadyToPlay(roomId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    const everyoneReady = roomInfo.players.every(player=>player.status === "READY_TO_PLAY");
+    if(!everyoneReady){
+      return {ok: false, message: "Not everyone is ready to play", roomInfo} as const;
+    }
+    return {ok: true, message: "Everyone is ready to play", roomInfo} as const;
   }
 
   async isPlayerDisconnected(roomId: string, playerId: string){

@@ -27,9 +27,6 @@ export function GameRoutes({
           tags: ["Game Room"],
         },
       })
-      app.get("/find-quick-match", ({env, astroCookies})=>{
-       
-      }, {})
 
       app.get("/room/:id", async ({params, env, request, astroCookies})=>{
         const {playerId, playerUsername} = getPlayerOnSession(astroCookies);

@@ -142,6 +142,12 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
   if (receiveEvent.type === "JAIL_CARD") {
     const { jailed_cards, playerId } = receiveEvent;
     
+    // Sentinel owner cannot jail cards
+    const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
+    if (lastSentinelEvent && 'playerId' in lastSentinelEvent && lastSentinelEvent.playerId === playerId) {
+      return { valid: false, error: "Sentinel owner cannot jail cards", event: receiveEvent };
+    }
+    
     // Max 3 cards can be jailed per event
     if (jailed_cards.length > 3) {
       return { valid: false, error: "Cannot jail more than 3 cards in one event", event: receiveEvent };
@@ -157,12 +163,49 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
       return { valid: false, error: `Jailed cards would exceed 50. Current: ${player.jailedCards.length}, adding: ${jailed_cards.length}`, event: receiveEvent };
     }
 
+    // Check if jailed cards match the previous CHANGE_SENTINEL (not in this turn)
+    const lastStartTurn = [...events].reverse().find(e => e.type === "START_TURN");
+    
+    if (lastStartTurn) {
+      // Get events since the last START_TURN
+      const lastStartTurnIndex = events.findIndex(e => e === lastStartTurn);
+      const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
+      
+      // Check if there's a CHANGE_SENTINEL in the current turn
+      const hasChangeSentinelInTurn = eventsSinceLastTurn.some(e => e.type === "CHANGE_SENTINEL");
+      
+      // Only validate against previous sentinel if no CHANGE_SENTINEL in current turn
+      if (!hasChangeSentinelInTurn) {
+        const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
+        
+        if (lastSentinelEvent && 'new_sentinel' in lastSentinelEvent) {
+          const sentinelCards = lastSentinelEvent.new_sentinel;
+          
+          // Check if all jailed cards exist in the current sentinel
+          for (const jailedCard of jailed_cards) {
+            const cardExistsInSentinel = sentinelCards.some(
+              sentinelCard => sentinelCard.id === jailedCard.id
+            );
+            
+            if (!cardExistsInSentinel) {
+              return { valid: false, error: `Card ${jailedCard.id} is not in the current sentinel`, event: receiveEvent };
+            }
+          }
+        }
+      }
+    }
+
     return { valid: true, event: receiveEvent };
   }
 
   // Rule 8: ATTACKING validation
   if (receiveEvent.type === "ATTACKING") {
     const { card_used, playerId } = receiveEvent;
+    
+    // Check if attack is within turn time limit (60 seconds from START_TURN)
+    // if (!isAttackWithinTime(serverState)) {
+    //   return { valid: false, error: "Attack must be made within 60 seconds of turn start", event: receiveEvent };
+    // }
     
     // Max 3 cards can be used to attack
     if (card_used.length > 3 || card_used.length < 1) {
@@ -209,7 +252,13 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
 
   // Rule 9: CHANGE_SENTINEL validation
   if (receiveEvent.type === "CHANGE_SENTINEL") {
-    const { new_sentinel } = receiveEvent;
+    const { new_sentinel, playerId } = receiveEvent;
+    
+    // Sentinel owner cannot change sentinel (they already own it)
+    const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
+    if (lastSentinelEvent && 'playerId' in lastSentinelEvent && lastSentinelEvent.playerId === playerId) {
+      return { valid: false, error: "Sentinel owner cannot change their own sentinel", event: receiveEvent };
+    }
     
     // Sentinel must have 1-3 cards
     if (new_sentinel.length > 3 || new_sentinel.length < 1) {
@@ -220,6 +269,33 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     const lastEvent = events[events.length - 1];
     if (lastEvent.type !== "ATTACKING") {
       return { valid: false, error: "CHANGE_SENTINEL must come after ATTACKING", event: receiveEvent };
+    }
+
+    // In the same turn, CHANGE_SENTINEL cards must match ATTACKING cards
+    const lastStartTurn = [...events].reverse().find(e => e.type === "START_TURN");
+    if (lastStartTurn) {
+      const lastStartTurnIndex = events.findIndex(e => e === lastStartTurn);
+      const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
+      
+      const attackingEvent = eventsSinceLastTurn.find(e => e.type === "ATTACKING");
+      if (attackingEvent && 'card_used' in attackingEvent) {
+        const attackingCards = attackingEvent.card_used;
+        
+        // Check if new_sentinel cards match attacking cards
+        if (attackingCards.length !== new_sentinel.length) {
+          return { valid: false, error: "CHANGE_SENTINEL cards must match ATTACKING cards", event: receiveEvent };
+        }
+        
+        // Check each card ID matches
+        const attackingCardIds = attackingCards.map(card => card.id).sort();
+        const sentinelCardIds = new_sentinel.map(card => card.id).sort();
+        
+        for (let i = 0; i < attackingCardIds.length; i++) {
+          if (attackingCardIds[i] !== sentinelCardIds[i]) {
+            return { valid: false, error: "CHANGE_SENTINEL cards must match ATTACKING cards", event: receiveEvent };
+          }
+        }
+      }
     }
 
     return { valid: true, event: receiveEvent };
@@ -238,12 +314,6 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     const startingCardsEvents = events.filter(e => e.type === "STARTING_CARDS");
     if (startingCardsEvents.length < playerInfo.length) {
       return { valid: false, error: "All players must have STARTING_CARDS before START_TURN", event: receiveEvent };
-    }
-
-    // Valid previous events for START_TURN
-    const validPreviousTypes = ["STARTING_CARDS", "DRAW_CARD", "CHANGE_SENTINEL", "JAIL_CARD", "PLAYER_LOSE"];
-    if (!validPreviousTypes.includes(lastEvent.type)) {
-      return { valid: false, error: `START_TURN cannot follow ${lastEvent.type}`, event: receiveEvent };
     }
 
     // Find the last START_TURN to determine turn order
@@ -280,6 +350,58 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
           event: receiveEvent 
         };
       }
+
+      // Check if the previous player is the sentinel owner
+      const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
+      const isSentinelOwner = lastSentinelEvent && 'playerId' in lastSentinelEvent && lastSentinelEvent.playerId === lastStartTurn.playerId;
+
+      if (isSentinelOwner) {
+        // Sentinel owner can skip their turn (START_TURN can follow START_TURN)
+        const validPreviousTypes = ["STARTING_CARDS", "START_TURN", "PLAYER_LOSE"];
+        if (!validPreviousTypes.includes(lastEvent.type)) {
+          return { valid: false, error: `Sentinel owner's START_TURN can only follow ${validPreviousTypes.join(", ")}`, event: receiveEvent };
+        }
+      } else {
+        // Non-sentinel player must have either ATTACKING or DRAW_CARD in their turn
+        // Get all events since the last START_TURN
+        const lastStartTurnIndex = events.findIndex((e, i) => e === lastStartTurn);
+        const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
+        
+        const hasAttacking = eventsSinceLastTurn.some(e => e.type === "ATTACKING");
+        const hasDrawCard = eventsSinceLastTurn.some(e => e.type === "DRAW_CARD");
+        const hasChangeSentinel = eventsSinceLastTurn.some(e => e.type === "CHANGE_SENTINEL");
+
+        // Must have either ATTACKING or DRAW_CARD
+        if (!hasAttacking && !hasDrawCard) {
+          return { valid: false, error: "Non-sentinel player must either ATTACK or DRAW_CARD before ending turn", event: receiveEvent };
+        }
+
+        // If ATTACKING is present, CHANGE_SENTINEL must also be present
+        if (hasAttacking && !hasChangeSentinel) {
+          return { valid: false, error: "CHANGE_SENTINEL must follow ATTACKING", event: receiveEvent };
+        }
+
+        // Valid previous events based on actions taken
+        if (hasDrawCard) {
+          // Once DRAW_CARD happens, it must be the last action before START_TURN
+          const validPreviousTypes = ["DRAW_CARD", "PLAYER_LOSE"];
+          if (!validPreviousTypes.includes(lastEvent.type)) {
+            return { valid: false, error: `After DRAW_CARD, START_TURN can only follow DRAW_CARD or PLAYER_LOSE`, event: receiveEvent };
+          }
+        } else if (hasAttacking) {
+          // After ATTACKING sequence, valid endings are CHANGE_SENTINEL or DRAW_CARD
+          const validPreviousTypes = ["CHANGE_SENTINEL", "DRAW_CARD", "JAIL_CARD", "PLAYER_LOSE"];
+          if (!validPreviousTypes.includes(lastEvent.type)) {
+            return { valid: false, error: `After ATTACKING, START_TURN can only follow ${validPreviousTypes.join(", ")}`, event: receiveEvent };
+          }
+        }
+      }
+    } else {
+      // First START_TURN after STARTING_CARDS
+      const validPreviousTypes = ["STARTING_CARDS", "PLAYER_LOSE"];
+      if (!validPreviousTypes.includes(lastEvent.type)) {
+        return { valid: false, error: `First START_TURN must follow ${validPreviousTypes.join(", ")}`, event: receiveEvent };
+      }
     }
 
     return { valid: true, event: receiveEvent };
@@ -287,4 +409,20 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
 
   // Default: allow other events
   return { valid: true, event: receiveEvent };
+}
+
+
+export function isAttackWithinTime(serverState: GameState, interval = 1000*60) {
+  const events = serverState.events;
+  
+  // Find the most recent START_TURN event
+  const lastStartTurn = events.slice().reverse().find(e => e.type === 'START_TURN');
+  
+  if (!lastStartTurn) {
+    // If no START_TURN found, allow the action (game might be starting)
+    return true;
+  }
+  
+  const elapsedTime = Date.now() - Number(lastStartTurn.timestamp);
+  return elapsedTime <= interval;
 }

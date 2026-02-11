@@ -4,7 +4,7 @@ import type { CardPackService } from "../cardPack";
 import type { CardService } from "../card";
 import type { ModelCardRaw } from "@/types/model/cards";
 import type { ModelCardPackCardsWitCardDetails } from "@/types/model/cardPack";
-import { validateGameEvent } from "./General";
+import { isAttackWithinTime, validateGameEvent } from "./General";
 
 export class GameProcessLogic {
   constructor(protected storage: DurableObjectStorage){}
@@ -224,8 +224,189 @@ export class GameProcessLogic {
   }
 
   clearRoom(roomId: string){
-      this.storage.delete(`game__${roomId}`); 
-   }
+    this.storage.delete(`game__${roomId}`); 
+  }
+
+  async startTurn(roomId: string){
+    // Start the order of players turn
+    // Basically for this if starting the game or there's no START_TURN in event logs, the first player in index of playerInfo will start the game.
+    // In the upcoming turns the player who has is the last START_TURN, check its playerID, find it in the array element of playerInfo and next to that element is the next START_TURN
+    const gameState = await this.getGameState(roomId);  
+    if(!gameState){
+      return {ok: false, message: "Game not found", gameState: null, nextEvent: null} as const;
+    }
+
+    const playerInfo = gameState.playerInfo;
+    if(playerInfo.length === 0){
+      return {ok: false, message: "No players in the game", gameState, nextEvent: null} as const;
+    }
+
+    // Determine the next player to start the turn
+    const lastStartTurnEvent = [...gameState.events].reverse().find(event=>event.type === "START_TURN") as TurnEvent | undefined;
+    let playerIdToStartTheTurn = playerInfo[0].id; // default to the first player
+    if(lastStartTurnEvent && lastStartTurnEvent.type === "START_TURN"){
+      const currentPlayerId = lastStartTurnEvent.playerId;
+      const currentPlayerIndex = playerInfo.findIndex(player=>player.id === currentPlayerId);
+      if(currentPlayerIndex !== -1){
+        const nextPlayerIndex = (currentPlayerIndex + 1) % playerInfo.length;
+        playerIdToStartTheTurn = playerInfo[nextPlayerIndex].id;
+      }
+    }
+
+    const newEventResult = validateGameEvent({
+      type: "START_TURN",
+      playerId: playerIdToStartTheTurn,
+      timestamp: new Date().toISOString(),
+    }, gameState);
+
+    if(!newEventResult.valid){
+      return {ok: false, message: `Invalid game event: ${newEventResult.error}`, gameState, nextEvent: null} as const;
+    }
+
+    const updatedGameState: GameState = {
+      ...gameState,
+      events: [...gameState.events, newEventResult.event],
+    };
+    await this.storage.put(`game__${roomId}`, updatedGameState);
+    return {ok: true, message: "Turn started successfully", gameState: updatedGameState, nextEvent: newEventResult.event} as const;
+  }
+
+  async attackWithCards({roomId, playerId, attackingCardIds}: {roomId: string, playerId: string, attackingCardIds: string[]}){
+    // For this we need to check if the attacking cards are in the player's hand, if not then it's an invalid event
+    const gameState = await this.getGameState(roomId);
+    if(!gameState){
+      return {ok: false, message: "Game not found", gameState: null, nextEvent: null} as const;
+    }
+    const playerInfo = gameState.playerInfo;
+    if(playerInfo.length === 0){
+      return {ok: false, message: "No players in the game", gameState, nextEvent: null} as const;
+    }
+    const playerIndex = playerInfo.findIndex(player=>player.id === playerId);
+    if(playerIndex === -1){
+      return {ok: false, message: "Player not found in the game", gameState, nextEvent: null} as const;
+    }
+    const player = playerInfo[playerIndex];
+    const attackingCards = player.cardsInHand.filter(card=>attackingCardIds.includes(card.id));
+    if(attackingCards.length !== attackingCardIds.length){
+      return {ok: false, message: "One or more attacking cards are not in the player's hand", gameState, nextEvent: null} as const;
+    }
+
+    // Check if attack is within turn time limit (60 seconds from START_TURN)
+    if(!isAttackWithinTime(gameState)){
+      return {ok: false, message: "Attack must be made within 60 seconds of turn start", gameState, nextEvent: null} as const;
+    }
+
+    const newEventResult = validateGameEvent({
+      type: "ATTACKING",
+      playerId,
+      card_used: attackingCards,
+      timestamp: new Date().toISOString(),
+    }, gameState);
+    
+    if(!newEventResult.valid){
+      return {ok: false, message: `Invalid game event: ${newEventResult.error}`, gameState, nextEvent: null} as const;
+    }
+    
+    const updatedGameState: GameState = {
+      ...gameState,
+      events: [...gameState.events, newEventResult.event],
+      playerInfo: gameState.playerInfo.map((p, index)=>{
+        if(index === playerIndex){
+          return {
+            ...p,
+            cardsInHand: p.cardsInHand.filter(card=>!attackingCardIds.includes(card.id)),
+          }
+        }
+        return p;
+      }),
+    };
+    await this.storage.put(`game__${roomId}`, updatedGameState);
+    return {ok: true, message: "Attack successful", gameState: updatedGameState, nextEvent: newEventResult.event} as const;
+  }
+
+  async changeSentinel({roomId}: {roomId: string}){
+    const gameState = await this.getGameState(roomId);
+    if(!gameState){
+      return {ok: false, message: "Game not found", gameState: null, nextEvent: null} as const;
+    }
+    const playerInfo = gameState.playerInfo;
+    if(playerInfo.length === 0){
+      return {ok: false, message: "No players in the game", gameState, nextEvent: null} as const;
+    }
+
+    // Get the status of ATTACKING cards in the current turn, if there's no ATTACKING event in the current turn then it's invalid to change sentinel
+    const lastStartTurnEventIndex = [...gameState.events].reverse().findIndex(event=>event.type === "START_TURN");
+    const attackingEventInCurrentTurn = [...gameState.events].reverse().find((event, index)=>event.type === "ATTACKING" && index < lastStartTurnEventIndex) as TurnEvent | undefined;
+    if(!attackingEventInCurrentTurn || attackingEventInCurrentTurn.type !== "ATTACKING"){
+      return {ok: false, message: "No attacking event found in the current turn, cannot change sentinel", gameState, nextEvent: null} as const;
+    }
+
+    const newSentinel = attackingEventInCurrentTurn.card_used;
+
+    const newEventResult = validateGameEvent({
+      type: "CHANGE_SENTINEL",
+      playerId: attackingEventInCurrentTurn.playerId,
+      new_sentinel: newSentinel,
+      timestamp: new Date().toISOString(),
+    }, gameState);
+
+    if(!newEventResult.valid){
+      return {ok: false, message: `Invalid game event: ${newEventResult.error}`, gameState, nextEvent: null} as const;
+    }
+
+    const updatedGameState: GameState = {
+      ...gameState,
+      events: [...gameState.events, newEventResult.event],
+    };
+    await this.storage.put(`game__${roomId}`, updatedGameState);
+    return {ok: true, message: "Sentinel changed successfully", gameState: updatedGameState, nextEvent: newEventResult.event} as const;
+  }
+
+  async jailCards({roomId}: {roomId: string}){
+    // Get the previous sentinel
+    const gameState = await this.getGameState(roomId);
+    if(!gameState){
+      return {ok: false, message: "Game not found", gameState: null, nextEvent: null} as const;
+    }
+    const playerInfo = gameState.playerInfo;
+    if(playerInfo.length === 0){
+      return {ok: false, message: "No players in the game", gameState, nextEvent: null} as const;
+    }
+    // Get the last event of CHANGE_SENTINEL but NOT in this START_TURN 
+    const lastStartTurnEventIndex = [...gameState.events].reverse().findIndex(event=>event.type === "START_TURN");
+    const lastChangeSentinelEvent = [...gameState.events].reverse().find((event, index)=>event.type === "CHANGE_SENTINEL" && index < lastStartTurnEventIndex) as TurnEvent | undefined;
+    
+    if(!lastChangeSentinelEvent || lastChangeSentinelEvent.type !== "CHANGE_SENTINEL"){
+      return {ok: false, message: "No sentinel change event found in the current turn", gameState, nextEvent: null} as const;
+    }
+
+    const nextEventResult = validateGameEvent({
+      type: "JAIL_CARD",
+      playerId: lastChangeSentinelEvent.playerId,
+      jailed_cards: lastChangeSentinelEvent.new_sentinel,
+      timestamp: new Date().toISOString(),
+    }, gameState);
+    if(!nextEventResult.valid){
+      return {ok: false, message: `Invalid game event: ${nextEventResult.error}`, gameState, nextEvent: null} as const;
+    }
+
+    // Update the game state with the jailed cards
+    const updatedGameState: GameState = {
+      ...gameState,
+      events: [...gameState.events, nextEventResult.event],
+      playerInfo: gameState.playerInfo.map(player=>{
+        if(player.id === lastChangeSentinelEvent.playerId){
+          return {
+            ...player,
+            jailedCards: [...player.jailedCards, ...lastChangeSentinelEvent.new_sentinel],
+          }
+        }
+        return player;
+      }),
+    };
+    await this.storage.put(`game__${roomId}`, updatedGameState);
+    return {ok: true, message: "Cards jailed successfully", gameState: updatedGameState, nextEvent: nextEventResult.event} as const;
+  }
 }
 
 function drawCardFromDeck({cardsInDeck, cardsToDraw}:{cardsInDeck: GameCard[], cardsToDraw: number}){

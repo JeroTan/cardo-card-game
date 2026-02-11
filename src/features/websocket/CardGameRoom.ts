@@ -91,10 +91,10 @@ export class CardGameRoom extends DurableObject {
 		}
 		const jsonData = convertMessageToJSON(message) as WebsocketStatusForRoom<any>;
 		switch(jsonData.type){
-			case "PLAYER_CONFIRM":{
-				const result = await this.roomLogic.readyThePlayer(roomId, [playerId]);
+			case "PLAYER_CONFIRM":{ // Player confirms meaning that concensus of players maybe on premade or custom room are connected
+				const result = await this.roomLogic.readyTheConnection(roomId, [playerId]);
 				if(!result.ok){
-					console.error("Error marking player as ready:", result.message);
+					console.error("Error marking player connected:", result.message);
 					ws.send(JSON.stringify({
 						type: "ERROR",
 						message: result.message,
@@ -102,7 +102,7 @@ export class CardGameRoom extends DurableObject {
 				}
 
 				// Check if everyone is ready and if yes start the game
-				const isReadyReport = await this.roomLogic.isEveryoneReady(roomId);
+				const isReadyReport = await this.roomLogic.isEveryoneConnectionConfirm(roomId);
 				if(isReadyReport.ok){
 					const allWS = Array.from(this.wsPlayerBinderMap.entries());
 			
@@ -126,7 +126,49 @@ export class CardGameRoom extends DurableObject {
 				break;
 			}
 			case "PLAYER_READY":{ // When player says this meaning turn 1 can be started
+				// We can ensure that everyone receive data to start the game and once all is ready then we can continue
+				const result = await this.roomLogic.readyThePlayer(roomId, [playerId]);
+				if(!result.ok){
+					console.error("Error marking player ready:", result.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: result.message,
+					}));
+				}
 
+				// Check if everyone is ready and if yes start the game
+				const isReadyReport = await this.roomLogic.isEveryoneReadyToPlay(roomId);
+				if(!isReadyReport.ok){
+					console.error("Error checking if everyone is ready:", isReadyReport.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: isReadyReport.message,
+					}));
+					return;
+				}
+				
+				const startTurnResult = await this.gameProcessLogic.startTurn(roomId);
+				if(!startTurnResult.ok){
+					console.error("Error starting the turn:", startTurnResult.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: startTurnResult.message,
+					}));
+					return;
+				}
+				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+				allWS.forEach(([playerId, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "EVERYONE_READY",
+						message: "Everyone is ready. Starting the game...",
+					}));
+
+					// Also Broadcast the starting event to all players to start the game
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: startTurnResult.nextEvent,
+					}));
+				});
 				break;
 			}
 			case "REQUEST_DRAW_CARD":{
@@ -172,11 +214,89 @@ export class CardGameRoom extends DurableObject {
 				break;
 			}
 			case "REQUEST_ATTACK":{
+				const { attackingCards } = jsonData.data as { attackingCards: string[] };
+				if(!attackingCards || !Array.isArray(attackingCards) || attackingCards.length === 0 || attackingCards.length > 3){
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: "attackingCards is required and should be a non-empty array with maximum length of 3",
+					}));
+					return;
+				}	
+				const attackResult = await this.gameProcessLogic.attackWithCards({roomId, playerId, attackingCardIds: attackingCards});
+				if(!attackResult.ok){
+					console.error("Error attacking with cards:", attackResult.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: attackResult.message,
+					}));
+					return;
+				}
+				// Broadcast the attack event to all players
+				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+				allWS.forEach(([, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: attackResult.nextEvent,
+					}));
+				});
 
+				// Change the sentinel if the attack is successful
+				const changeSentinelResult = await this.gameProcessLogic.changeSentinel({roomId});
+				if(!changeSentinelResult.ok){
+					console.error("Error changing sentinel after attack:", changeSentinelResult.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: changeSentinelResult.message,
+					}));
+					return;
+				}
+
+				const allWSAfterSentinelChange = Array.from(this.wsPlayerBinderMap.entries());
+				allWSAfterSentinelChange.forEach(([, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: changeSentinelResult.nextEvent,
+					}));
+				});
+
+				// Jail the card if the attack is not successful
+				const jailCardResult = await this.gameProcessLogic.jailCards({roomId});
+
+				if(!jailCardResult.ok){
+					console.error("Error jailing cards after attack:", jailCardResult.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: jailCardResult.message,
+					}));
+					return;
+				}
+
+				const allWSAfterJail = Array.from(this.wsPlayerBinderMap.entries());
+				allWSAfterJail.forEach(([, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: jailCardResult.nextEvent,
+					}));
+				});
 				break;
 			}
 			case "REQUEST_END_TURN":{
-
+				const result = await this.gameProcessLogic.startTurn(roomId);
+				if(!result.ok){
+					console.error("Error starting the turn:", result.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: result.message,
+					}));
+					return;
+				}
+				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+				allWS.forEach(([playerId, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: result.nextEvent,
+					}));
+				});
 				break;
 			}
 		}

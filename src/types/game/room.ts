@@ -2,7 +2,8 @@ export const playerRoomStatus = [
   "INVITED",
   "FROM_MATCHMAKING",
   "JOINED",
-  "READY",
+  "CONNECTION_READY", // Player has confirmed the status of their websocket connection and is ready to start the game
+  "READY_TO_PLAY", // Player is ready to start the game
   "IN_GAME",
   "DISCONNECTED",
 ] as const;
