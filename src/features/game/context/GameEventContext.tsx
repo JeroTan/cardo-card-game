@@ -1,4 +1,4 @@
-import type { GameStateClient } from "@/types/game/events";
+import type { GameStateClient, PlayerGameInfoClient, TurnEvent } from "@/types/game/events";
 import { WebSocketNative } from "@jsarmyknife/native--http";
 import { createContext, useCallback, useContext, useRef, useState, type PropsWithChildren } from "react";
 
@@ -8,6 +8,12 @@ export type GameEventContextType = {
   ws: WebSocketNative | null,
   setWS: (ws: WebSocketNative)=>void,
   gameEventData: GameStateClient | null,
+  setGameEventData: (data: GameStateClient)=>void,
+  appendTurnEvent: (event: TurnEvent)=>void,
+  updatePlayerInfo?: (params:{
+    playerId: string,
+    newPlayerInfo: PlayerGameInfoClient,
+  })=>void,
 }
 
 export const GameEventContext = createContext<GameEventContextType>(null!);
@@ -21,11 +27,50 @@ export function GameEventContextProvider({children, roomId=""}:PropsWithChildren
     ws.current = newWS;
   }, []);
 
+  const updateGameEventData = useCallback((newData: GameStateClient)=>{
+    setGameEventData(newData);
+  }, []);
+
+  const appendTurnEvent = useCallback((newEvent: TurnEvent)=>{
+    setGameEventData((prev)=>{
+      if(!prev) return prev;
+      return {
+        ...prev,
+        events: [...prev.events, newEvent],
+      }
+    });
+  }, []);
+
+  const updatePlayerInfo = useCallback(({
+    playerId,
+    newPlayerInfo,
+  }:{
+    playerId: string,
+    newPlayerInfo: PlayerGameInfoClient,
+  } )=>{
+    setGameEventData((prev)=>{
+      if(!prev) return prev;
+      return {
+        ...prev,
+        playerInfo: prev.playerInfo.map((info)=>{
+          if(info.id === playerId){
+            return newPlayerInfo;
+          }
+          return info;
+        }),
+      }
+    });
+  }, []);
+
+
   return <GameEventContext.Provider value={{
     roomId: roomIdRef.current,
     ws: ws.current,
     setWS: updateWS,
     gameEventData,
+    setGameEventData: updateGameEventData,
+    appendTurnEvent,
+    updatePlayerInfo,
   }}>
     {children}
   </GameEventContext.Provider>
