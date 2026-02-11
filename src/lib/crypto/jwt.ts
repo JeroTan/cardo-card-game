@@ -10,7 +10,6 @@ export async function jwtEncrypt<Payload extends object>({payload, secretKey, ex
   try {
     const secret = getSecretKey(secretKey);
     
-    // Cast payload to Record<string, unknown> which is compatible with JWTPayload
     const jwt = await new SignJWT(payload as Record<string, unknown>)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()

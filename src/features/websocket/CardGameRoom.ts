@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import type { GameCard, TurnEvent } from "@/types/game/events";
-import { convertRoomStateForClient, validateGameEvent } from "@/services/game/General";
+import { cardsToRemoveFromOverflowHand, convertRoomStateForClient, howManyCardsToRemoveFromOverflowHand, isCurrentASentinel, isHandOverflow, isNotSentinelOwnerAllowedToEnd, validateGameEvent } from "@/services/game/General";
 import { RoomLogic } from "@/services/game/RoomLogic";
 import { cleanseDurableObjectStorage, convertMessageToJSON, makeWSServer } from "@/lib/durableObject";
 import type { WebsocketStatusForRoom } from "@/types/game/events";
@@ -260,7 +260,7 @@ export class CardGameRoom extends DurableObject {
 				});
 
 				// Jail the card if the attack is not successful
-				const jailCardResult = await this.gameProcessLogic.jailCards({roomId});
+				const jailCardResult = await this.gameProcessLogic.jailSentinelCards({roomId});
 
 				if(!jailCardResult.ok){
 					console.error("Error jailing cards after attack:", jailCardResult.message);
@@ -297,6 +297,7 @@ export class CardGameRoom extends DurableObject {
 						data: result.nextEvent,
 					}));
 				});
+				this.__endTurnTimer();
 				break;
 			}
 		}
@@ -311,11 +312,116 @@ export class CardGameRoom extends DurableObject {
 		const { playerId, roomId } = ws.deserializeAttachment() as { playerId: string, roomId: string };
 		this.roomLogic.playerDisconnected(roomId, playerId);
 		this.wsPlayerBinderMap.delete(playerId);
+		const wsAll = Array.from(this.wsPlayerBinderMap.entries());
+		wsAll.forEach(([, playerWS])=>{
+			playerWS.send(JSON.stringify({
+				type: "DISCONNECTED",
+				message: `Player ${playerId} has been disconnected`,
+			}));
+		});
 	}
 
 	async webSocketError(ws: WebSocket, error: unknown) {
 		console.error("WebSocket error:", error);
     ws.close(1011, "WebSocket error");
+	}
+
+	async __endTurnTimer(){
+		this.ctx.storage.setAlarm(Date.now() + 60000);
+	}
+
+	async alarm(){
+		const allWS = this.ctx.getWebSockets()[0];
+		const {roomId} = allWS.deserializeAttachment() as {roomId: string, playerId: string};	
+		if(!roomId ){
+			console.warn("Alarm triggered without proper WebSocket attachment");
+			return;
+		}
+		// Check the gameState
+		const gameState = await this.gameProcessLogic.getGameState(roomId);
+		if(!gameState){
+			console.error("Game state not found for roomId:", roomId);
+			return;
+		}
+
+		// get the player who is the latest START_TURN event
+		const latestTurnEvent = [...gameState.events].reverse().find(event=>event.type === "START_TURN");
+		if(!latestTurnEvent){
+			console.error("No START_TURN event found in game state for roomId:", roomId);
+			return;
+		}
+		// Since his turn is over then we are the one who should end his turn but let's check also if he is a sentinel or not 
+		const isCurrentPlayerIsSentinel = isCurrentASentinel(gameState);
+
+		if(isCurrentPlayerIsSentinel){
+			const endTurnResult = await this.gameProcessLogic.startTurn(roomId);
+			if(!endTurnResult.ok){
+				console.error("Error starting the turn after timer ended:", endTurnResult.message);
+				return;
+			}
+
+			const allWS = Array.from(this.wsPlayerBinderMap.entries());
+			allWS.forEach(([, playerWS])=>{
+				playerWS.send(JSON.stringify({
+					type: "NEXT_EVENT",
+					data: endTurnResult.nextEvent,
+				}));
+			});
+		}else{
+			const isAllowedToEnd = isNotSentinelOwnerAllowedToEnd(gameState);
+			if(isAllowedToEnd.ok){
+				const endTurnResult = await this.gameProcessLogic.startTurn(roomId);
+				if(!endTurnResult.ok){
+					console.error("Error starting the turn after timer ended:", endTurnResult.message);
+					return;
+				}
+				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+				allWS.forEach(([, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: endTurnResult.nextEvent,
+					}));
+				});
+				this.__endTurnTimer();
+				return;
+			}
+
+			if(isAllowedToEnd.code === "NO_ATTACKING_AND_NO_DRAW"){
+				// We must draw the card for the player and then end his turn
+				const cardsToJail = cardsToRemoveFromOverflowHand(gameState);
+				if(cardsToJail.length > 0){
+					const jailResult = await this.gameProcessLogic.jailCards({roomId, cardsToRemove: cardsToJail});
+					if(!jailResult.ok){
+						console.error("Error jailing cards after timer ended:", jailResult.message);
+						return;
+					}
+					const allWSAfterJail = Array.from(this.wsPlayerBinderMap.entries());
+					allWSAfterJail.forEach(([, playerWS])=>{
+						playerWS.send(JSON.stringify({
+							type: "NEXT_EVENT",
+							data: jailResult.nextEvent,
+						}));
+					});
+
+					// After jailing the cards we can end the turn
+					const endTurnResult = await this.gameProcessLogic.startTurn(roomId);
+					if(!endTurnResult.ok){
+						console.error("Error starting the turn after timer ended:", endTurnResult.message);
+						return;
+					}
+					
+					const allWS = Array.from(this.wsPlayerBinderMap.entries());
+					allWS.forEach(([, playerWS])=>{
+						playerWS.send(JSON.stringify({
+							type: "NEXT_EVENT",
+							data: endTurnResult.nextEvent,
+						}));
+					});
+					this.__endTurnTimer();
+
+				}
+			}
+		}
 	}
 
 	async __getGameState(roomId: string){

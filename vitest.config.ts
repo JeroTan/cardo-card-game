@@ -3,7 +3,8 @@ import { resolve } from "path";
 
 export default defineConfig({
 	test: {
-		environment: 'jsdom',
+		// Default to node environment, but allow per-file overrides with @vitest-environment comment
+		environment: 'node',
 		alias: {
 			"@": resolve(__dirname, "./src"),
 		},

@@ -18,40 +18,46 @@ import { DefendingStat } from "../components/stat/DefendingStat";
 import { Button } from "../components/Button";
 import Modal from "../components/Modal";
 import FloatingMenu from "../components/FloatingMenu";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Container } from "pixi.js";
 import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/FloatingMenuContext";
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 import StaticGlow from "../components/StaticGlow";
 import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
 import { ModalContextProvider } from "../context/ModalContext";
-import type { ModelCardRaw } from "@/types/model/cards";
 import { BarWiper } from "../components/stat/BarWiper";
+import type { GameCard, PlayerGameInfoClient } from "@/types/game/events";
+import { useUpdateEffect } from "react-use";
 
 
 export type GameEngineProps = {
   mainPlayerId: string|number, //player id
-  mainPlayerHandCards: Array<ModelCardRaw>,
+  mainPlayerHandCards: Array<GameCard>,
   drawCards: (total:number)=> void,
   cardAttack: (cardIds: Array<string|number>)=> void,
   playerEndTurn: ()=> void,
   players: Array<{
     playerId: string|number,
+    username: string,
     active: boolean,
     totalCardsInDeck: number,
-    totalCardsInJail: number,
+    cardsInJail: GameCard[],
     totalHandCards: number,
+    totalTurnsPassed: number,
   }>;
+  turnRemainingTime: number, // in seconds
 }
 
-export default function Engine(){
+export default function Engine(props: GameEngineProps){
   return <>
   <FocusContextProvider>
     <Interface>
       <ModalContextProvider>
         <TipNoteContextProvider>
           <FloatingMenuContextProvider>
-            <Composer />
+            <Composer
+              {...props}
+            />
           </FloatingMenuContextProvider>
         </TipNoteContextProvider>
       </ModalContextProvider>
@@ -60,7 +66,63 @@ export default function Engine(){
   </>
 }
 
-function Composer(){
+function Composer({
+  mainPlayerId,
+  mainPlayerHandCards,
+  drawCards,
+  cardAttack,
+  playerEndTurn,
+  players,
+  turnRemainingTime,
+}: GameEngineProps){
+  const mainPlayer = useMemo(()=>{
+    return players.find((p)=>p.playerId === mainPlayerId)!;
+  }, [players, mainPlayerId]);
+
+  const getOtherPlayers = useMemo(()=>{
+    return players.filter((p)=>p.playerId !== mainPlayerId);
+  }, [players, mainPlayerId]);
+
+  const currentActivePlayer = useMemo(()=>{
+    return players.find((p)=>p.active) as GameEngineProps["players"][number];
+  }, [players]);
+
+  const [otherPlayerToShowInScreen, setOtherPlayerToShowInScreen] = useState(getOtherPlayers[0].playerId); // id of the opponent to show in screen, if empty, show the one with most cards in hand
+  const currentOpponentToShow = useMemo(()=>{
+    return players.find((p)=>p.playerId === otherPlayerToShowInScreen) as GameEngineProps["players"][number];
+  }, [otherPlayerToShowInScreen]);
+
+  const [activeTimerCounter, setActiveTimerCounter] = useState<number>(turnRemainingTime);
+
+  // Use effect
+  useUpdateEffect(()=>{
+    if(!currentActivePlayer) return;
+    // Check if current active player belongs to getOtherPlayers
+    if(getOtherPlayers.some((p)=>p.playerId === currentActivePlayer.playerId)){
+      setOtherPlayerToShowInScreen(currentActivePlayer.playerId);
+    }
+    // If not do nothing and keep the current other player to show in screen, which is either the one with most cards in hand or the one manually selected by player
+  }, [currentActivePlayer, getOtherPlayers]);
+
+  useEffect(()=>{
+    setActiveTimerCounter(turnRemainingTime);
+    if(turnRemainingTime <= 0) return;
+    const timer = setInterval(()=>{
+      setActiveTimerCounter((prev)=>{
+        if(prev <= 0){
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      })
+    }, 1000);
+    return ()=>{
+      clearInterval(timer);
+    }
+  }, [turnRemainingTime]);
+
+  
+  
   const [app, scaleConstant] = useAppWithScaleConstant();
   const {openFloatingMenu} = useFloatingMenuContext();
   const {changeNote, tipNote} = useTipNoteContext();
@@ -78,10 +140,10 @@ function Composer(){
       y={-80}
       value={8}
     />
-
     <TopBar />
+
     {coordinateDivider({
-      total: 3
+      total: getOtherPlayers.length
     }).map((data, index)=>{
       return <Fragment key={index}>
         <BarContainer
@@ -89,18 +151,22 @@ function Composer(){
           x={data.x}
           highlight={true}
         />
-        <BarWiper 
-          width={data.size}
-          y={75}
-          x={data.x}
-          wipeBorder={0.5}
-        />
+        {getOtherPlayers[index].active &&
+          <BarWiper 
+            width={data.size}
+            y={75}
+            x={data.x}
+            wipeBorder={activeTimerCounter / turnRemainingTime} // add Timer later
+          />
+        }
         <TurnInfo 
           x={data.x+10}
           y={20}
+          cardLeft={getOtherPlayers[index].totalCardsInDeck}
+          turnPassed={getOtherPlayers[index].totalTurnsPassed}
         />
         <PlayerInfo
-          playerName="Player 1"
+          playerName={`${getOtherPlayers[index].username}`}
           x={data.x+120}
           y={21}
         />
@@ -111,19 +177,21 @@ function Composer(){
       y={1080 - 80}
       highlight={true}
     />
-    <BarWiper 
-      y={1080 - 80 + 75}
-      width={960 - 30}
-      wipeBorder={0.1}
-    />
+    {mainPlayer.active && <>
+      <BarWiper 
+        y={1080 - 80 + 75}
+        width={960 - 30}
+        wipeBorder={activeTimerCounter / turnRemainingTime}
+      />
+    </>}
     <TurnInfo 
       x={10}
       y={1080 - 60}
-      cardLeft={1}
-      turnPassed={5}
+      cardLeft={mainPlayer.totalCardsInDeck}
+      turnPassed={mainPlayer.totalTurnsPassed}
     />
     <PlayerInfo
-      playerName="Player 1"
+      playerName={`${mainPlayer.username}`}
       x={120}
       y={1080 - 60}
     />
@@ -160,11 +228,22 @@ function Composer(){
           topCard={"/images/card_back.svg"}
           horizontalOffset={-771}
           verticalOffset={281}
-          pileSize={25}
+          pileSize={currentOpponentToShow.totalCardsInDeck}
         />
       </HoverGlow>
     </UtilityContainer>
-   
+    { currentOpponentToShow.cardsInJail.length > 0 && <>
+      <UtilityContainer>
+        <HoverGlow>
+          <Pile 
+            topCard={currentOpponentToShow.cardsInJail.reverse()[0].card_art}
+            horizontalOffset={771}
+            verticalOffset={281}
+          />
+        </HoverGlow>
+      </UtilityContainer>
+    </>}
+    
     <UtilityContainer
       onClick={(graphic)=>{
         const card = findLabelCardInPixi(graphic!);
@@ -184,13 +263,24 @@ function Composer(){
           topCard={"/images/card_back.svg"}
           horizontalOffset={771}
           verticalOffset={-281}
-          pileSize={50}
+          pileSize={mainPlayer.totalCardsInDeck}
         />
       </HoverGlow>
     </UtilityContainer>
+    {mainPlayer.cardsInJail.length > 0 && <>
+      <UtilityContainer>
+        <HoverGlow>
+          <Pile 
+            topCard={mainPlayer.cardsInJail.reverse()[0].card_art}
+            horizontalOffset={-771}
+            verticalOffset={-281}
+          />
+        </HoverGlow>
+      </UtilityContainer>
+    </>}
    
      {locateCardXFromCenter({
-      howMany: 7,
+      howMany: currentOpponentToShow.totalHandCards,
       gap: 50,
       canvasSize: 1290,
       midCoordinates: 0,
@@ -236,8 +326,9 @@ function Composer(){
         </UtilityContainer>
       </Fragment>
     })}
+
     {locateCardXFromCenter({
-      howMany: 7,
+      howMany: mainPlayerHandCards.length,
       gap: 50,
       canvasSize: 1290,
       midCoordinates: 0,
@@ -267,7 +358,7 @@ function Composer(){
               <Card
                 horizontalOffset={horizontalOffset}
                 verticalOffset={-281}
-                src={`/images/card_${"back"}.svg`}
+                src={mainPlayerHandCards[index].card_art}
               />
             </StaticGlow>
             {/* <Card
@@ -291,7 +382,6 @@ function Composer(){
               /> */}
           </HoverGlow>
         </UtilityContainer>
-       
       </Fragment>
     })}
 

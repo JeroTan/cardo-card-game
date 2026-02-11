@@ -95,7 +95,7 @@ describe("validateGameEvent", () => {
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
-      expect(result.error).toBe("STARTING_CARDS must come after GAME_START");
+      expect(result.error).toBe("First event must be GAME_START");
     });
 
     it("should reject duplicate STARTING_CARDS for same player", () => {
@@ -273,7 +273,7 @@ describe("validateGameEvent", () => {
   });
 
   describe("Rule 7: JAIL_CARD validation", () => {
-    it("should accept jailing 1-3 cards", () => {
+    it("should accept jailing any number of cards", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
@@ -282,26 +282,15 @@ describe("validateGameEvent", () => {
         playerId: "player1",
         jailed_cards: [
           { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "2", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "3", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "4", name: "Card", atk: 5, def: 5, card_art: "" },
+          { id: "5", name: "Card", atk: 5, def: 5, card_art: "" },
         ],
         timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
-    });
-
-    it("should reject jailing more than 3 cards in one event", () => {
-      const roomState = createMockRoomState([
-        { type: "GAME_START", timestamp: new Date().toISOString() },
-      ]);
-      const event: TurnEvent = {
-        type: "JAIL_CARD",
-        playerId: "player1",
-        jailed_cards: Array(4).fill({ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }),
-        timestamp: new Date().toISOString(),
-      };
-      const result = validateGameEvent(event, roomState);
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe("Cannot jail more than 3 cards in one event");
     });
 
     it("should reject jailing if total would exceed 50", () => {
@@ -534,7 +523,7 @@ describe("validateGameEvent", () => {
       const event: TurnEvent = { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
-      expect(result.error).toBe("START_TURN can only appear after GAME_START");
+      expect(result.error).toBe("First event must be GAME_START");
     });
 
     it("should reject START_TURN before all players have STARTING_CARDS", () => {
@@ -549,14 +538,22 @@ describe("validateGameEvent", () => {
     });
 
     it("should accept START_TURN after CHANGE_SENTINEL", () => {
+      const attackCards = [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }];
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
         { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
         { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
+        {
+          type: "ATTACKING",
+          playerId: "player1",
+          card_used: attackCards,
+          timestamp: new Date().toISOString(),
+        },
         {
           type: "CHANGE_SENTINEL",
           playerId: "player1",
-          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          new_sentinel: attackCards, // Must match ATTACKING cards
           timestamp: new Date().toISOString(),
         },
       ]);

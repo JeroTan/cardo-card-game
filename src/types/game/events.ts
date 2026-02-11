@@ -91,6 +91,7 @@ export type TurnEventsLog = Array<TurnEvent>;
 export const websocketStatus =[
   "ERROR",
   "RECONNECTED",
+  "DISCONNECTED",
   "JOINED_ROOM",
   "PLAYER_CONFIRM",
   "INITIAL_CARD_IS_READY",

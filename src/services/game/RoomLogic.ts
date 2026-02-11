@@ -117,6 +117,7 @@ export class RoomLogic {
         return player;
       }),
     }
+    
     await this.storage.put(roomId, updatedRoomInfo);
     return {ok: true, message: "Player has been marked as disconnected", roomInfo: updatedRoomInfo} as const;
   }

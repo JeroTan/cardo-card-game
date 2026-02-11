@@ -141,17 +141,6 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
   // Rule 7: JAIL_CARD validation
   if (receiveEvent.type === "JAIL_CARD") {
     const { jailed_cards, playerId } = receiveEvent;
-    
-    // Sentinel owner cannot jail cards
-    const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
-    if (lastSentinelEvent && 'playerId' in lastSentinelEvent && lastSentinelEvent.playerId === playerId) {
-      return { valid: false, error: "Sentinel owner cannot jail cards", event: receiveEvent };
-    }
-    
-    // Max 3 cards can be jailed per event
-    if (jailed_cards.length > 3) {
-      return { valid: false, error: "Cannot jail more than 3 cards in one event", event: receiveEvent };
-    }
 
     // Check if player's total jailed cards won't exceed 50
     const player = playerInfo.find(p => p.id === playerId);
@@ -161,38 +150,6 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
 
     if (player.jailedCards.length + jailed_cards.length > 50) {
       return { valid: false, error: `Jailed cards would exceed 50. Current: ${player.jailedCards.length}, adding: ${jailed_cards.length}`, event: receiveEvent };
-    }
-
-    // Check if jailed cards match the previous CHANGE_SENTINEL (not in this turn)
-    const lastStartTurn = [...events].reverse().find(e => e.type === "START_TURN");
-    
-    if (lastStartTurn) {
-      // Get events since the last START_TURN
-      const lastStartTurnIndex = events.findIndex(e => e === lastStartTurn);
-      const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
-      
-      // Check if there's a CHANGE_SENTINEL in the current turn
-      const hasChangeSentinelInTurn = eventsSinceLastTurn.some(e => e.type === "CHANGE_SENTINEL");
-      
-      // Only validate against previous sentinel if no CHANGE_SENTINEL in current turn
-      if (!hasChangeSentinelInTurn) {
-        const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
-        
-        if (lastSentinelEvent && 'new_sentinel' in lastSentinelEvent) {
-          const sentinelCards = lastSentinelEvent.new_sentinel;
-          
-          // Check if all jailed cards exist in the current sentinel
-          for (const jailedCard of jailed_cards) {
-            const cardExistsInSentinel = sentinelCards.some(
-              sentinelCard => sentinelCard.id === jailedCard.id
-            );
-            
-            if (!cardExistsInSentinel) {
-              return { valid: false, error: `Card ${jailedCard.id} is not in the current sentinel`, event: receiveEvent };
-            }
-          }
-        }
-      }
     }
 
     return { valid: true, event: receiveEvent };
@@ -351,9 +308,12 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
         };
       }
 
-      // Check if the previous player is the sentinel owner
-      const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
-      const isSentinelOwner = lastSentinelEvent && 'playerId' in lastSentinelEvent && lastSentinelEvent.playerId === lastStartTurn.playerId;
+      // Check if the previous player was the sentinel owner at the START of their turn
+      // Find the sentinel owner before the last START_TURN
+      const lastStartTurnIndex = events.findIndex(e => e === lastStartTurn);
+      const eventsBeforeLastTurn = events.slice(0, lastStartTurnIndex);
+      const lastSentinelEventBeforeTurn = [...eventsBeforeLastTurn].reverse().find(e => e.type === "CHANGE_SENTINEL");
+      const isSentinelOwner = lastSentinelEventBeforeTurn && 'playerId' in lastSentinelEventBeforeTurn && lastSentinelEventBeforeTurn.playerId === lastStartTurn.playerId;
 
       if (isSentinelOwner) {
         // Sentinel owner can skip their turn (START_TURN can follow START_TURN)
@@ -363,8 +323,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
         }
       } else {
         // Non-sentinel player must have either ATTACKING or DRAW_CARD in their turn
-        // Get all events since the last START_TURN
-        const lastStartTurnIndex = events.findIndex((e, i) => e === lastStartTurn);
+        // Get all events since the last START_TURN (reuse lastStartTurnIndex from above)
         const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
         
         const hasAttacking = eventsSinceLastTurn.some(e => e.type === "ATTACKING");
@@ -425,4 +384,75 @@ export function isAttackWithinTime(serverState: GameState, interval = 1000*60) {
   
   const elapsedTime = Date.now() - Number(lastStartTurn.timestamp);
   return elapsedTime <= interval;
+}
+
+/**
+ * @description it will confirm the current START_TURN with the latest CHANGE_SENTINEL, if the START_TURN and CHANGE_SENTINEL playerId is match then it means the current turn player is the sentinel owner, and the turn is basically a free turn without attack, otherwise it's a normal turn with attack
+ * @param gameState 
+ * @returns 
+ */
+export function isCurrentASentinel(gameState: GameState){
+  const events = gameState.events;
+  const lastStartTurn = events.slice().reverse().find(e => e.type === 'START_TURN');
+  const lastChangeSentinel = events.slice().reverse().find(e => e.type === 'CHANGE_SENTINEL');
+  if(!lastStartTurn || !lastChangeSentinel) return false;
+  if('playerId' in lastStartTurn && 'playerId' in lastChangeSentinel){
+    return lastStartTurn.playerId === lastChangeSentinel.playerId;
+  }
+  return false;
+}
+
+/**
+ * @description this will check (only not sentinel owner) if the player can end turn by checking if he draw a card if he don't made an attack or if he made an attack then he can end turn. Please don't use this with a sentinel owner
+ * @param gameState 
+ */
+export function isNotSentinelOwnerAllowedToEnd(gameState: GameState){
+  const events = gameState.events;
+  // Check if there is ATTACKING in the current turn
+  const lastStartTurn = events.slice().reverse().find(e => e.type === 'START_TURN');
+  if(!lastStartTurn) return {ok: false, code: "NO_START_TURN", message: "No START_TURN found"};
+  const lastStartTurnIndex = events.findIndex(e => e === lastStartTurn);
+  const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
+  const hasAttacking = eventsSinceLastTurn.some(e => e.type === "ATTACKING");
+  const hasDrawCard = eventsSinceLastTurn.some(e => e.type === "DRAW_CARD");
+  if(!hasAttacking && !hasDrawCard) return {ok: false, code:"NO_ATTACKING_AND_NO_DRAW", message: "Player did not make an attack or draw a card"};
+  return {ok: true, code:"OK", message: "Player can end turn"};
+}
+
+export function isHandOverflow(gameState: GameState, maxCard = 7){
+  const events = gameState.events;
+  const lastStartTurn = events.slice().reverse().find(e => e.type === 'START_TURN');
+  if(!lastStartTurn) return false;
+  const playerId = 'playerId' in lastStartTurn ? lastStartTurn.playerId : null;
+  if(!playerId) return false;
+  const playerInfo = gameState.playerInfo.find(p => p.id === playerId);
+  if(!playerInfo) return false;
+  const handCardsCount = Array.isArray(playerInfo.cardsInHand) ? playerInfo.cardsInHand.length : playerInfo.cardsInHand;
+  return handCardsCount > maxCard;
+}
+
+export function howManyCardsToRemoveFromOverflowHand(gameState: GameState, maxCard = 7){
+  const events = gameState.events;
+  const lastStartTurn = events.slice().reverse().find(e => e.type === 'START_TURN');
+  if(!lastStartTurn) return 0;
+  const playerId = 'playerId' in lastStartTurn ? lastStartTurn.playerId : null;
+  if(!playerId) return 0;
+  const playerInfo = gameState.playerInfo.find(p => p.id === playerId);
+  if(!playerInfo) return 0;
+  const handCardsCount = Array.isArray(playerInfo.cardsInHand) ? playerInfo.cardsInHand.length : playerInfo.cardsInHand;
+  return Math.max(0, handCardsCount - maxCard);
+}
+
+export function cardsToRemoveFromOverflowHand(gameState: GameState, maxCard = 7){
+  const numberOfCardsToBeRemove = howManyCardsToRemoveFromOverflowHand(gameState, maxCard);
+  if(numberOfCardsToBeRemove <= 0) return [];
+  const events = gameState.events;
+  const lastStartTurn = events.slice().reverse().find(e => e.type === 'START_TURN');
+  if(!lastStartTurn) return [];
+  const playerId = 'playerId' in lastStartTurn ? lastStartTurn.playerId : null;
+  if(!playerId) return [];
+  const playerInfo = gameState.playerInfo.find(p => p.id === playerId);
+  if(!playerInfo) return [];
+  const handCards = Array.isArray(playerInfo.cardsInHand) ? playerInfo.cardsInHand : [];
+  return handCards.slice(0, numberOfCardsToBeRemove);
 }
