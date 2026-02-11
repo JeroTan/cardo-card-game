@@ -2,15 +2,16 @@ import { useCallback, useEffect, useState, type PropsWithChildren } from "react"
 import { useGameEventContext } from "../context/GameEventContext";
 import { useEffectOnce } from "react-use";
 import { useModalContext } from "@/stores/components/ModalContext";
-import { makeErrorModal, makeLoadingModal } from "@/components/overlay/ModalBase";
+import { makeCloseModal, makeErrorModal, makeLoadingModal } from "@/components/overlay/ModalBase";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ApiCheckRoom, WSJoinRoom } from "@/api/client/game";
+import { ApiCheckRoom, ApiGetGameState, WSJoinRoom } from "@/api/client/game";
 import { getWSObject } from "../utils/websocket";
+import type { GameStateClient } from "@/types/game/events";
 
 export default function RoomCreation({
   children,
 }:PropsWithChildren<{}>){
-  const {roomId, setWS} = useGameEventContext();
+  const {roomId, setWS, setGameEventData, updateGameIsReady} = useGameEventContext();
   const [,modalDispatch] = useModalContext();
   const [loading, loadingSet] = useState(true);
 
@@ -50,14 +51,30 @@ export default function RoomCreation({
       roomId,
     }));
 
-    ws.receiver((message)=>{
+    ws.receiver( async(message)=>{
       const data = getWSObject(message);
       if(data.type == "INITIAL_CARD_IS_READY"){
-        
-      }
+        const response = await ApiGetGameState(roomId).promiseResponse;
+        if(response.status !== 200){
+          modalDispatch(makeErrorModal({
+            title: "Error",
+            message: "Failed to get game state. Please try again.",
+          }));
+          return;
+        }
+        const {data: gameState} = await response.json() as {data: GameStateClient};
+        setGameEventData(gameState);
 
-      // 
-      loadingSet(false);
+        ws.getSocket()?.send(JSON.stringify({
+          type: "PLAYER_READY",
+          roomId,
+        }));
+      }
+      if(data.type === "EVERYONE_READY"){
+        updateGameIsReady(true);
+        loadingSet(false);
+        modalDispatch(makeCloseModal());
+      }
     });
   }, []);
 
