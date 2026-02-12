@@ -120,17 +120,15 @@ export class CardGameRoom extends DurableObject {
 				if(isReadyReport.ok){
 					const allWS = Array.from(this.wsPlayerBinderMap.entries());
 			
-					await this.gameProcessLogic.createGame(roomId);
-					await this.gameProcessLogic.addInitialPlayersFromServices({
-						roomInfo: isReadyReport.roomInfo,
-						cardPackService: this.cardPackService,
-						cardService: this.cardService,
-						env: this.env,
-					});
-					await this.gameProcessLogic.startTheGame(roomId);
-					await this.gameProcessLogic.addInitialCardsForPlayers({roomId});
-
 					await this.ctx.blockConcurrencyWhile(async()=>{
+						await this.gameProcessLogic.createGame(roomId);
+						await this.gameProcessLogic.addInitialPlayersFromServices({
+							roomInfo: isReadyReport.roomInfo,
+							cardPackService: this.cardPackService,
+							env: this.env,
+						});
+						await this.gameProcessLogic.startTheGame(roomId);
+						await this.gameProcessLogic.addInitialCardsForPlayers({roomId});
 						return await this.gameProcessLogic.setGamePreparationReady(roomId);
 					});
 

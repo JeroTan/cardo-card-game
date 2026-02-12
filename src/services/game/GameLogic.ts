@@ -42,7 +42,7 @@ export class GameProcessLogic {
     return {ok: true, message: "Initial players added to the game successfully", gameData: updatedGameData} as const;
   }
 
-   public async addInitialPlayersFromServices({roomInfo, cardPackService, cardService, env}: {roomInfo: RoomInfo, cardPackService: CardPackService, cardService: CardService, env: Env}){
+   public async addInitialPlayersFromServices({roomInfo, cardPackService, env}: {roomInfo: RoomInfo, cardPackService: CardPackService, env: Env}){
     const gameRoom = await this.storage.get(`game__${roomInfo.id}`) as GameState | undefined;
     if(!gameRoom){
       return {ok: false, message: "Game not found", gameRoom: null} as const;
@@ -95,7 +95,7 @@ export class GameProcessLogic {
         cardsInDeck: cardsInDeck,
         jailedCards: [],
         cardsInHand: [],
-        turnCount: 0,
+        turnCount: 1,
         timeLeft: new Date(Date.now() + 60000).toISOString(), // 60 seconds from now
       } as PlayerGameInfo;
     }));
@@ -103,7 +103,7 @@ export class GameProcessLogic {
     //Randomize the order of players
     const shuffledPlayersForGame = playersForGame.sort(() => 0.5 - Math.random());
 
-    this.addInitialPlayers(roomInfo.id, shuffledPlayersForGame);
+    return await this.addInitialPlayers(roomInfo.id, shuffledPlayersForGame);
    }
 
    async startTheGame(roomId: string){
@@ -129,6 +129,7 @@ export class GameProcessLogic {
       events: [...gameRoom.events, nextEventResult.event],
       status: "playing",
     }
+
     await this.storage.put(`game__${roomId}`, updatedGameRoom);
     return {ok: true, message: "Game started successfully", gameRoom: updatedGameRoom, nextEvent: nextEventResult.event} as const;    
    }
@@ -235,7 +236,6 @@ export class GameProcessLogic {
     if(!gameState){
       return {ok: false, code:"GAME_NOT_FOUND", message: "Game not found", gameState: null, nextEvent: null} as const;
     }
-    console.log("Current game state before starting turn:", JSON.stringify(gameState));
 
     const playerInfo = gameState.playerInfo;
     if(playerInfo.length === 0){
