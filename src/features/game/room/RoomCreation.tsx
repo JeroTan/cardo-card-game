@@ -46,10 +46,12 @@ export default function RoomCreation({
     ws.open();
 
     // Send a signal that this player is ready
-    ws.getSocket()?.send(JSON.stringify({
-      type: "PLAYER_CONFIRM",
-      roomId,
-    }));
+    ws.getSocket()?.addEventListener("open", ()=>{
+      ws.getSocket()?.send(JSON.stringify({
+        type: "PLAYER_CONFIRM",
+        roomId,
+      }));
+    });
 
     ws.receiver( async(message)=>{
       const data = getWSObject(message);

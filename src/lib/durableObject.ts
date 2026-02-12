@@ -67,6 +67,12 @@ export function stabRequestBody(originalRequest?: Request){
 }
 
 export function makeWSResponse(response: Response){
+  if(response.status !== 101 || !response.webSocket){
+    return new Response(response.body, {
+      status: response.status,
+      headers: response.headers,
+    });
+  }
   return new Response(null, {
     status: 101,
     webSocket: response.webSocket,

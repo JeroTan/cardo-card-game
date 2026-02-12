@@ -18,7 +18,7 @@ export function WSJoinRoom(roomId:string){
 export const ApiCheckRoom = defineApiResolve({
   input: z.string(),
   handler: async (data)=>{
-    return apiClient().path(`/game/room/${data}/check`).data(JSON.stringify(data)).post().request();
+    return apiClient().path(`/game/room/${data}/check`).get().request();
   },
   onZodError,
 });
@@ -26,7 +26,7 @@ export const ApiCheckRoom = defineApiResolve({
 export const ApiGetGameState = defineApiResolve({
   input: z.string(),
   handler: async (data)=>{
-    return apiClient().path(`/game/room/${data}/game-state`).data(JSON.stringify(data)).post().request();
+    return apiClient().path(`/game/room/${data}/game-state`).get().request();
   },
   onZodError,
 })

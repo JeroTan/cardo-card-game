@@ -69,7 +69,7 @@ export class CardGameController {
 
 		// Get the Durable Object binding
 		const { CARD_GAME_ROOM } = env;
-		const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(roomId));
+		const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(roomId)) as DurableObjectStub<CardGameRoom>;
 
 		// Check if it is a websocket request
 		const upgradeHeader = request.headers.get("Upgrade");
@@ -79,12 +79,11 @@ export class CardGameController {
 
 		// Send join room event
 		try{
-			const [url, body, constructRequest] = stabRequestBody(request);
+			const [url,constructRequest] = stabRequest(request);
+			url.searchParams.set("type", "JOIN_ROOM");	
 			url.searchParams.set("roomId", roomId);
-			body({
-				id: playerId,
-				username: playerUsername,
-			});
+			url.searchParams.set("playerId", playerId);
+			url.searchParams.set("playerUsername", playerUsername);
 			return makeWSResponse(await stub.fetch(...constructRequest()));
 		}catch(error){
 			console.error("Error preparing room:", error);

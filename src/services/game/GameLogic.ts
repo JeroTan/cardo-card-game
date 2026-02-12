@@ -235,6 +235,7 @@ export class GameProcessLogic {
     if(!gameState){
       return {ok: false, code:"GAME_NOT_FOUND", message: "Game not found", gameState: null, nextEvent: null} as const;
     }
+    console.log("Current game state before starting turn:", JSON.stringify(gameState));
 
     const playerInfo = gameState.playerInfo;
     if(playerInfo.length === 0){
@@ -279,6 +280,30 @@ export class GameProcessLogic {
     };
     await this.storage.put(`game__${roomId}`, updatedGameState);
     return {ok: true, code:"OK", message: "Turn started successfully", gameState: updatedGameState, nextEvent: newEventResult.event} as const;
+  }
+
+  async setGamePreparationReady(roomId:string){
+    const gameState = await this.getGameState(roomId);
+    if(!gameState){
+      return {ok: false, message: "Game not found", gameState: null, nextEvent: null} as const;
+    }
+    const updatedGameState: GameState = {
+      ...gameState,
+      status: "preparation_ready",
+    }
+    await this.storage.put(`game__${roomId}`, updatedGameState);
+    return {ok: true, message: "Game is ready to start", gameState: updatedGameState, nextEvent: null} as const;
+  }
+
+  async isGamePreparationReady(roomId: string){
+    const gameState = await this.getGameState(roomId);
+    if(!gameState){
+      return {ok: false, message: "Game not found", gameState: null, nextEvent: null} as const;
+    }
+    if(gameState.status === "waiting"  ){
+      return {ok: false, message: "Game is not ready yet", gameState, nextEvent: null} as const;
+    }
+    return {ok: true, message: "Game is ready to start", gameState, nextEvent: null} as const;
   }
 
 

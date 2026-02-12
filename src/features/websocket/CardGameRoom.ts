@@ -25,6 +25,7 @@ export class CardGameRoom extends DurableObject {
     const url = new URL(request.url);
 		const requestType = url.searchParams.get("type");
 		const roomId = url.searchParams.get("roomId");
+		console.log(`CardGameRoom received request for roomId: ${roomId} with type: ${requestType} from durable id: ${this.ctx.id.toString()}`);
 
 		if(!requestType){
 			return Response.json({ error: "type is required" }, { status: 400 });
@@ -36,22 +37,33 @@ export class CardGameRoom extends DurableObject {
 		switch(requestType){
 			case "PREPARE_ROOM_FOR_PRE_MADE_MATCH":{
 				const { playerIds } = await request.json() as {playerIds: string[]};
-				await this.roomLogic.setPreMadeRoom(roomId, playerIds.map(id=>({id})));
+				this.__premadeRoom(roomId, playerIds);
 				break;
 			}
 			case "JOIN_ROOM":{
-				const playerData = await request.json() as {id: string, username: string};
-				const isPlayerDisconnected = await this.roomLogic.isPlayerDisconnected(roomId, playerData.id);	
+				const playerId = url.searchParams.get("playerId");
+				const playerUsername = url.searchParams.get("playerUsername");
+				if(!playerId || !playerUsername){
+					console.warn("JOIN_ROOM request missing playerId or playerUsername");
+					return Response.json({ error: "playerId and playerUsername are required" }, { status: 400 });
+				}
+				const isPlayerDisconnected = await this.roomLogic.isPlayerDisconnected(roomId, playerId);	
 				let joinStatus:"JOINED"|"RECONNECTED" = "JOINED";
 				if(isPlayerDisconnected.ok){
-					const result = await this.roomLogic.reconnectToRoom(roomId, playerData);
+					const result = await this.ctx.blockConcurrencyWhile(async()=>{
+						return await this.roomLogic.reconnectToRoom(roomId, {id: playerId, username: playerUsername});
+					});
 					if(!result.ok){
+						console.error("Error reconnecting to room:", result.message);
 						return Response.json({error: result.message}, {status: 404});
 					}
 					joinStatus = "RECONNECTED";
 				}else{
-					const result = await this.roomLogic.joinRoom(roomId, [playerData]);
+					const result = await this.ctx.blockConcurrencyWhile(async()=>{
+						return await this.roomLogic.joinRoom(roomId, [{id: playerId, username: playerUsername}]);
+					});
 					if(!result.ok){
+						console.error("Error joining the room:", result.message);
 						return Response.json({error: result.message}, {status: 404});
 					}
 					joinStatus = "JOINED";
@@ -59,8 +71,8 @@ export class CardGameRoom extends DurableObject {
 
 				// Make Websocket
 				const {response, server} = makeWSServer(this.ctx);
-				server.serializeAttachment({ playerId: playerData.id, roomId });
-				this.wsPlayerBinderMap.set(playerData.id, server);
+				server.serializeAttachment({ playerId, roomId });
+				this.wsPlayerBinderMap.set(playerId, server);
 				
 				// Send the current room state to the player who just joined or reconnected
 				if(joinStatus === "RECONNECTED"){
@@ -68,14 +80,14 @@ export class CardGameRoom extends DurableObject {
 						type: "RECONNECTED_TO_ROOM",
 						message: "You have reconnected to the room",
 					}));
+					this.__signalGameStatusToReconnectedPlayer(server, roomId);
+
 				}else{
 					server.send(JSON.stringify({
 						type: "JOINED_ROOM",
 						message: "You have joined the room",
 					}));
 				}
-
-
 				return response;
 			} 
 		}
@@ -92,7 +104,9 @@ export class CardGameRoom extends DurableObject {
 		const jsonData = convertMessageToJSON(message) as WebsocketStatusForRoom<any>;
 		switch(jsonData.type){
 			case "PLAYER_CONFIRM":{ // Player confirms meaning that concensus of players maybe on premade or custom room are connected
-				const result = await this.roomLogic.readyTheConnection(roomId, [playerId]);
+				const result = await this.ctx.blockConcurrencyWhile(async()=>{
+					return await this.roomLogic.readyTheConnection(roomId, [playerId]);
+				});
 				if(!result.ok){
 					console.error("Error marking player connected:", result.message);
 					ws.send(JSON.stringify({
@@ -115,6 +129,10 @@ export class CardGameRoom extends DurableObject {
 					});
 					await this.gameProcessLogic.startTheGame(roomId);
 					await this.gameProcessLogic.addInitialCardsForPlayers({roomId});
+
+					await this.ctx.blockConcurrencyWhile(async()=>{
+						return await this.gameProcessLogic.setGamePreparationReady(roomId);
+					});
 
 					allWS.forEach(([playerId, playerWS])=>{
 						playerWS.send(JSON.stringify({
@@ -139,11 +157,7 @@ export class CardGameRoom extends DurableObject {
 				// Check if everyone is ready and if yes start the game
 				const isReadyReport = await this.roomLogic.isEveryoneReadyToPlay(roomId);
 				if(!isReadyReport.ok){
-					console.error("Error checking if everyone is ready:", isReadyReport.message);
-					ws.send(JSON.stringify({
-						type: "ERROR",
-						message: isReadyReport.message,
-					}));
+					console.log("Player status: ", isReadyReport.message);
 					return;
 				}
 				
@@ -424,6 +438,17 @@ export class CardGameRoom extends DurableObject {
 		}
 	}
 
+	async __signalGameStatusToReconnectedPlayer(ws:WebSocket, roomId:string){
+		const isReadyResult = await this.gameProcessLogic.isGamePreparationReady(roomId);
+		if(isReadyResult.ok){
+			ws.send(JSON.stringify({
+				type: "INITIAL_CARD_IS_READY",
+				message: "Everyone is ready. Starting the game...",
+			}));
+			return;
+		}
+	}
+
 	async __getGameState(roomId: string){
 		const gameState = await this.gameProcessLogic.getGameState(roomId);
 		return gameState;
@@ -438,10 +463,10 @@ export class CardGameRoom extends DurableObject {
 		if(!roomResult.ok){
 			return false;
 		}
-		const gameRoomResult = await this.gameProcessLogic.isGameExist(roomId);
-		if(!gameRoomResult.ok){
-			return false;
-		}
 		return true;
+	}
+
+	async __premadeRoom(roomId: string, playerIds: string[]){
+		await this.roomLogic.setPreMadeRoom(roomId, playerIds.map(id=>({id})));
 	}
 }

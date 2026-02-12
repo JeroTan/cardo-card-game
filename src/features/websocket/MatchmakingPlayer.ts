@@ -2,6 +2,7 @@ import { generateRoomId } from "@/services/game/General";
 import { cleanseDurableObjectStorage, stabRequest, stabRequestBody } from "@/lib/durableObject";
 import { MatchmakingLogic } from "@/services/game/MatchmakingLogic";
 import { DurableObject } from "cloudflare:workers";
+import type { CardGameRoom } from "./CardGameRoom";
 
 export class MatchmakingPlayer extends DurableObject {
   private wsPlayerBinderMap = new Map<string, WebSocket>(); // Map to bind playerId with their WebSocket connection 
@@ -64,8 +65,13 @@ export class MatchmakingPlayer extends DurableObject {
     const matchReport = await this.matchMaker.isMatchReadyFor(playerId);
     if(matchReport.ok){
       const roomId = generateRoomId();
-      matchReport.players.forEach((player)=>{
+
+      matchReport.players.forEach(async (player)=>{
         const playerWS = this.wsPlayerBinderMap.get(player.playerId);
+        const { CARD_GAME_ROOM } = this.env;
+        const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(roomId)) as DurableObjectStub<CardGameRoom>;
+        await stub.__premadeRoom(roomId, matchReport.players.map(player=>player.playerId));
+
         if(playerWS){
           playerWS.send(JSON.stringify({
             type: "MATCH_FOUND",
@@ -77,16 +83,7 @@ export class MatchmakingPlayer extends DurableObject {
         this.matchMaker.removePlayer(player.playerId);
         this.wsPlayerBinderMap.delete(player.playerId);
       });
-      const { CARD_GAME_ROOM } = this.env;
-      const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(roomId));
-      const [url, setBody, constructRequest] = stabRequestBody();
-      url.searchParams.set("type", "PREPARE_ROOM_FOR_PRE_MADE_MATCH");
-      url.searchParams.set("roomId", roomId);
-      setBody({
-        playerIds: matchReport.players,
-      });
-      
-      await stub.fetch(...constructRequest());
+
     }else{
       serverWS.send(JSON.stringify({
         type: "WAITING_FOR_OPPONENT",

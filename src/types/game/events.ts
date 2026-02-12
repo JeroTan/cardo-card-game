@@ -26,7 +26,7 @@ export type GameState = {
   playerInfo: PlayerGameInfo[],
   events: TurnEventsLog,
   createdAt: string,
-  status: "waiting" | "playing" | "finished",
+  status: "waiting" | "preparation_ready" | "playing" | "finished",
   expiresAt: number,
 }
 

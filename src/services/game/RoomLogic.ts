@@ -20,7 +20,7 @@ export class RoomLogic {
           } as PlayerRoomInfo
         }
       ),
-      joinCondition: "INVITE_ONLY", 
+      joinCondition: "MATCHMAKING", 
       expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expires in 24 hours
     } as RoomInfo);
   }
@@ -59,13 +59,20 @@ export class RoomLogic {
     if(!roomInfo){
       return {ok: false, message: "Room not found", roomInfo: null} as const;
     }
+    
     const joinHandler = joinHandling[roomInfo.joinCondition];
     joinHandler.setRoomInfo(roomInfo);
-    joinHandler.setPlayers(playerInfo.map(player=>({
-      ...player,
-      status: "JOINED" as const,
-    })));
+    joinHandler.setPlayers(playerInfo.map(player=>{
+      const existingPlayer = roomInfo.players.find(p=>p.id === player.id);
+      return {
+        ...(existingPlayer ? {...existingPlayer} : {status: ""}),
+        ...player,
+      } as PlayerRoomInfo;
+    }));
     const result = joinHandler.execute();
+    if(!result.ok)
+      return result;
+    await this.storage.put(roomId, result.roomInfo!);
     return result;
   }
 
@@ -89,8 +96,8 @@ export class RoomLogic {
         if(player.id === playerInfo.id && player.status === "DISCONNECTED"){  
           return {
             ...player,
-            ...playerInfo,
             status: "JOINED" as const,
+            ...playerInfo,
           }
         }
         return player;
