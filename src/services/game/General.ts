@@ -1,4 +1,5 @@
 import type { GameState, GameStateClient, TurnEvent } from "@/types/game/events";
+import { PUBLIC_APP_URL } from "astro:env/client";
 
 export function generateRoomId(length = 8){
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -455,4 +456,8 @@ export function cardsToRemoveFromOverflowHand(gameState: GameState, maxCard = 7)
   if(!playerInfo) return [];
   const handCards = Array.isArray(playerInfo.cardsInHand) ? playerInfo.cardsInHand : [];
   return handCards.slice(0, numberOfCardsToBeRemove);
+}
+
+export function toImageLink(cardId: string){
+  return `${PUBLIC_APP_URL}/api/public/resources/card/${cardId}`;
 }

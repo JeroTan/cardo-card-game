@@ -7,8 +7,8 @@ export type GameEventContextType = {
   roomId: string,
   ws: WebSocketNative | null,
   setWS: (ws: WebSocketNative)=>void,
-  gameEventData: GameStateClient | null,
-  setGameEventData: (data: GameStateClient)=>void,
+  gameStateData: GameStateClient | null,
+  setGameStateData: (data: GameStateClient)=>void,
   appendTurnEvent: (event: TurnEvent)=>void,
   updatePlayerInfo?: (params:{
     playerId: string,
@@ -23,18 +23,18 @@ export const GameEventContext = createContext<GameEventContextType>(null!);
 export function GameEventContextProvider({children, roomId=""}:PropsWithChildren<{roomId?:string}>){
   const roomIdRef = useRef(roomId);
   const ws = useRef<WebSocketNative>(null);
-  const [gameEventData, setGameEventData] = useState<GameStateClient | null>(null);
+  const [gameStateData, setGameStateData] = useState<GameStateClient | null>(null);
   const [gameIsReady, setGameIsReady] = useState(false);  
   const updateWS = useCallback((newWS: WebSocketNative)=>{
     ws.current = newWS;
   }, []);
 
-  const updateGameEventData = useCallback((newData: GameStateClient)=>{
-    setGameEventData(newData);
+  const updateGameStateData = useCallback((newData: GameStateClient)=>{
+    setGameStateData(newData);
   }, []);
 
   const appendTurnEvent = useCallback((newEvent: TurnEvent)=>{
-    setGameEventData((prev)=>{
+    setGameStateData((prev)=>{
       if(!prev) return prev;
       return {
         ...prev,
@@ -50,7 +50,7 @@ export function GameEventContextProvider({children, roomId=""}:PropsWithChildren
     playerId: string,
     newPlayerInfo: PlayerGameInfoClient,
   } )=>{
-    setGameEventData((prev)=>{
+    setGameStateData((prev)=>{
       if(!prev) return prev;
       return {
         ...prev,
@@ -64,13 +64,12 @@ export function GameEventContextProvider({children, roomId=""}:PropsWithChildren
     });
   }, []);
 
-
   return <GameEventContext.Provider value={{
     roomId: roomIdRef.current,
     ws: ws.current,
     setWS: updateWS,
-    gameEventData,
-    setGameEventData: updateGameEventData,
+    gameStateData,
+    setGameStateData: updateGameStateData,
     appendTurnEvent,
     updatePlayerInfo,
     gameIsReady,

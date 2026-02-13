@@ -10,8 +10,8 @@ export function useAppWithScaleConstant(props:{width?: number, height?: number} 
   const baseHeight = props.height || 1080;
   return [
     app,
-    app.renderer.width / baseWidth ,
-    app.renderer.height / baseHeight
+    (app?.renderer?.width ?? 1920) / baseWidth ,
+    (app?.renderer?.height ?? 1080) / baseHeight
   ] as const;
 }
 

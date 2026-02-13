@@ -19,7 +19,7 @@ import { Button } from "../components/Button";
 import Modal from "../components/Modal";
 import FloatingMenu from "../components/FloatingMenu";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Container } from "pixi.js";
+import { Ticker, type Container } from "pixi.js";
 import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/FloatingMenuContext";
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 import StaticGlow from "../components/StaticGlow";
@@ -89,7 +89,7 @@ function Composer({
 
   const [otherPlayerToShowInScreen, setOtherPlayerToShowInScreen] = useState(getOtherPlayers[0].playerId); // id of the opponent to show in screen, if empty, show the one with most cards in hand
   const currentOpponentToShow = useMemo(()=>{
-    return players.find((p)=>p.playerId === otherPlayerToShowInScreen) as GameEngineProps["players"][number];
+    return getOtherPlayers.find((p)=>p.playerId === otherPlayerToShowInScreen) as GameEngineProps["players"][number];
   }, [otherPlayerToShowInScreen]);
 
   const [activeTimerCounter, setActiveTimerCounter] = useState<number>(turnRemainingTime);
@@ -113,15 +113,16 @@ function Composer({
           clearInterval(timer);
           return 0;
         }
-        return prev - 1;
+        return prev - 1/10;
       })
-    }, 1000);
+    }, 100);
+    
     return ()=>{
-      clearInterval(timer);
+      clearInterval(timer)
     }
   }, [turnRemainingTime]);
 
-  
+
   
   const [app, scaleConstant] = useAppWithScaleConstant();
   const {openFloatingMenu} = useFloatingMenuContext();
@@ -131,14 +132,14 @@ function Composer({
     <AttackingStat 
       x={ 350 }
       y={80}
-      value={10}
+      value={null}
       effects={"GLOWING_GREEN"}
     />
 
     <DefendingStat 
       x={ -350 }
       y={-80}
-      value={8}
+      value={null}
     />
     <TopBar />
 

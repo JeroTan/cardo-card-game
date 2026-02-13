@@ -4,7 +4,7 @@ import type { CardPackService } from "../cardPack";
 import type { CardService } from "../card";
 import type { ModelCardRaw } from "@/types/model/cards";
 import type { ModelCardPackCardsWitCardDetails } from "@/types/model/cardPack";
-import { isAttackWithinTime, validateGameEvent } from "./General";
+import { isAttackWithinTime, toImageLink, validateGameEvent } from "./General";
 
 export class GameProcessLogic {
   constructor(protected storage: DurableObjectStorage){}
@@ -73,6 +73,11 @@ export class GameProcessLogic {
           throw new Error('Failed to fetch card pack details');
         }
         cardsInPack = cardsInDeckResult.data;
+        // add image link
+        for(let card of cardsInPack){
+          card.card_art = toImageLink(card.card_art);
+        }
+
         // Store in cache
         fetchedCardsCache.set(cardPack.id, cardsInPack);
       }
