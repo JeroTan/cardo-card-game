@@ -1,5 +1,12 @@
 import type { GameState, GameStateClient, TurnEvent } from "@/types/game/events";
-import { PUBLIC_APP_URL } from "astro:env/client";
+
+// Import PUBLIC_APP_URL with fallback for test environment
+let PUBLIC_APP_URL: string;
+try {
+  PUBLIC_APP_URL = await import("astro:env/client").then(m => m.PUBLIC_APP_URL);
+} catch {
+  PUBLIC_APP_URL = process.env.PUBLIC_APP_URL || "http://localhost:4321";
+}
 
 export function generateRoomId(length = 8){
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -176,6 +183,12 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
       return { valid: false, error: "Sentinel owner cannot attack their own sentinel", event: receiveEvent };
     }
 
+    // If no sentinel exists in the field, any attack is valid (first turn scenario)
+    // The attacking cards will become the sentinel via CHANGE_SENTINEL
+    if (!lastSentinelEvent) {
+      return { valid: true, event: receiveEvent };
+    }
+
     // Calculate total ATK of attacking cards
     const totalATK = card_used.reduce((sum, card) => sum + (card.atk || 0), 0);
 
@@ -183,7 +196,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     const isSingleZero = card_used.length === 1 && card_used[0].atk === 0;
 
     // Get current sentinel DEF
-    if (lastSentinelEvent && 'new_sentinel' in lastSentinelEvent) {
+    if ('new_sentinel' in lastSentinelEvent) {
       const currentSentinel = lastSentinelEvent.new_sentinel;
       const totalDEF = currentSentinel.reduce((sum, card) => sum + (card.def || 0), 0);
 
@@ -316,6 +329,20 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
       const lastSentinelEventBeforeTurn = [...eventsBeforeLastTurn].reverse().find(e => e.type === "CHANGE_SENTINEL");
       const isSentinelOwner = lastSentinelEventBeforeTurn && 'playerId' in lastSentinelEventBeforeTurn && lastSentinelEventBeforeTurn.playerId === lastStartTurn.playerId;
 
+      // Check if this was the first START_TURN (no sentinel existed before it)
+      const wasFirstTurn = !lastSentinelEventBeforeTurn;
+      const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
+      
+      if (wasFirstTurn) {
+        // First turn player MUST attack and establish a sentinel
+        const hasAttacking = eventsSinceLastTurn.some(e => e.type === "ATTACKING");
+        const hasChangeSentinel = eventsSinceLastTurn.some(e => e.type === "CHANGE_SENTINEL");
+        
+        if (!hasAttacking || !hasChangeSentinel) {
+          return { valid: false, error: "First turn player must ATTACK and CHANGE_SENTINEL to establish a sentinel", event: receiveEvent };
+        }
+      }
+
       if (isSentinelOwner) {
         // Sentinel owner can skip their turn (START_TURN can follow START_TURN)
         const validPreviousTypes = ["STARTING_CARDS", "START_TURN", "PLAYER_LOSE"];
@@ -324,9 +351,6 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
         }
       } else {
         // Non-sentinel player must have either ATTACKING or DRAW_CARD in their turn
-        // Get all events since the last START_TURN (reuse lastStartTurnIndex from above)
-        const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
-        
         const hasAttacking = eventsSinceLastTurn.some(e => e.type === "ATTACKING");
         const hasDrawCard = eventsSinceLastTurn.some(e => e.type === "DRAW_CARD");
         const hasChangeSentinel = eventsSinceLastTurn.some(e => e.type === "CHANGE_SENTINEL");

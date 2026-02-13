@@ -446,6 +446,26 @@ describe("validateGameEvent", () => {
       expect(result.valid).toBe(false);
       expect(result.error).toBe("Zero card cannot defeat a zero-only sentinel");
     });
+
+    it("should accept first turn attack without sentinel (becomes sentinel)", () => {
+      const roomState = createMockRoomState([
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
+      ]);
+      const event: TurnEvent = {
+        type: "ATTACKING",
+        playerId: "player1",
+        card_used: [
+          { id: "1", name: "Card", atk: 3, def: 2, card_art: "" },
+          { id: "2", name: "Card", atk: 4, def: 5, card_art: "" },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      const result = validateGameEvent(event, roomState);
+      expect(result.valid).toBe(true);
+    });
   });
 
   describe("Rule 9: CHANGE_SENTINEL validation", () => {
@@ -535,6 +555,19 @@ describe("validateGameEvent", () => {
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(false);
       expect(result.error).toBe("All players must have STARTING_CARDS before START_TURN");
+    });
+
+    it("should reject START_TURN if first turn player didn't establish sentinel", () => {
+      const roomState = createMockRoomState([
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
+      ]);
+      const event: TurnEvent = { type: "START_TURN", playerId: "player2", timestamp: new Date().toISOString() };
+      const result = validateGameEvent(event, roomState);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe("First turn player must ATTACK and CHANGE_SENTINEL to establish a sentinel");
     });
 
     it("should accept START_TURN after CHANGE_SENTINEL", () => {
