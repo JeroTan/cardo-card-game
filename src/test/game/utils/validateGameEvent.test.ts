@@ -321,27 +321,175 @@ describe("validateGameEvent", () => {
     });
   });
 
-  describe("Rule 8: ATTACKING validation", () => {
-    it("should accept valid attack with 1-3 cards", () => {
+  describe("Rule 8: REMOVE_FROM_HAND validation", () => {
+    it("should accept removing cards that are in player's hand", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
+      ]);
+      const cardsInHand = [
+        { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+        { id: "2", name: "Card", atk: 3, def: 7, card_art: "" },
+      ];
+      roomState.playerInfo[0].cardsInHand = cardsInHand;
+
+      const event: TurnEvent = {
+        type: "REMOVE_FROM_HAND",
+        playerId: "player1",
+        cards_removed: [cardsInHand[0]],
+        timestamp: new Date().toISOString(),
+      };
+      const result = validateGameEvent(event, roomState);
+      expect(result.valid).toBe(true);
+    });
+
+    it("should reject removing cards not in player's hand", () => {
+      const roomState = createMockRoomState([
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+      ]);
+      roomState.playerInfo[0].cardsInHand = [
+        { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+      ];
+
+      const event: TurnEvent = {
+        type: "REMOVE_FROM_HAND",
+        playerId: "player1",
+        cards_removed: [
+          { id: "2", name: "Card", atk: 3, def: 7, card_art: "" },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      const result = validateGameEvent(event, roomState);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Player does not have all cards in hand");
+    });
+
+    it("should reject removing cards for non-existent player", () => {
+      const roomState = createMockRoomState([
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+      ]);
+
+      const event: TurnEvent = {
+        type: "REMOVE_FROM_HAND",
+        playerId: "nonexistent",
+        cards_removed: [
+          { id: "1", name: "Card", atk: 5, def: 5, card_art: "" },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+      const result = validateGameEvent(event, roomState);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Player nonexistent not found");
+    });
+  });
+
+  describe("Rule 9: ATTACKING validation", () => {
+    it("should accept valid attack with REMOVE_FROM_HAND first", () => {
+      const attackCard = { id: "2", name: "Card", atk: 6, def: 4, card_art: "" };
+      const roomState = createMockRoomState([
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
+        {
+          type: "ATTACKING",
+          playerId: "player1",
+          card_used: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
+        },
         {
           type: "CHANGE_SENTINEL",
           playerId: "player1",
           new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
           timestamp: new Date().toISOString(),
         },
+        { type: "START_TURN", playerId: "player2", timestamp: new Date().toISOString() },
+        {
+          type: "REMOVE_FROM_HAND",
+          playerId: "player2",
+          cards_removed: [attackCard],
+          timestamp: new Date().toISOString(),
+        },
       ]);
+      roomState.playerInfo[1].cardsInHand = [attackCard];
+
       const event: TurnEvent = {
         type: "ATTACKING",
         playerId: "player2",
-        card_used: [
-          { id: "2", name: "Card", atk: 6, def: 4, card_art: "" },
-        ],
+        card_used: [attackCard],
         timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
       expect(result.valid).toBe(true);
+    });
+
+    it("should reject attack without REMOVE_FROM_HAND first", () => {
+      const roomState = createMockRoomState([
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
+        {
+          type: "ATTACKING",
+          playerId: "player1",
+          card_used: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          type: "CHANGE_SENTINEL",
+          playerId: "player1",
+          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
+        },
+        { type: "START_TURN", playerId: "player2", timestamp: new Date().toISOString() },
+      ]);
+
+      const event: TurnEvent = {
+        type: "ATTACKING",
+        playerId: "player2",
+        card_used: [{ id: "2", name: "Card", atk: 6, def: 4, card_art: "" }],
+        timestamp: new Date().toISOString(),
+      };
+      const result = validateGameEvent(event, roomState);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe("ATTACKING must be preceded by REMOVE_FROM_HAND in the same turn");
+    });
+
+    it("should reject attack if cards weren't removed from hand", () => {
+      const roomState = createMockRoomState([
+        { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
+        {
+          type: "ATTACKING",
+          playerId: "player1",
+          card_used: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          type: "CHANGE_SENTINEL",
+          playerId: "player1",
+          new_sentinel: [{ id: "1", name: "Card", atk: 5, def: 5, card_art: "" }],
+          timestamp: new Date().toISOString(),
+        },
+        { type: "START_TURN", playerId: "player2", timestamp: new Date().toISOString() },
+        {
+          type: "REMOVE_FROM_HAND",
+          playerId: "player2",
+          cards_removed: [{ id: "3", name: "Different Card", atk: 2, def: 3, card_art: "" }],
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+      const event: TurnEvent = {
+        type: "ATTACKING",
+        playerId: "player2",
+        card_used: [{ id: "2", name: "Card", atk: 6, def: 4, card_art: "" }],
+        timestamp: new Date().toISOString(),
+      };
+      const result = validateGameEvent(event, roomState);
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe("Cards used for ATTACKING must have been removed from hand first");
     });
 
     it("should reject attack with more than 3 cards", () => {
@@ -448,19 +596,28 @@ describe("validateGameEvent", () => {
     });
 
     it("should accept first turn attack without sentinel (becomes sentinel)", () => {
+      const attackCards = [
+        { id: "1", name: "Card", atk: 3, def: 2, card_art: "" },
+        { id: "2", name: "Card", atk: 4, def: 5, card_art: "" },
+      ];
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
         { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
         { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
         { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
+        {
+          type: "REMOVE_FROM_HAND",
+          playerId: "player1",
+          cards_removed: attackCards,
+          timestamp: new Date().toISOString(),
+        },
       ]);
+      roomState.playerInfo[0].cardsInHand = attackCards;
+
       const event: TurnEvent = {
         type: "ATTACKING",
         playerId: "player1",
-        card_used: [
-          { id: "1", name: "Card", atk: 3, def: 2, card_art: "" },
-          { id: "2", name: "Card", atk: 4, def: 5, card_art: "" },
-        ],
+        card_used: attackCards,
         timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
@@ -468,7 +625,7 @@ describe("validateGameEvent", () => {
     });
   });
 
-  describe("Rule 9: CHANGE_SENTINEL validation", () => {
+  describe("Rule 10: CHANGE_SENTINEL validation", () => {
     it("should accept CHANGE_SENTINEL after ATTACKING", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
@@ -526,7 +683,7 @@ describe("validateGameEvent", () => {
     });
   });
 
-  describe("Rule 10: START_TURN validation", () => {
+  describe("Rule 11: START_TURN validation", () => {
     it("should accept START_TURN after all STARTING_CARDS", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },

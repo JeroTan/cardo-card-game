@@ -18,7 +18,9 @@ export function EngineController(){
 function Composer(){
   const context = useGameEventContext();
   const gameStateData = context.gameStateData!;
-  const mainPlayer = getMainPlayer(gameStateData);
+  const mainPlayer = useMemo(()=>{
+    return getMainPlayer(gameStateData);
+  }, [gameStateData.playerInfo]);
 
   const currentActivePlayerId = useMemo(()=>{
     const activeEvent = [...gameStateData.events].reverse().find((event)=>{
@@ -32,7 +34,6 @@ function Composer(){
     const activeEvent = [...gameStateData.events].reverse().find((event)=>{
       return event.type === "START_TURN";
     });
-    console.log("Calculating turn remaining time, active event: ", activeEvent);
     if(!activeEvent) return 1;
     const elapsed = (Date.now() - new Date(activeEvent.timestamp).getTime()) / 1000;  
     const totalTurnTime = 60; // Assume each turn has a total time of 60 seconds
@@ -49,6 +50,14 @@ function Composer(){
     return currentTurnEvents.new_sentinel;
   }, [gameStateData.events]);
 
+  const sentinelOwner = useMemo(()=>{
+    const currentTurnEvents = gameStateData.events.reverse().find((event)=>{
+      return event.type === "CHANGE_SENTINEL";
+    });
+    if(!currentTurnEvents) return null;
+    return currentTurnEvents.playerId;
+  }, [gameStateData.events]);
+
 
   useEffectOnce(()=>{
     const ws = context.ws!;
@@ -60,23 +69,23 @@ function Composer(){
         context.appendTurnEvent(newEvent);
 
         // For removing cards in the hand of opponents
-        if(newEvent.type == "ATTACKING"){
+        if(newEvent.type == "REMOVE_FROM_HAND"){
           context.setGameStateData((prev)=>{
             if(!prev) return prev;
             const newData = {...prev!};
             const playerInfoIndex =newData.playerInfo.findIndex((info)=>info.id === newEvent.playerId);
             if(playerInfoIndex === -1) return prev;
             const player = newData.playerInfo[playerInfoIndex];
-
+            
             if(player.id === mainPlayer.id){
               newData.playerInfo[playerInfoIndex] = {
                 ...player,
-                cardsInHand: (player.cardsInHand as GameCard[]).filter((card)=>!newEvent.card_used.some((usedCard)=>usedCard.id === card.id)), // For the main player, we know the specific cards in hand, so we can filter them out
+                cardsInHand: (player.cardsInHand as GameCard[]).filter((card)=>!(newEvent.cards_removed as GameCard[]).some((usedCard)=>usedCard.id === card.id)), // For the main player, we know the specific cards in hand, so we can filter them out
               }
             }else{
               newData.playerInfo[playerInfoIndex] = {
                 ...player,
-                cardsInHand: player.cardsInHand as number - newEvent.card_used.length, // For other players, we only know the number of cards in hand, not the specific cards
+                cardsInHand: (player.cardsInHand as number) - (newEvent.cards_removed as number), // For other players, we only know the number of cards in hand, not the specific cards
               }
             }
 
@@ -155,6 +164,7 @@ function Composer(){
         })}
         turnRemainingTime={turnRemainingTime}
         sentinelCards={currentSentinelCard}
+        sentinelOwner={sentinelOwner}
       />
     </TurnBaseContextProvider>
   </>

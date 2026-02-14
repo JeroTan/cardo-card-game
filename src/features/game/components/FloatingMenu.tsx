@@ -8,11 +8,13 @@ export default function FloatingMenu({
   graphicRef = null!,
   fill = 0x1a1a1a,
   padding = 12,
+  onPointerLeave,
 }:{
   children?: React.ReactNode,
   graphicRef: Container|Sprite|null|Graphics,
   fill?: number,
   padding?: number,
+  onPointerLeave?: (graphic: Container|Sprite|Graphics)=>void,
 }){
   const [, scaleConstant] = useAppWithScaleConstant();
   const thisRef = useRef<Container|null>(null);
@@ -67,6 +69,7 @@ export default function FloatingMenu({
 
   return <pixiContainer
     ref={thisRef}
+    onPointerLeave={()=>onPointerLeave?.(thisRef.current!)}
   >
     <pixiGraphics draw={drawBackground} />
     <pixiContainer ref={contentRef}>

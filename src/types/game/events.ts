@@ -39,6 +39,7 @@ export const eventTypes = [
   "STARTING_CARDS",
   "START_TURN",
   "ATTACKING",
+  "REMOVE_FROM_HAND",
   "CHANGE_SENTINEL",
   "DRAW_CARD",
   "JAIL_CARD",
@@ -63,6 +64,10 @@ export type TurnEvent = {
 }|{
   readonly type: "ATTACKING",
   card_used: Array<GameCard>,
+  playerId: string,
+}|{
+  readonly type: "REMOVE_FROM_HAND",
+  cards_removed: Array<GameCard>|number,
   playerId: string,
 }|{
   readonly type: "CHANGE_SENTINEL",

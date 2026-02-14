@@ -374,15 +374,6 @@ export class GameProcessLogic {
     const updatedGameState: GameState = {
       ...gameState,
       events: [...gameState.events, newEventResult.event],
-      playerInfo: gameState.playerInfo.map((p, index)=>{
-        if(index === playerIndex){
-          return {
-            ...p,
-            cardsInHand: p.cardsInHand.filter(card=>!attackingCardIds.includes(card.id)),
-          }
-        }
-        return p;
-      }),
     };
     await this.storage.put(`game__${roomId}`, updatedGameState);
     return {ok: true, message: "Attack successful", gameState: updatedGameState, nextEvent: newEventResult.event} as const;
@@ -446,13 +437,7 @@ export class GameProcessLogic {
     if(playerIndex === -1){
       return {ok: false, message: "Current player not found in the game", gameState, nextEvent: null} as const;
     }
-    const player = playerInfo[playerIndex];
-    // Check if the player has the cards to be jailed in their hand or in their deck, if not then it's an invalid event
-    const playerCards = [...player.cardsInHand, ...player.cardsInDeck];
-    const hasAllCardsToJail = cardsToRemove.every(cardToJail=>playerCards.some(playerCard=>playerCard.id === cardToJail.id));
-    if(!hasAllCardsToJail){
-      return {ok: false, message: "Player does not have all the cards to be jailed", gameState, nextEvent: null} as const;
-    }
+    
     const newEventResult = validateGameEvent({
       type: "JAIL_CARD",
       playerId: currentPlayerId,
@@ -470,8 +455,6 @@ export class GameProcessLogic {
         if(index === playerIndex){
           return {
             ...p,
-            cardsInHand: p.cardsInHand.filter(card=>!cardsToRemove.some(cardToRemove=>cardToRemove.id === card.id)),
-            cardsInDeck: p.cardsInDeck.filter(card=>!cardsToRemove.some(cardToRemove=>cardToRemove.id === card.id)),
             jailedCards: [...p.jailedCards, ...cardsToRemove],
           }
         }
@@ -527,7 +510,64 @@ export class GameProcessLogic {
     await this.storage.put(`game__${roomId}`, updatedGameState);
     return {ok: true, message: "Cards jailed successfully", gameState: updatedGameState, nextEvent: nextEventResult.event} as const;
   }
+
+  async removeFromHand({roomId, cardsToRemove}: {roomId: string, cardsToRemove: string[]}){
+    const gameState = await this.getGameState(roomId);
+    if(!gameState){
+      return {ok: false, message: "Game not found", code:"NOT_FOUND", gameState: null, nextEvent: null} as const;
+    }
+    const playerInfo =  gameState.playerInfo;
+    if(playerInfo.length === 0){
+      return {ok: false, message: "No players in the game", code:"NO_PLAYERS", gameState, nextEvent: null} as const;
+    }
+
+    // Get the last START_TURN event to determine the current player
+    const lastStartTurnEvent = [...gameState.events].reverse().find(event=>event.type === "START_TURN") as TurnEvent | undefined;
+    if(!lastStartTurnEvent || lastStartTurnEvent.type !== "START_TURN"){
+      return {ok: false, message: "No START_TURN event found, cannot determine current player", code:"NO_CURRENT_PLAYER", gameState, nextEvent: null} as const;
+    }
+
+    const currentPlayerId = lastStartTurnEvent.playerId;
+    const playerIndex = playerInfo.findIndex(player=>player.id === currentPlayerId);
+    if(playerIndex === -1){
+      return {ok: false, message: "Current player not found in the game", code:"CURRENT_PLAYER_NOT_FOUND", gameState, nextEvent: null} as const;
+    }
+
+    // Get the cards from player's hand that match the cardsToRemove
+    const player = playerInfo[playerIndex];
+    const cardsInHand = player.cardsInHand;
+    const cardsToActuallyRemove = cardsInHand.filter(card=>cardsToRemove.includes(card.id));
+
+    const removeFromHandResult = validateGameEvent({
+      type: "REMOVE_FROM_HAND",
+      playerId: currentPlayerId,
+      cards_removed: cardsToActuallyRemove,
+      timestamp: new Date().toISOString(),
+    }, gameState);
+
+    if(!removeFromHandResult.valid){
+      return {ok: false, message: `Invalid game event: ${removeFromHandResult.error}`, code:"INVALID_GAME_EVENT", gameState, nextEvent: null} as const;
+    }
+
+    const updatedGameState: GameState = {
+      ...gameState,
+      events: [...gameState.events, removeFromHandResult.event],
+      playerInfo: gameState.playerInfo.map((p, index)=>{
+        if(index === playerIndex){
+          return {
+            ...p,
+            cardsInHand: p.cardsInHand.filter(card=>!cardsToActuallyRemove.some(removedCard=>removedCard.id === card.id)),
+          }
+        }
+        return p;
+      }),
+    };
+    await this.storage.put(`game__${roomId}`, updatedGameState);
+    return {ok: true, message: "Cards removed from hand successfully", gameState: updatedGameState, nextEvent: removeFromHandResult.event} as const;
+  }
+  //
 }
+
 
 function drawCardFromDeck({cardsInDeck, cardsToDraw}:{cardsInDeck: GameCard[], cardsToDraw: number}){
   const drawnCards = cardsInDeck.slice(0, cardsToDraw);

@@ -1,8 +1,21 @@
 import { Circle } from "pixi.js";
 import { makeCoordinatesCenter, useAppWithScaleConstant } from "../utils/Math";
+import { useMemo } from "react";
 
-export default function Board(){
+export default function Board({
+  centerStatus = "NEUTRAL"
+}:{
+  centerStatus?: "NEUTRAL" | "OPPONENT" | "MAIN_PLAYER",
+}){
   const [app, scaleConstant] = useAppWithScaleConstant();
+
+  const centerBoardColor = useMemo(()=>{
+    switch(centerStatus){
+      case "NEUTRAL": return 0x8C8C8C;
+      case "OPPONENT": return 0xFF3333;
+      case "MAIN_PLAYER": return 0x4DCAFF;
+    }
+  }, [centerStatus]);
 
   return <>
     <pixiGraphics
@@ -23,10 +36,10 @@ export default function Board(){
         // Inner highlight/glow effect
         graphics.roundRect(rectX + 4, rectY + 4, rectWidth - 8, rectHeight - 8, cornerRadius - 4);
         graphics.stroke({ width: scaleConstant * 2, color: 0x3A3C42, alpha: 0.5 });
-        // Circle with gradient
+        // Circle
         const circle = new Circle((1920 * scaleConstant) / 2, (1080 * scaleConstant) / 2, scaleConstant * 100);    
         graphics.circle(circle.x, circle.y, circle.radius);
-        graphics.stroke({ width: scaleConstant*5, color: 0x4DCAFF });
+        graphics.stroke({ width: scaleConstant*5, color: centerBoardColor });
 
         // Horizontal line extensions (only outside the circle)
         const lineExtension = circle.radius * 0.90; // 90% extension
@@ -34,12 +47,12 @@ export default function Board(){
         // Left side extension
         graphics.moveTo(circle.x - circle.radius - lineExtension, circle.y);
         graphics.lineTo(circle.x - circle.radius, circle.y);
-        graphics.stroke({ width: scaleConstant * 5, color: 0x4DCAFF });
+        graphics.stroke({ width: scaleConstant * 5, color: centerBoardColor });
         
         // Right side extension
         graphics.moveTo(circle.x + circle.radius, circle.y);
         graphics.lineTo(circle.x + circle.radius + lineExtension, circle.y);
-        graphics.stroke({ width: scaleConstant * 5, color: 0x4DCAFF });
+        graphics.stroke({ width: scaleConstant * 5, color: centerBoardColor });
         
       }}
     />

@@ -46,6 +46,7 @@ export type GameEngineProps = {
     totalTurnsPassed: number,
   }>;
   sentinelCards: Array<GameCard>,
+  sentinelOwner: string|null,
   turnRemainingTime: number, // in seconds
 }
 
@@ -76,6 +77,7 @@ function Composer({
   players,
   turnRemainingTime,
   sentinelCards,
+  sentinelOwner,
 }: GameEngineProps){
   const mainPlayer = useMemo(()=>{
     return players.find((p)=>p.playerId === mainPlayerId)!;
@@ -106,7 +108,7 @@ function Composer({
     // If not do nothing and keep the current other player to show in screen, which is either the one with most cards in hand or the one manually selected by player
   }, [currentActivePlayer, getOtherPlayers]);
 
-
+  // Timer for active player turn
   const ticker =  useRef<Ticker>(new Ticker());
   useEffect(()=>{
     if(turnRemainingTime <= 1){
@@ -137,6 +139,14 @@ function Composer({
     }
   }, [turnRemainingTime]);
 
+  console.log("opponent to show in screen", currentOpponentToShow);
+
+  const centerStatus = useMemo(()=>{
+    if(sentinelOwner === null) return "NEUTRAL";
+    if(sentinelOwner === mainPlayerId) return "MAIN_PLAYER";
+    return "OPPONENT";
+  }, [sentinelOwner, mainPlayerId]);
+
 
   
   const [app, scaleConstant] = useAppWithScaleConstant();
@@ -144,7 +154,9 @@ function Composer({
   const {changeNote, tipNote} = useTipNoteContext();
   const {makeModal, openModal, closeModal} = useModal();
   return <>
-    <Board />
+    <Board
+      centerStatus={centerStatus}
+    />
     <DefendingStat 
       x={ -350 }
       y={-80}
@@ -300,7 +312,7 @@ function Composer({
     </>}
 
     {/** Sentinel Center */}
-    {locateCardXFromCenter({
+    {sentinelOwner && locateCardXFromCenter({
       howMany: sentinelCards.length,
       gap: 50,
       midCoordinates: 0,

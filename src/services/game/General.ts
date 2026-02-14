@@ -35,7 +35,34 @@ export function convertRoomStateForClient(serverState: GameState, showCardsInHan
         turnCount: player.turnCount,
         timeLeft: player.timeLeft,
       })),
-    events: serverState.events,
+    events: serverState.events.map((event)=>{
+      // Hide card details from other players, only show counts
+      if (event.type === "STARTING_CARDS") {
+        return {
+          ...event,
+          cardsInHand: event.playerId === showCardsInHandForPlayerId 
+            ? event.cardsInHand 
+            : (Array.isArray(event.cardsInHand) ? event.cardsInHand.length : event.cardsInHand)
+        };
+      }
+      if (event.type === "DRAW_CARD") {
+        return {
+          ...event,
+          drawn_cards: event.playerId === showCardsInHandForPlayerId 
+            ? event.drawn_cards 
+            : (Array.isArray(event.drawn_cards) ? event.drawn_cards.length : event.drawn_cards)
+        };
+      }
+      if (event.type === "REMOVE_FROM_HAND") {
+        return {
+          ...event,
+          cards_removed: event.playerId === showCardsInHandForPlayerId 
+            ? event.cards_removed 
+            : (Array.isArray(event.cards_removed) ? event.cards_removed.length : event.cards_removed)
+        };
+      }
+      return event;
+    }),
     createdAt: serverState.createdAt,
     status: serverState.status,
   };
@@ -163,7 +190,33 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 8: ATTACKING validation
+  // Rule 8: REMOVE_FROM_HAND validation
+  if (receiveEvent.type === "REMOVE_FROM_HAND") {
+    const { cards_removed, playerId } = receiveEvent;
+
+    // Server always expects CardGame[] for validation
+    if (!Array.isArray(cards_removed)) {
+      return { valid: false, error: "cards_removed must be an array", event: receiveEvent };
+    }
+
+    // Check if player exists
+    const player = playerInfo.find(p => p.id === playerId);
+    if (!player) {
+      return { valid: false, error: `Player ${playerId} not found`, event: receiveEvent };
+    }
+
+    // Check if player has all the cards being removed in their hand
+    const playerCardIds = player.cardsInHand.map(card => card.id);
+    const missingCards = cards_removed.filter(card => !playerCardIds.includes(card.id));
+    
+    if (missingCards.length > 0) {
+      return { valid: false, error: `Player does not have all cards in hand. Missing: ${missingCards.map(c => c.id).join(', ')}`, event: receiveEvent };
+    }
+
+    return { valid: true, event: receiveEvent };
+  }
+
+  // Rule 9: ATTACKING validation
   if (receiveEvent.type === "ATTACKING") {
     const { card_used, playerId } = receiveEvent;
     
@@ -221,19 +274,13 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 9: CHANGE_SENTINEL validation
+  // Rule 10: CHANGE_SENTINEL validation
   if (receiveEvent.type === "CHANGE_SENTINEL") {
     const { new_sentinel, playerId } = receiveEvent;
     
     // Sentinel must have 1-3 cards
     if (new_sentinel.length > 3 || new_sentinel.length < 1) {
       return { valid: false, error: "Sentinel must contain 1-3 cards", event: receiveEvent };
-    }
-
-    // CHANGE_SENTINEL should come after ATTACKING
-    const lastEvent = events[events.length - 1];
-    if (lastEvent.type !== "ATTACKING") {
-      return { valid: false, error: "CHANGE_SENTINEL must come after ATTACKING", event: receiveEvent };
     }
 
     const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
@@ -278,7 +325,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     return { valid: true, event: receiveEvent };
   }
 
-  // Rule 10: START_TURN validation
+  // Rule 11: START_TURN validation
   if (receiveEvent.type === "START_TURN") {
     const lastEvent = events[events.length - 1];
     
@@ -369,21 +416,6 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
         // If ATTACKING is present, CHANGE_SENTINEL must also be present
         if (hasAttacking && !hasChangeSentinel) {
           return { valid: false, error: "CHANGE_SENTINEL must follow ATTACKING", event: receiveEvent };
-        }
-
-        // Valid previous events based on actions taken
-        if (hasDrawCard) {
-          // Once DRAW_CARD happens, it must be the last action before START_TURN
-          const validPreviousTypes = ["DRAW_CARD", "PLAYER_LOSE"];
-          if (!validPreviousTypes.includes(lastEvent.type)) {
-            return { valid: false, error: `After DRAW_CARD, START_TURN can only follow DRAW_CARD or PLAYER_LOSE`, event: receiveEvent };
-          }
-        } else if (hasAttacking) {
-          // After ATTACKING sequence, valid endings are CHANGE_SENTINEL or DRAW_CARD
-          const validPreviousTypes = ["CHANGE_SENTINEL", "DRAW_CARD", "JAIL_CARD", "PLAYER_LOSE"];
-          if (!validPreviousTypes.includes(lastEvent.type)) {
-            return { valid: false, error: `After ATTACKING, START_TURN can only follow ${validPreviousTypes.join(", ")}`, event: receiveEvent };
-          }
         }
       }
     } else {
