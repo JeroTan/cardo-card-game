@@ -225,12 +225,6 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
   if (receiveEvent.type === "CHANGE_SENTINEL") {
     const { new_sentinel, playerId } = receiveEvent;
     
-    // Sentinel owner cannot change sentinel (they already own it)
-    const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
-    if (lastSentinelEvent && 'playerId' in lastSentinelEvent && lastSentinelEvent.playerId === playerId) {
-      return { valid: false, error: "Sentinel owner cannot change their own sentinel", event: receiveEvent };
-    }
-    
     // Sentinel must have 1-3 cards
     if (new_sentinel.length > 3 || new_sentinel.length < 1) {
       return { valid: false, error: "Sentinel must contain 1-3 cards", event: receiveEvent };
@@ -240,6 +234,18 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     const lastEvent = events[events.length - 1];
     if (lastEvent.type !== "ATTACKING") {
       return { valid: false, error: "CHANGE_SENTINEL must come after ATTACKING", event: receiveEvent };
+    }
+
+    const lastSentinelEvent = [...events].reverse().find(e => e.type === "CHANGE_SENTINEL");
+    const startTurnCount = events.filter(e => e.type === "START_TURN").length;
+    const isFirstTurn = startTurnCount === 1 && !lastSentinelEvent;
+    
+    // First turn: skip sentinel owner validation (allow establishing initial sentinel)
+    if (!isFirstTurn) {
+      // Sentinel owner cannot change their own sentinel
+      if (lastSentinelEvent && 'playerId' in lastSentinelEvent && lastSentinelEvent.playerId === playerId) {
+        return { valid: false, error: "Sentinel owner cannot change their own sentinel", event: receiveEvent };
+      }
     }
 
     // In the same turn, CHANGE_SENTINEL cards must match ATTACKING cards
@@ -409,6 +415,27 @@ export function isAttackWithinTime(serverState: GameState, interval = 1000*60) {
   
   const elapsedTime = Date.now() - Number(lastStartTurn.timestamp);
   return elapsedTime <= interval;
+}
+
+export function getCurrentPlayer(gameState: GameState) {
+  const events = gameState.events;
+  const lastStartTurn = events.slice().reverse().find(e => e.type === 'START_TURN');
+  if (!lastStartTurn || !('playerId' in lastStartTurn)) {
+    throw new Error("No START_TURN event found or START_TURN missing playerId");
+  }
+  const playerId = lastStartTurn.playerId;
+  const playerInfo = gameState.playerInfo.find(p => p.id === playerId);
+  if(!playerInfo){
+    throw new Error(`Player with id ${playerId} not found in playerInfo`);
+  }
+  return playerInfo;
+}
+
+export function checkIfFirstTurnAndNoSentinelYet (serverState: GameState) {
+  const events = serverState.events;
+  const startTurnCount = events.filter(e => e.type === "START_TURN").length;
+  const hasSentinelBeenEstablished = events.some(e => e.type === "CHANGE_SENTINEL");
+  return startTurnCount === 1 && !hasSentinelBeenEstablished;
 }
 
 /**

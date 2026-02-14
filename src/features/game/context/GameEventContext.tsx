@@ -1,6 +1,6 @@
 import type { GameStateClient, PlayerGameInfoClient, TurnEvent } from "@/types/game/events";
 import { WebSocketNative } from "@jsarmyknife/native--http";
-import { createContext, useCallback, useContext, useRef, useState, type PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useRef, useState, type Dispatch, type PropsWithChildren, type SetStateAction } from "react";
 
 
 export type GameEventContextType = {
@@ -8,7 +8,7 @@ export type GameEventContextType = {
   ws: WebSocketNative | null,
   setWS: (ws: WebSocketNative)=>void,
   gameStateData: GameStateClient | null,
-  setGameStateData: (data: GameStateClient)=>void,
+  setGameStateData: Dispatch<SetStateAction<GameStateClient | null>>,
   appendTurnEvent: (event: TurnEvent)=>void,
   updatePlayerInfo?: (params:{
     playerId: string,
@@ -27,10 +27,6 @@ export function GameEventContextProvider({children, roomId=""}:PropsWithChildren
   const [gameIsReady, setGameIsReady] = useState(false);  
   const updateWS = useCallback((newWS: WebSocketNative)=>{
     ws.current = newWS;
-  }, []);
-
-  const updateGameStateData = useCallback((newData: GameStateClient)=>{
-    setGameStateData(newData);
   }, []);
 
   const appendTurnEvent = useCallback((newEvent: TurnEvent)=>{
@@ -69,7 +65,7 @@ export function GameEventContextProvider({children, roomId=""}:PropsWithChildren
     ws: ws.current,
     setWS: updateWS,
     gameStateData,
-    setGameStateData: updateGameStateData,
+    setGameStateData: setGameStateData,
     appendTurnEvent,
     updatePlayerInfo,
     gameIsReady,

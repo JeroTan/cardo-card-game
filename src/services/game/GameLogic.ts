@@ -83,7 +83,11 @@ export class GameProcessLogic {
       }
 
       // Shuffle the cards
-      const shuffledCards = cardsInPack.sort(() => 0.5 - Math.random());
+      const cardsInPackUnique = cardsInPack.map((card, index)=>({
+        ...card,
+        id: `${card.id}__${index}__${Date.now()}`, // Make sure each card has a unique ID by appending index and timestamp
+      }))
+      const shuffledCards = cardsInPackUnique.sort(() => 0.5 - Math.random());
       const cardsInDeck: GameCard[] = shuffledCards.map(cards=>{
         return {
           id: cards.id,
@@ -249,14 +253,34 @@ export class GameProcessLogic {
 
     // Determine the next player to start the turn
     const lastStartTurnEvent = [...gameState.events].reverse().find(event=>event.type === "START_TURN") as TurnEvent | undefined;
-    let playerIdToStartTheTurn = playerInfo[0].id; // default to the first player
+    
+    // Get all players who have lost
+    const lostPlayerIds = new Set(
+      gameState.events
+        .filter((event): event is TurnEvent & {type: "PLAYER_LOSE"} => event.type === "PLAYER_LOSE")
+        .map(event => event.playerId)
+    );
+    
+    let playerIdToStartTheTurn: string;
+    
     if(lastStartTurnEvent && lastStartTurnEvent.type === "START_TURN"){
       const currentPlayerId = lastStartTurnEvent.playerId;
       const currentPlayerIndex = playerInfo.findIndex(player=>player.id === currentPlayerId);
       if(currentPlayerIndex !== -1){
-        const nextPlayerIndex = (currentPlayerIndex + 1) % playerInfo.length;
+        // Find the next player who hasn't lost
+        let nextPlayerIndex = (currentPlayerIndex + 1) % playerInfo.length;
+        let attempts = 0;
+        while(lostPlayerIds.has(playerInfo[nextPlayerIndex].id) && attempts < playerInfo.length){
+          nextPlayerIndex = (nextPlayerIndex + 1) % playerInfo.length;
+          attempts++;
+        }
         playerIdToStartTheTurn = playerInfo[nextPlayerIndex].id;
+      } else {
+        playerIdToStartTheTurn = playerInfo[0].id;
       }
+    } else {
+      // First turn - just use the first player (no one has lost yet)
+      playerIdToStartTheTurn = playerInfo[0].id;
     }
 
     const newEventResult = validateGameEvent({
@@ -311,8 +335,7 @@ export class GameProcessLogic {
     return {ok: true, message: "Game is ready to start", gameState, nextEvent: null} as const;
   }
 
-
-  async attackWithCards({roomId, playerId, attackingCardIds}: {roomId: string, playerId: string, attackingCardIds: string[]}){
+  async attackWithCards({roomId, playerId, attackingCardIds, forceOutOfTime = false}: {roomId: string, playerId: string, attackingCardIds: string[], forceOutOfTime?: boolean}){
     // For this we need to check if the attacking cards are in the player's hand, if not then it's an invalid event
     const gameState = await this.getGameState(roomId);
     if(!gameState){
@@ -333,7 +356,7 @@ export class GameProcessLogic {
     }
 
     // Check if attack is within turn time limit (60 seconds from START_TURN)
-    if(!isAttackWithinTime(gameState)){
+    if(!isAttackWithinTime(gameState) && !forceOutOfTime){
       return {ok: false, message: "Attack must be made within 60 seconds of turn start", gameState, nextEvent: null} as const;
     }
 

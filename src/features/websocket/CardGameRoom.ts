@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import type { GameCard, TurnEvent } from "@/types/game/events";
-import { cardsToRemoveFromOverflowHand, convertRoomStateForClient, howManyCardsToRemoveFromOverflowHand, isCurrentASentinel, isHandOverflow, isNotSentinelOwnerAllowedToEnd, validateGameEvent } from "@/services/game/General";
+import { cardsToRemoveFromOverflowHand, checkIfFirstTurnAndNoSentinelYet, getCurrentPlayer, isCurrentASentinel, isNotSentinelOwnerAllowedToEnd, validateGameEvent } from "@/services/game/General";
 import { RoomLogic } from "@/services/game/RoomLogic";
 import { cleanseDurableObjectStorage, convertMessageToJSON, makeWSServer } from "@/lib/durableObject";
 import type { WebsocketStatusForRoom } from "@/types/game/events";
@@ -158,6 +158,15 @@ export class CardGameRoom extends DurableObject {
 					console.log("Player status: ", isReadyReport.message);
 					return;
 				}
+
+				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+
+				allWS.forEach(([playerId, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "EVERYONE_READY",
+						message: "Everyone is ready. Starting the game...",
+					}));
+				});
 				
 				const startTurnResult = await this.gameProcessLogic.startTurn(roomId);
 				if(!startTurnResult.ok){
@@ -168,19 +177,15 @@ export class CardGameRoom extends DurableObject {
 					}));
 					return;
 				}
-				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+		
 				allWS.forEach(([playerId, playerWS])=>{
-					playerWS.send(JSON.stringify({
-						type: "EVERYONE_READY",
-						message: "Everyone is ready. Starting the game...",
-					}));
-
 					// Also Broadcast the starting event to all players to start the game
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
 						data: startTurnResult.nextEvent,
 					}));
 				});
+				this.__endTurnTimer();
 				break;
 			}
 			case "REQUEST_DRAW_CARD":{
@@ -362,6 +367,58 @@ export class CardGameRoom extends DurableObject {
 			console.error("No START_TURN event found in game state for roomId:", roomId);
 			return;
 		}
+
+		const firstTurn = checkIfFirstTurnAndNoSentinelYet(gameState);
+		if( firstTurn ){
+			const playerInfo = getCurrentPlayer(gameState);
+			const attackResult = await this.gameProcessLogic.attackWithCards({
+				roomId,
+				playerId: playerInfo.id,
+				attackingCardIds: [playerInfo.cardsInHand[0].id], 
+				forceOutOfTime: true,
+			})
+			if(!attackResult.ok){
+				console.error("Error forcing attack for first turn:", attackResult.message);
+				return;
+			}
+			const allWS = this.ctx.getWebSockets().map((ws)=>{
+				return [ws.deserializeAttachment().playerId, ws];
+			});
+			allWS.forEach(([, playerWS])=>{
+				playerWS.send(JSON.stringify({
+					type: "NEXT_EVENT",
+					data: attackResult.nextEvent,
+				}));
+			});
+
+			const changeSentinelResult = await this.gameProcessLogic.changeSentinel({roomId});
+			if(!changeSentinelResult.ok){
+				console.error("Error changing sentinel after forcing attack for first turn:", changeSentinelResult.message);
+				return;
+			}
+			allWS.forEach(([, playerWS])=>{
+				playerWS.send(JSON.stringify({
+					type: "NEXT_EVENT",
+					data: changeSentinelResult.nextEvent,
+				}));
+			});
+
+			const newTurnResult = await this.gameProcessLogic.startTurn(roomId);
+			if(!newTurnResult.ok){
+				console.error("Error starting new turn after forcing attack for first turn:", newTurnResult.message);
+				return;
+			}
+			allWS.forEach(([, playerWS])=>{
+				playerWS.send(JSON.stringify({
+					type: "NEXT_EVENT",
+					data: newTurnResult.nextEvent,
+				}));
+			});
+
+			this.__endTurnTimer();
+			return;
+		}
+
 		// Since his turn is over then we are the one who should end his turn but let's check also if he is a sentinel or not 
 		const isCurrentPlayerIsSentinel = isCurrentASentinel(gameState);
 

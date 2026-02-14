@@ -38,7 +38,7 @@ export function TurnInfo({
       />
 
       <pixiText
-        text={`Cards`}
+        text={`Deck`}
         style={makeFontStyle({
           fontWeight: "100",
           fontSize: (17+5) * scaleConstant,

@@ -1,20 +1,26 @@
 import { Assets, Container, Texture } from "pixi.js";
 import { useAppWithScaleConstant } from "../utils/Math";
-import { useEffect, useState, type Ref } from "react";
+import { useEffect, useMemo, useState, type Ref } from "react";
 
 export default function Card({
   horizontalOffset= 0, 
   verticalOffset= 0, 
   src,
   ref = null,
+  size = 10,
 }: {
   horizontalOffset?: number, 
   verticalOffset?: number, 
   src?: string
   ref?: Ref<Container|null>|null,
+  size?: number,
 })  {
   const [, scaleConstant] = useAppWithScaleConstant();
   const [texture, setTexture] = useState<Texture | null>(null);
+
+  const cumulativeScale = useMemo(()=>{
+    return (0.080 * (size / 10)) ? (0.080 * (size / 10)) : 0.080;
+  }, [size]) // Ensure size is applied to the scale 
 
   useEffect(() => {
     if(!src) return;
@@ -44,16 +50,15 @@ export default function Card({
         <pixiSprite 
           anchor={{x:0.5, y:0.5}}
           texture={texture}
-          width={((1920 * scaleConstant) * 0.080)}
-          height={((1920 * scaleConstant) * 0.080) * (3/2)}
+          width={((1920 * scaleConstant) * cumulativeScale)}
+          height={((1920 * scaleConstant) * cumulativeScale) * (3/2)}
         />
       ) : (
         <pixiGraphics
          draw={(graphics)=>{
           graphics.clear();
           // Create Card Container with 2:3 aspect ratio
-          const cardScale = 0.080; // Single parameter to adjust size (relative to canvas width)
-          const rectWidth = (1920 * scaleConstant) * cardScale;
+          const rectWidth = (1920 * scaleConstant) * cumulativeScale; // Base width scaled by cumulative scale
           const rectHeight = rectWidth * (3/2); // Height is 1.5x width for 2:3 ratio (width:height)
 
           const cornerRadius = 5; // Rounded corner radius

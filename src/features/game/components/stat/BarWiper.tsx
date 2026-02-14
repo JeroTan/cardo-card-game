@@ -57,13 +57,13 @@ export function BarWiper({
         const redG = (red >> 8) & 0xFF;
         const redB = red & 0xFF;
         
-        // Interpolate each channel separately using eased value
-        const r = Math.floor(easedWipeBorder * greenR + (1 - easedWipeBorder) * redR);
-        const g = Math.floor(easedWipeBorder * greenG + (1 - easedWipeBorder) * redG);
-        const b = Math.floor(easedWipeBorder * greenB + (1 - easedWipeBorder) * redB);
+        // Interpolate each channel separately using eased value and clamp to 0-255
+        const r = Math.max(0, Math.min(255, Math.floor(easedWipeBorder * greenR + (1 - easedWipeBorder) * redR)));
+        const g = Math.max(0, Math.min(255, Math.floor(easedWipeBorder * greenG + (1 - easedWipeBorder) * redG)));
+        const b = Math.max(0, Math.min(255, Math.floor(easedWipeBorder * greenB + (1 - easedWipeBorder) * redB)));
         
-        // Combine back to hex
-        const finalColor = (r << 16) | (g << 8) | b;
+        // Combine back to hex (ensure unsigned 24-bit value)
+        const finalColor = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
 
         // Calculate line width - starts from left (full width) and shrinks leftward (dissolves from right)
         const lineWidth = width * wipeBorder;

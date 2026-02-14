@@ -24,7 +24,7 @@ import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 import StaticGlow from "../components/StaticGlow";
 import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
-import { ModalContextProvider } from "../context/ModalContext";
+import { ModalContextProvider, useModal } from "../context/ModalContext";
 import { BarWiper } from "../components/stat/BarWiper";
 import type { GameCard, PlayerGameInfoClient } from "@/types/game/events";
 import { useUpdateEffect } from "react-use";
@@ -45,6 +45,7 @@ export type GameEngineProps = {
     totalHandCards: number,
     totalTurnsPassed: number,
   }>;
+  sentinelCards: Array<GameCard>,
   turnRemainingTime: number, // in seconds
 }
 
@@ -74,6 +75,7 @@ function Composer({
   playerEndTurn,
   players,
   turnRemainingTime,
+  sentinelCards,
 }: GameEngineProps){
   const mainPlayer = useMemo(()=>{
     return players.find((p)=>p.playerId === mainPlayerId)!;
@@ -90,7 +92,7 @@ function Composer({
   const [otherPlayerToShowInScreen, setOtherPlayerToShowInScreen] = useState(getOtherPlayers[0].playerId); // id of the opponent to show in screen, if empty, show the one with most cards in hand
   const currentOpponentToShow = useMemo(()=>{
     return getOtherPlayers.find((p)=>p.playerId === otherPlayerToShowInScreen) as GameEngineProps["players"][number];
-  }, [otherPlayerToShowInScreen]);
+  }, [otherPlayerToShowInScreen, players]);
 
   const [activeTimerCounter, setActiveTimerCounter] = useState<number>(turnRemainingTime);
 
@@ -104,21 +106,34 @@ function Composer({
     // If not do nothing and keep the current other player to show in screen, which is either the one with most cards in hand or the one manually selected by player
   }, [currentActivePlayer, getOtherPlayers]);
 
+
+  const ticker =  useRef<Ticker>(new Ticker());
   useEffect(()=>{
-    setActiveTimerCounter(turnRemainingTime);
-    if(turnRemainingTime <= 0) return;
-    const timer = setInterval(()=>{
-      setActiveTimerCounter((prev)=>{
-        if(prev <= 0){
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1/10;
-      })
-    }, 100);
+    if(turnRemainingTime <= 1){
+      setActiveTimerCounter(0);
+      return;
+    }
+
+    const endTime = Date.now() + (turnRemainingTime * 1000); // Convert seconds to milliseconds
     
+    const tickerCallback = () => {
+      const remaining = (endTime - Date.now()) / 1000; // Convert back to seconds
+
+      if(remaining <= 0){
+        setActiveTimerCounter(0);
+        ticker.current.stop();
+        return;
+      }
+
+      setActiveTimerCounter(remaining);
+    };
+
+    ticker.current.add(tickerCallback);
+    ticker.current.start();
+
     return ()=>{
-      clearInterval(timer)
+      ticker.current.remove(tickerCallback); // Remove this specific callback
+      ticker.current.stop();
     }
   }, [turnRemainingTime]);
 
@@ -127,19 +142,19 @@ function Composer({
   const [app, scaleConstant] = useAppWithScaleConstant();
   const {openFloatingMenu} = useFloatingMenuContext();
   const {changeNote, tipNote} = useTipNoteContext();
+  const {makeModal, openModal, closeModal} = useModal();
   return <>
     <Board />
+    <DefendingStat 
+      x={ -350 }
+      y={-80}
+      value={sentinelCards.length > 0 ? sentinelCards.reduce((acc, card) => acc + card.def, 0) : null}
+    />
     <AttackingStat 
       x={ 350 }
       y={80}
       value={null}
-      effects={"GLOWING_GREEN"}
-    />
-
-    <DefendingStat 
-      x={ -350 }
-      y={-80}
-      value={null}
+      // effects={"GLOWING_GREEN"}
     />
     <TopBar />
 
@@ -210,6 +225,7 @@ function Composer({
       y={1080 - 70}
     />
 
+    {/** Opponent's Deck */}
     <UtilityContainer
       onClick={(graphic)=>{
         const card = findLabelCardInPixi(graphic!);
@@ -233,6 +249,7 @@ function Composer({
         />
       </HoverGlow>
     </UtilityContainer>
+    {/** Opponent's Jail */}
     { currentOpponentToShow.cardsInJail.length > 0 && <>
       <UtilityContainer>
         <HoverGlow>
@@ -245,6 +262,7 @@ function Composer({
       </UtilityContainer>
     </>}
     
+    {/** Main Player's Deck */}
     <UtilityContainer
       onClick={(graphic)=>{
         const card = findLabelCardInPixi(graphic!);
@@ -268,6 +286,7 @@ function Composer({
         />
       </HoverGlow>
     </UtilityContainer>
+    {/** Main Player's Jail */}
     {mainPlayer.cardsInJail.length > 0 && <>
       <UtilityContainer>
         <HoverGlow>
@@ -279,8 +298,57 @@ function Composer({
         </HoverGlow>
       </UtilityContainer>
     </>}
+
+    {/** Sentinel Center */}
+    {locateCardXFromCenter({
+      howMany: sentinelCards.length,
+      gap: 50,
+      midCoordinates: 0,
+      useCenter: true,
+    }).map((horizontalOffset, index)=>{
+      return <Fragment key={index}>
+        <UtilityContainer
+          onClick={(graphic)=>{
+            const card = findLabelCardInPixi(graphic!);
+            openFloatingMenu(card, <>
+              <pixiContainer>
+                <Button 
+                  text="View Card"
+                  minWidth={200}
+                  onClick={()=>{
+                    openModal();
+                    makeModal({
+                      children: <pixiContainer>
+                        <Card 
+                          src={sentinelCards[index].card_art}
+                          size={30}
+                          horizontalOffset={-1920/2 + 233}
+                          verticalOffset={1080/2 - 356}
+
+                        />
+                      </pixiContainer>,
+                      closeButtonCallback: closeModal,
+                      backgroundCallback: closeModal,
+                    })
+                  }}
+                />
+              </pixiContainer>
+            </>);
+          }}
+        >
+          <HoverGlow>
+            <Card
+              horizontalOffset={horizontalOffset}
+              verticalOffset={0}
+              src={sentinelCards[index].card_art}
+            />
+          </HoverGlow>
+        </UtilityContainer>
+      </Fragment>
+    })}
    
-     {locateCardXFromCenter({
+    {/** Opponent's Card */}
+    {locateCardXFromCenter({
       howMany: currentOpponentToShow.totalHandCards,
       gap: 50,
       canvasSize: 1290,
@@ -288,46 +356,29 @@ function Composer({
       useCenter: true,
     }).map((horizontalOffset, index) => {
       return <Fragment key={index}>
-        <UtilityContainer
-          onClick={(graphic)=>{
-            const card = findLabelCardInPixi(graphic!);
-            openFloatingMenu(card, <>
-              <pixiGraphics
-                draw={(graphics)=>{
-                  graphics.clear();
-                  graphics.roundRect(0, 0, 200 * scaleConstant, 100 * scaleConstant, 12);
-                  graphics.fill({ color: 0x404346, alpha: 1 });
-                }}
-              />
-            </>)
-
-          }}
+        <Card
+          horizontalOffset={horizontalOffset}
+          verticalOffset={281}
+          src={`/images/card_${"back"}.svg`}
+        />
+        {/* <AttackToSentinelAnimation
+          scaleConstant={scaleConstant}
         >
-          <HoverGlow>
-            <Card
-              horizontalOffset={horizontalOffset}
-              verticalOffset={281}
-              src={`/images/card_${"back"}.svg`}
-            />
-            {/* <AttackToSentinelAnimation
-              scaleConstant={scaleConstant}
-            >
-              <Card
-                horizontalOffset={horizontalOffset}
-                verticalOffset={281}
-                src={`/images/card_${"back"}.svg`}
-              />
-            </AttackToSentinelAnimation> */}
-            {/* <Card
-                horizontalOffset={horizontalOffset}
-                verticalOffset={-281}
-                src={`/images/card_${"back"}.svg`}
-              /> */}
-          </HoverGlow>
-        </UtilityContainer>
+          <Card
+            horizontalOffset={horizontalOffset}
+            verticalOffset={281}
+            src={`/images/card_${"back"}.svg`}
+          />
+        </AttackToSentinelAnimation> */}
+        {/* <Card
+            horizontalOffset={horizontalOffset}
+            verticalOffset={-281}
+            src={`/images/card_${"back"}.svg`}
+          /> */}
       </Fragment>
     })}
 
+    {/** Main Player's Card */}
     {locateCardXFromCenter({
       howMany: mainPlayerHandCards.length,
       gap: 50,
@@ -349,6 +400,26 @@ function Composer({
                   y={50}
                   text="Combo Attack"
                   minWidth={200}
+                />
+                <Button 
+                  y={100}
+                  text="View Card"
+                  minWidth={200}
+                  onClick={()=>{
+                    openModal();
+                    makeModal({
+                      children: <pixiContainer>
+                        <Card 
+                          src={mainPlayerHandCards[index].card_art}
+                          size={30}
+                          horizontalOffset={-1920/2 + 233}
+                          verticalOffset={1080/2 - 356}
+                        />
+                      </pixiContainer>,
+                      closeButtonCallback: closeModal,
+                      backgroundCallback: closeModal,
+                    })
+                  }}
                 />
               </pixiContainer>
             </>)
