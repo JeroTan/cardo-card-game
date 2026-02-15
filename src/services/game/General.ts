@@ -36,36 +36,40 @@ export function convertRoomStateForClient(serverState: GameState, showCardsInHan
         timeLeft: player.timeLeft,
       })),
     events: serverState.events.map((event)=>{
-      // Hide card details from other players, only show counts
-      if (event.type === "STARTING_CARDS") {
-        return {
-          ...event,
-          cardsInHand: event.playerId === showCardsInHandForPlayerId 
-            ? event.cardsInHand 
-            : (Array.isArray(event.cardsInHand) ? event.cardsInHand.length : event.cardsInHand)
-        };
-      }
-      if (event.type === "DRAW_CARD") {
-        return {
-          ...event,
-          drawn_cards: event.playerId === showCardsInHandForPlayerId 
-            ? event.drawn_cards 
-            : (Array.isArray(event.drawn_cards) ? event.drawn_cards.length : event.drawn_cards)
-        };
-      }
-      if (event.type === "REMOVE_FROM_HAND") {
-        return {
-          ...event,
-          cards_removed: event.playerId === showCardsInHandForPlayerId 
-            ? event.cards_removed 
-            : (Array.isArray(event.cards_removed) ? event.cards_removed.length : event.cards_removed)
-        };
-      }
-      return event;
+      return convertTurnStateForClient(event, showCardsInHandForPlayerId);
     }),
     createdAt: serverState.createdAt,
     status: serverState.status,
   };
+}
+
+export function convertTurnStateForClient(event: TurnEvent, playerId?: string): TurnEvent {
+  // Hide card details from other players, only show counts
+  if (event.type === "STARTING_CARDS") {
+    return {
+      ...event,
+      cardsInHand: event.playerId === playerId
+        ? event.cardsInHand 
+        : (Array.isArray(event.cardsInHand) ? event.cardsInHand.length : event.cardsInHand)
+    };
+  }
+  if (event.type === "DRAW_CARD") {
+    return {
+      ...event,
+      drawn_cards: event.playerId === playerId
+        ? event.drawn_cards 
+        : (Array.isArray(event.drawn_cards) ? event.drawn_cards.length : event.drawn_cards)
+    };
+  }
+  if (event.type === "REMOVE_FROM_HAND") {
+    return {
+      ...event,
+      cards_removed: event.playerId === playerId
+        ? event.cards_removed 
+        : (Array.isArray(event.cards_removed) ? event.cards_removed.length : event.cards_removed)
+    };
+  }
+  return event;
 }
 
 type ValidationResult = {

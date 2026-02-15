@@ -192,13 +192,19 @@ export class GameProcessLogic {
    async drawCards({roomId, playerId, cardsToDraw}: {roomId: string, playerId: string, cardsToDraw: number}){
     const gameRoom = await this.storage.get(`game__${roomId}`) as GameState | undefined;
     if(!gameRoom){
-      return {ok: false, message: "Game not found", gameRoom: null, nextEvent: null} as const;
+      return {ok: false, message: "Game not found", code: "GAME_NOT_FOUND", gameRoom: null, nextEvent: null} as const;
     }
     const playerIndex = gameRoom.playerInfo.findIndex(player=>player.id === playerId);
     if(playerIndex === -1){
-      return {ok: false, message: "Player not found in the game", gameRoom, nextEvent: null} as const;
+      return {ok: false, message: "Player not found in the game", code: "PLAYER_NOT_FOUND", gameRoom, nextEvent: null} as const;
     }
     const player = gameRoom.playerInfo[playerIndex];
+
+    // Check if there's still card in the deck to draw
+    if(player.cardsInDeck.length === 0){
+      return {ok: false, message: "No more cards in the deck to draw", code: "NO_CARDS_IN_DECK", gameRoom, nextEvent: null} as const;
+    }
+
     const drawCardFromDeckResult = drawCardFromDeck({cardsInDeck: player.cardsInDeck, cardsToDraw});
     const newEventResult = validateGameEvent({
       type: "DRAW_CARD",
@@ -207,7 +213,7 @@ export class GameProcessLogic {
       timestamp: new Date().toISOString(),
     }, gameRoom);
     if(!newEventResult.valid){
-      return {ok: false, message: `Invalid game event: ${newEventResult.error}`, gameRoom, nextEvent: null} as const;
+      return {ok: false, message: `Invalid game event: ${newEventResult.error}`, code: "INVALID_GAME_EVENT", gameRoom, nextEvent: null} as const;
     }
 
     // Save the next game state to our logs
@@ -226,7 +232,7 @@ export class GameProcessLogic {
       }),
     };
     await this.storage.put(`game__${roomId}`, updatedGameRoom);
-    return {ok: true, message: "Cards drawn successfully", gameRoom: updatedGameRoom, nextEvent: newEventResult.event} as const;
+    return {ok: true, message: "Cards drawn successfully", code: "CARDS_DRAWN_SUCCESSFULLY", gameRoom: updatedGameRoom, nextEvent: newEventResult.event} as const;
   }
 
   getGameState(roomId: string){
@@ -564,6 +570,72 @@ export class GameProcessLogic {
     };
     await this.storage.put(`game__${roomId}`, updatedGameState);
     return {ok: true, message: "Cards removed from hand successfully", gameState: updatedGameState, nextEvent: removeFromHandResult.event} as const;
+  }
+
+  async setPlayerLose({roomId, playerId}: {roomId: string, playerId: string}){
+    const gameState = await this.getGameState(roomId);
+    if(!gameState){
+      return {ok: false, message: "Game not found", gameState: null, nextEvent: null} as const;
+    }
+    const playerInfo = gameState.playerInfo;
+    if(playerInfo.length === 0){
+      return {ok: false, message: "No players in the game", gameState, nextEvent: null} as const;
+    }
+    const playerIndex = playerInfo.findIndex(player=>player.id === playerId);
+    if(playerIndex === -1){
+      return {ok: false, message: "Player not found in the game", gameState, nextEvent: null} as const;
+    }
+
+    const newEventResult = validateGameEvent({
+      type: "PLAYER_LOSE",
+      playerId,
+      timestamp: new Date().toISOString(),
+    }, gameState);
+    if(!newEventResult.valid){
+      return {ok: false, message: `Invalid game event: ${newEventResult.error}`, code: "INVALID_GAME_EVENT", gameState, nextEvent: null} as const;
+    }
+
+    const updatedGameState: GameState = {
+      ...gameState,
+      events: [...gameState.events, newEventResult.event],
+    };
+    await this.storage.put(`game__${roomId}`, updatedGameState);
+    return {ok: true, message: "Player marked as lost", code: "PLAYER_LOSE_SUCCESS", gameState: updatedGameState, nextEvent: newEventResult.event} as const;
+  }
+  async isThereAWinner({roomId}: {roomId: string}){
+    // Get the total losers and check if there's only one player left who hasn't lost, if yes then that player is the winner
+    const gameState = await this.getGameState(roomId);
+    if(!gameState){
+      return {ok: false, message: "Game not found", gameState: null, nextEvent: null} as const;
+    }
+    const playerInfo = gameState.playerInfo;
+    if(playerInfo.length === 0){
+      return {ok: false, message: "No players in the game", gameState, nextEvent: null} as const;
+    }
+    const lostPlayerIds = new Set(
+      gameState.events
+        .filter((event): event is TurnEvent & {type: "PLAYER_LOSE"} => event.type === "PLAYER_LOSE")
+        .map(event => event.playerId)
+    );
+    const playersLeft = playerInfo.filter(player=>!lostPlayerIds.has(player.id));
+    if(playersLeft.length === 1){
+      const winner = playersLeft[0];
+      const newEventResult = validateGameEvent({
+        type: "PLAYER_WIN",
+        playerId: winner.id,
+        timestamp: new Date().toISOString(),
+      }, gameState);
+      if(!newEventResult.valid){
+        return {ok: false, message: `Invalid game event: ${newEventResult.error}`, code: "INVALID_GAME_EVENT", gameState, nextEvent: null} as const;
+      }
+      const updatedGameState: GameState = {
+        ...gameState,
+        events: [...gameState.events, newEventResult.event],
+      };
+      await this.storage.put(`game__${roomId}`, updatedGameState);
+      return {ok: true, message: "We have a winner!", code: "PLAYER_WIN_SUCCESS", gameState: updatedGameState, nextEvent: newEventResult.event} as const;
+    }
+    return {ok: false, message: "No winner yet", gameState, nextEvent: null} as const;
   }
   //
 }

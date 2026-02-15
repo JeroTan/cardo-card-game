@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import type { GameCard, TurnEvent } from "@/types/game/events";
-import { cardsToRemoveFromOverflowHand, checkIfFirstTurnAndNoSentinelYet, getCurrentPlayer, isCurrentASentinel, isNotSentinelOwnerAllowedToEnd, validateGameEvent } from "@/services/game/General";
+import { cardsToRemoveFromOverflowHand, checkIfFirstTurnAndNoSentinelYet, convertTurnStateForClient, getCurrentPlayer, isCurrentASentinel, isNotSentinelOwnerAllowedToEnd, validateGameEvent } from "@/services/game/General";
 import { RoomLogic } from "@/services/game/RoomLogic";
 import { cleanseDurableObjectStorage, convertMessageToJSON, makeWSServer } from "@/lib/durableObject";
 import type { WebsocketStatusForRoom } from "@/types/game/events";
@@ -182,7 +182,7 @@ export class CardGameRoom extends DurableObject {
 					// Also Broadcast the starting event to all players to start the game
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
-						data: startTurnResult.nextEvent,
+						data: convertTurnStateForClient(startTurnResult.nextEvent, playerId),
 					}));
 				});
 				this.__endTurnTimer();
@@ -209,25 +209,12 @@ export class CardGameRoom extends DurableObject {
 				const nextEvent = result.nextEvent as TurnEvent;
 				// Broadcast the state of how many card is drawn to opponents but send the actual drawn cards to the player himself
 				const allWS = Array.from(this.wsPlayerBinderMap.entries());
-				if(nextEvent.type === "DRAW_CARD"){
-					allWS.forEach(([id, playerWS])=>{
-						if(id === playerId){
-							playerWS.send(JSON.stringify({
-								type: "NEXT_EVENT",
-								data: result.nextEvent,
-							}));
-						}
-						else{
-							playerWS.send(JSON.stringify({
-								type: "NEXT_EVENT",
-								data: {
-									...result.nextEvent,
-									drawn_cards: (nextEvent.drawn_cards as Array<GameCard>).length, // only send the number of drawn cards to opponents
-								}
-							}));
-						}
-					});
-				}
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(result.nextEvent, id),
+					}));
+				});
 				break;
 			}
 			case "REQUEST_ATTACK":{
@@ -252,10 +239,10 @@ export class CardGameRoom extends DurableObject {
 					return;
 				}
 				// Broadcast the attack event to all players
-				allWS.forEach(([, playerWS])=>{
+				allWS.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
-						data: attackResult.nextEvent,
+						data: convertTurnStateForClient(attackResult.nextEvent, id),
 					}));
 				});
 
@@ -272,25 +259,13 @@ export class CardGameRoom extends DurableObject {
 				}
 
 				let nextEvent = removeFromHand.nextEvent as TurnEvent;
-				if(nextEvent.type === "REMOVE_FROM_HAND"){
-					allWS.forEach(([id, playerWS])=>{
-						if(id === playerId){
-							playerWS.send(JSON.stringify({
-								type: "NEXT_EVENT",
-								data: nextEvent,
-							}));
-						}else{
-							playerWS.send(JSON.stringify({
-								type: "NEXT_EVENT",
-								data: {
-									...nextEvent,
-									cards_removed: (nextEvent.cards_removed as Array<GameCard>).length, // only send the number of removed cards to opponents
-								}
-							}));
-						}
-					});
-				}
-
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(nextEvent, id),
+					}));
+				});
+				
 				// Change the sentinel if the attack is successful
 				const changeSentinelResult = await this.gameProcessLogic.changeSentinel({roomId});
 				if(!changeSentinelResult.ok){
@@ -303,10 +278,10 @@ export class CardGameRoom extends DurableObject {
 				}
 
 				const allWSAfterSentinelChange = Array.from(this.wsPlayerBinderMap.entries());
-				allWSAfterSentinelChange.forEach(([, playerWS])=>{
+				allWSAfterSentinelChange.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
-						data: changeSentinelResult.nextEvent,
+						data: convertTurnStateForClient(changeSentinelResult.nextEvent, id),
 					}));
 				});
 
@@ -323,10 +298,10 @@ export class CardGameRoom extends DurableObject {
 				}
 
 				const allWSAfterJail = Array.from(this.wsPlayerBinderMap.entries());
-				allWSAfterJail.forEach(([, playerWS])=>{
+				allWSAfterJail.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
-						data: jailCardResult.nextEvent,
+						data: convertTurnStateForClient(jailCardResult.nextEvent, id),
 					}));
 				});
 				break;
@@ -345,7 +320,7 @@ export class CardGameRoom extends DurableObject {
 				allWS.forEach(([playerId, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
-						data: result.nextEvent,
+						data: convertTurnStateForClient(result.nextEvent, playerId),
 					}));
 				});
 				this.__endTurnTimer();
@@ -378,7 +353,7 @@ export class CardGameRoom extends DurableObject {
 
 	async __endTurnTimer(){
 		console.log("Setting end turn timer for 60 seconds");
-		this.ctx.storage.setAlarm(Date.now() + 1000 * 10);
+		this.ctx.storage.setAlarm(Date.now() + 1000 * 3);
 	}
 
 	async alarm(){
@@ -420,10 +395,10 @@ export class CardGameRoom extends DurableObject {
 				console.error("Error forcing attack for first turn:", attackResult.message);
 				return;
 			}
-			allWS.forEach(([, playerWS])=>{
+			allWS.forEach(([id, playerWS])=>{
 				playerWS.send(JSON.stringify({
 					type: "NEXT_EVENT",
-					data: attackResult.nextEvent,
+					data: convertTurnStateForClient(attackResult.nextEvent, id),
 				}));
 			});
 
@@ -436,35 +411,22 @@ export class CardGameRoom extends DurableObject {
 				console.error("Error removing card from hand for first turn attack:", removeFromHand.message);
 				return;
 			}
-			const nextEvent = removeFromHand.nextEvent as TurnEvent;
-			if(nextEvent.type === "REMOVE_FROM_HAND"){
-				allWS.forEach(([id, playerWS])=>{
-					if(id === playerInfo.id){
-						playerWS.send(JSON.stringify({
-							type: "NEXT_EVENT",
-							data: nextEvent,
-						}));
-					}else{
-						playerWS.send(JSON.stringify({
-							type: "NEXT_EVENT",
-							data: {
-								...nextEvent,
-								cards_removed: (nextEvent.cards_removed as Array<GameCard>).length, // only send the number of removed cards to opponents
-							}
-						}));
-					}
-				});
-			}
+			allWS.forEach(([id, playerWS])=>{
+				playerWS.send(JSON.stringify({
+					type: "NEXT_EVENT",
+					data: convertTurnStateForClient(removeFromHand.nextEvent, id),
+				}));
+			});
 
 			const changeSentinelResult = await this.gameProcessLogic.changeSentinel({roomId});
 			if(!changeSentinelResult.ok){
 				console.error("Error changing sentinel after forcing attack for first turn:", changeSentinelResult.message);
 				return;
 			}
-			allWS.forEach(([, playerWS])=>{
+			allWS.forEach(([id, playerWS])=>{
 				playerWS.send(JSON.stringify({
 					type: "NEXT_EVENT",
-					data: changeSentinelResult.nextEvent,
+					data: convertTurnStateForClient(changeSentinelResult.nextEvent, id),
 				}));
 			});
 
@@ -473,10 +435,10 @@ export class CardGameRoom extends DurableObject {
 				console.error("Error starting new turn after forcing attack for first turn:", newTurnResult.message);
 				return;
 			}
-			allWS.forEach(([, playerWS])=>{
+			allWS.forEach(([id, playerWS])=>{
 				playerWS.send(JSON.stringify({
 					type: "NEXT_EVENT",
-					data: newTurnResult.nextEvent,
+					data: convertTurnStateForClient(newTurnResult.nextEvent, id),
 				}));
 			});
 
@@ -493,10 +455,10 @@ export class CardGameRoom extends DurableObject {
 				return;
 			}
 
-			allWS.forEach(([, playerWS])=>{
+			allWS.forEach(([id, playerWS])=>{
 				playerWS.send(JSON.stringify({
 					type: "NEXT_EVENT",
-					data: endTurnResult.nextEvent,
+					data: convertTurnStateForClient(endTurnResult.nextEvent, id),
 				}));
 			});
 			this.__endTurnTimer();
@@ -521,15 +483,53 @@ export class CardGameRoom extends DurableObject {
 
 			if(isAllowedToEnd.code === "NO_ATTACKING_AND_NO_DRAW"){
 				// We must draw the card for the player and then end his turn
+				// Check if there's still a card in the deck to draw
+				const currentPlayerInfo = getCurrentPlayer(gameState);
+				if(currentPlayerInfo.cardsInDeck.length === 0){
+					const playerLoseResult = await this.gameProcessLogic.setPlayerLose({roomId, playerId: currentPlayerInfo.id});
+					if(!playerLoseResult.ok){
+						console.error("Error setting player lose after timer ended with empty deck:", playerLoseResult.message);
+						return;
+					}
+					const allWS = Array.from(this.wsPlayerBinderMap.entries());
+					allWS.forEach(([id, playerWS])=>{
+						playerWS.send(JSON.stringify({
+							type: "NEXT_EVENT",
+							data: convertTurnStateForClient(playerLoseResult.nextEvent, id),
+						}));
+					});
+
+					const winnerResult = await this.gameProcessLogic.isThereAWinner({roomId});
+					if(!winnerResult.ok){
+						return this.__endTurnTimer();
+					}
+					allWS.forEach(([id, playerWS])=>{
+						playerWS.send(JSON.stringify({
+							type: "NEXT_EVENT",
+							data: convertTurnStateForClient(winnerResult.nextEvent, id),
+						}));
+					});
+
+					const usernameOfWinner = winnerResult.nextEvent.type === "PLAYER_WIN" ? gameState.playerInfo.find(player=>player.id === (winnerResult.nextEvent as any).playerId)?.username : "unknown";
+
+					allWS.forEach(([, playerWS])=>{
+						playerWS.send(JSON.stringify({
+							type: "GAME_END",
+							message: `Player ${usernameOfWinner} has won the game`
+						}));
+					});  
+					return;
+				}
+
 				const drawCardResult = await this.gameProcessLogic.drawCards({roomId, playerId: latestTurnEvent.playerId, cardsToDraw: 1});
 				if(!drawCardResult.ok){
 					console.error("Error drawing card after timer ended:", drawCardResult.message);
 					return;
 				}
-				allWS.forEach(([, playerWS])=>{
+				allWS.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
-						data: drawCardResult.nextEvent,
+						data: convertTurnStateForClient(drawCardResult.nextEvent, id),
 					}));
 				});
 
@@ -544,26 +544,12 @@ export class CardGameRoom extends DurableObject {
 						console.error("Error removing cards from hand after timer ended:", removeFromHandResult.message);
 						return;
 					}
-					const nextEvent = removeFromHandResult.nextEvent as TurnEvent;
-					if(nextEvent.type === "REMOVE_FROM_HAND"){
-						allWS.forEach(([id, playerWS])=>{
-							if(id === latestTurnEvent.playerId){
-								playerWS.send(JSON.stringify({
-									type: "NEXT_EVENT",
-									data: nextEvent,
-								}));
-							}
-							else{
-								playerWS.send(JSON.stringify({
-									type: "NEXT_EVENT",
-									data: {
-										...nextEvent,
-										cards_removed: (nextEvent.cards_removed as GameCard[]).length, // only send the number of removed cards to opponents
-									}
-								}));
-							}
-						});
-					}
+					allWS.forEach(([id, playerWS])=>{
+						playerWS.send(JSON.stringify({
+							type: "NEXT_EVENT",
+							data: convertTurnStateForClient(removeFromHandResult.nextEvent, id),
+						}));
+					});
 
 					const jailResult = await this.gameProcessLogic.jailCards({roomId, cardsToRemove: cardsToJail});
 					if(!jailResult.ok){
@@ -571,10 +557,10 @@ export class CardGameRoom extends DurableObject {
 						return;
 					}
 		
-					allWS.forEach(([, playerWS])=>{
+					allWS.forEach(([id, playerWS])=>{
 						playerWS.send(JSON.stringify({
 							type: "NEXT_EVENT",
-							data: jailResult.nextEvent,
+							data: convertTurnStateForClient(jailResult.nextEvent, id),
 						}));
 					});
 				}
@@ -585,10 +571,10 @@ export class CardGameRoom extends DurableObject {
 					return;
 				}
 				
-				allWS.forEach(([, playerWS])=>{
+				allWS.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
-						data: endTurnResult.nextEvent,
+						data: convertTurnStateForClient(endTurnResult.nextEvent, id),
 					}));
 				});
 				this.__endTurnTimer();

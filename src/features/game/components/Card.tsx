@@ -8,12 +8,14 @@ export default function Card({
   src,
   ref = null,
   size = 10,
+  notCenter = false,
 }: {
   horizontalOffset?: number, 
   verticalOffset?: number, 
   src?: string
   ref?: Ref<Container|null>|null,
   size?: number,
+  notCenter?: boolean,
 })  {
   const [, scaleConstant] = useAppWithScaleConstant();
   const [texture, setTexture] = useState<Texture | null>(null);
@@ -41,14 +43,14 @@ export default function Card({
 
   return <>
     <pixiContainer
-      x={((1920)*scaleConstant / 2) + (horizontalOffset*scaleConstant)}
-      y={((1080)*scaleConstant / 2) - (verticalOffset*scaleConstant)}
+      x={notCenter ? (horizontalOffset * scaleConstant) : (((1920) * scaleConstant / 2) + (horizontalOffset * scaleConstant))}
+      y={notCenter ? (verticalOffset * scaleConstant) : (((1080) * scaleConstant / 2) - (verticalOffset * scaleConstant))}
       ref={ref}
       label="card"
     >
       {texture ? (
         <pixiSprite 
-          anchor={{x:0.5, y:0.5}}
+          {...(!notCenter ? { anchor: { x: 0.5, y: 0.5 } } : {})}
           texture={texture}
           width={((1920 * scaleConstant) * cumulativeScale)}
           height={((1920 * scaleConstant) * cumulativeScale) * (3/2)}

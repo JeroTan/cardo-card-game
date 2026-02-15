@@ -34,6 +34,9 @@ export default function FloatingMenuContextProvider({children}: {children?: Reac
     {children}
     {isOpen && <FloatingMenu 
       graphicRef={graphicRef}
+      onPointerLeave={()=>{
+        isOpenSet(false)
+      }}
     >
       {floatMenuNode}
     </FloatingMenu>}

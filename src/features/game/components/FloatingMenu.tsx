@@ -70,6 +70,7 @@ export default function FloatingMenu({
   return <pixiContainer
     ref={thisRef}
     onPointerLeave={()=>onPointerLeave?.(thisRef.current!)}
+    onPointerOut={()=>onPointerLeave?.(thisRef.current!)}
   >
     <pixiGraphics draw={drawBackground} />
     <pixiContainer ref={contentRef}>

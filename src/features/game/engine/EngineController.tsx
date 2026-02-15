@@ -3,7 +3,7 @@ import { useGameEventContext } from "../context/GameEventContext";
 import TurnBaseContextProvider from "../context/TurnBaseContext";
 import { getMainPlayer } from "../utils/game";
 import Engine from "./Engine";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useEffectOnce } from "react-use";
 import { getWSObject } from "../utils/websocket";
 
@@ -21,6 +21,9 @@ function Composer(){
   const mainPlayer = useMemo(()=>{
     return getMainPlayer(gameStateData);
   }, [gameStateData.playerInfo]);
+
+  const [turnMessage, setTurnMessage] = useState<string>("");
+  
 
   const currentActivePlayerId = useMemo(()=>{
     const activeEvent = [...gameStateData.events].reverse().find((event)=>{
@@ -58,8 +61,18 @@ function Composer(){
     return currentTurnEvents.playerId;
   }, [gameStateData.events]);
 
+  const changeTurnMessage = useCallback((message: string)=>{
+    setTurnMessage(message);
+    setTimeout(()=>{
+      setTurnMessage("");
+    }, 2000);
+  }, []);
+
 
   useEffectOnce(()=>{
+    changeTurnMessage(`${
+      currentActivePlayerId === mainPlayer.id ? "It's your" : `${gameStateData.playerInfo.find((p)=>p.id === currentActivePlayerId)?.username}'s`} turn!`
+    );
     const ws = context.ws!;
     ws.receiver((message)=>{
       const data = getWSObject(message);
@@ -67,6 +80,14 @@ function Composer(){
         const reformData = data as unknown as {type: "NEXT_EVENT", data: TurnEvent};
         const newEvent = reformData.data;
         context.appendTurnEvent(newEvent);
+
+        if(newEvent.type === "START_TURN"){
+          if(newEvent.playerId === mainPlayer.id){
+            changeTurnMessage("It's your turn!");
+          }else{
+            changeTurnMessage(`It's ${gameStateData.playerInfo.find((p)=>p.id === newEvent.playerId)?.username}'s turn!`);
+          }
+        }
 
         // For removing cards in the hand of opponents
         if(newEvent.type == "REMOVE_FROM_HAND"){
@@ -88,7 +109,7 @@ function Composer(){
                 cardsInHand: (player.cardsInHand as number) - (newEvent.cards_removed as number), // For other players, we only know the number of cards in hand, not the specific cards
               }
             }
-
+            newData.playerInfo = structuredClone(newData.playerInfo);
             return newData;
           });
         }
@@ -105,6 +126,7 @@ function Composer(){
               ...player,
               jailedCards: [...player.jailedCards, ...newEvent.jailed_cards],
             }
+            newData.playerInfo = structuredClone(newData.playerInfo);
             return newData;
           })
         };
@@ -121,13 +143,16 @@ function Composer(){
               newData.playerInfo[playerInfoIndex] = {
                 ...player,
                 cardsInHand: [...(player.cardsInHand as GameCard[]), ...(newEvent.drawn_cards as GameCard[])], // For the main player, we know the specific cards in hand
+                totalCardsInDeck: player.totalCardsInDeck - (newEvent.drawn_cards as GameCard[]).length,
               }
             }else{
               newData.playerInfo[playerInfoIndex] = {
                 ...player,
                 cardsInHand: (player.cardsInHand as number) + (newEvent.drawn_cards as number), // For other players, we only know the number of cards in hand, not the specific cards
+                totalCardsInDeck: player.totalCardsInDeck - (newEvent.drawn_cards as number),
               }
             }
+            newData.playerInfo = structuredClone(newData.playerInfo);
             return newData; 
           });
         }
@@ -165,6 +190,7 @@ function Composer(){
         turnRemainingTime={turnRemainingTime}
         sentinelCards={currentSentinelCard}
         sentinelOwner={sentinelOwner}
+        turnMessage={turnMessage}
       />
     </TurnBaseContextProvider>
   </>

@@ -28,6 +28,8 @@ import { ModalContextProvider, useModal } from "../context/ModalContext";
 import { BarWiper } from "../components/stat/BarWiper";
 import type { GameCard, PlayerGameInfoClient } from "@/types/game/events";
 import { useUpdateEffect } from "react-use";
+import { makeFontStyle } from "../components/font/FontStyles";
+import { ScrollerWindow } from "../components/ScrollerWindow";
 
 
 export type GameEngineProps = {
@@ -48,6 +50,7 @@ export type GameEngineProps = {
   sentinelCards: Array<GameCard>,
   sentinelOwner: string|null,
   turnRemainingTime: number, // in seconds
+  turnMessage?: string
 }
 
 export default function Engine(props: GameEngineProps){
@@ -78,6 +81,7 @@ function Composer({
   turnRemainingTime,
   sentinelCards,
   sentinelOwner,
+  turnMessage,  
 }: GameEngineProps){
   const mainPlayer = useMemo(()=>{
     return players.find((p)=>p.playerId === mainPlayerId)!;
@@ -96,7 +100,13 @@ function Composer({
     return getOtherPlayers.find((p)=>p.playerId === otherPlayerToShowInScreen) as GameEngineProps["players"][number];
   }, [otherPlayerToShowInScreen, players]);
 
-  const [activeTimerCounter, setActiveTimerCounter] = useState<number>(turnRemainingTime);
+  const mainPlayerJailTopCard = useMemo(()=>{
+    return mainPlayer.cardsInJail.length > 0 ? mainPlayer.cardsInJail[mainPlayer.cardsInJail.length - 1].card_art : null;
+  }, [mainPlayer]);
+
+  const opponentJailTopCard = useMemo(()=>{
+    return currentOpponentToShow.cardsInJail.length > 0 ? currentOpponentToShow.cardsInJail[currentOpponentToShow.cardsInJail.length - 1].card_art : null;
+  }, [currentOpponentToShow]);
 
   // Use effect
   useUpdateEffect(()=>{
@@ -109,6 +119,7 @@ function Composer({
   }, [currentActivePlayer, getOtherPlayers]);
 
   // Timer for active player turn
+  const [activeTimerCounter, setActiveTimerCounter] = useState<number>(turnRemainingTime);
   const ticker =  useRef<Ticker>(new Ticker());
   useEffect(()=>{
     if(turnRemainingTime <= 1){
@@ -138,8 +149,6 @@ function Composer({
       ticker.current.stop();
     }
   }, [turnRemainingTime]);
-
-  console.log("opponent to show in screen", currentOpponentToShow);
 
   const centerStatus = useMemo(()=>{
     if(sentinelOwner === null) return "NEUTRAL";
@@ -177,7 +186,7 @@ function Composer({
         <BarContainer
           width={data.size}
           x={data.x}
-          highlight={true}
+          highlight={getOtherPlayers[index].active}
         />
         {getOtherPlayers[index].active &&
           <BarWiper 
@@ -203,7 +212,7 @@ function Composer({
     <BottomBar />
     <BarContainer
       y={1080 - 80}
-      highlight={true}
+      highlight={mainPlayer.active}
     />
     {mainPlayer.active && <>
       <BarWiper 
@@ -263,10 +272,54 @@ function Composer({
     </UtilityContainer>
     {/** Opponent's Jail */}
     { currentOpponentToShow.cardsInJail.length > 0 && <>
-      <UtilityContainer>
+      <UtilityContainer
+         onClick={()=>{
+          function openJailCards(){
+            makeModal({
+              children: <pixiContainer>
+                <ScrollerWindow width={1000} height={900}>
+                  {currentOpponentToShow.cardsInJail.map((card, index)=>{
+                  return <pixiContainer key={card.id}>
+                      <UtilityContainer
+                        onClick={()=>{
+                          closeModal();
+                          makeModal({
+                            children: <pixiContainer>
+                              <Card 
+                                src={currentOpponentToShow.cardsInJail[index].card_art}
+                                size={30}
+                                notCenter
+                              />
+                            </pixiContainer>,
+                            closeButtonCallback: openJailCards,
+                            backgroundCallback: openJailCards,
+                          });
+                          openModal();
+                        }}
+                      >
+                        <HoverGlow>
+                          <Card 
+                            src={card.card_art}
+                            notCenter
+                          />
+                        </HoverGlow>
+                      </UtilityContainer>
+                    </pixiContainer>
+                  })}
+                </ScrollerWindow>
+              </pixiContainer>,
+              closeButtonCallback: closeModal,
+              backgroundCallback: closeModal,
+            });
+            openModal();
+          }
+          openJailCards();
+        }}
+      >
         <HoverGlow>
           <Pile 
-            topCard={currentOpponentToShow.cardsInJail.reverse()[0].card_art}
+            topCard={opponentJailTopCard}
+            pileSize={currentOpponentToShow.cardsInJail.length}
             horizontalOffset={771}
             verticalOffset={281}
           />
@@ -300,10 +353,54 @@ function Composer({
     </UtilityContainer>
     {/** Main Player's Jail */}
     {mainPlayer.cardsInJail.length > 0 && <>
-      <UtilityContainer>
+      <UtilityContainer
+        onClick={()=>{
+          function openJailCards(){
+            makeModal({
+              children: <pixiContainer>
+                <ScrollerWindow width={1000} height={900}>
+                  {mainPlayer.cardsInJail.map((card, index)=>{
+                    return <pixiContainer key={card.id}>
+                      <UtilityContainer
+                        onClick={()=>{
+                          closeModal();
+                          makeModal({
+                            children: <pixiContainer>
+                              <Card 
+                                src={sentinelCards[index].card_art}
+                                size={30}
+                                notCenter
+                              />
+                            </pixiContainer>,
+                            closeButtonCallback: openJailCards,
+                            backgroundCallback: openJailCards,
+                          });
+                          openModal();
+                        }}
+                      >
+                        <HoverGlow>
+                          <Card 
+                            src={card.card_art}
+                            notCenter
+                          />
+                        </HoverGlow>
+                      </UtilityContainer>
+                    </pixiContainer>
+                  })}
+                </ScrollerWindow>
+              </pixiContainer>,
+              closeButtonCallback: closeModal,
+              backgroundCallback: closeModal,
+            });
+            openModal();
+          }
+          openJailCards();
+        }}
+      >
         <HoverGlow>
           <Pile 
-            topCard={mainPlayer.cardsInJail.reverse()[0].card_art}
+            topCard={mainPlayerJailTopCard}
+            pileSize={mainPlayer.cardsInJail.length}
             horizontalOffset={-771}
             verticalOffset={-281}
           />
@@ -491,14 +588,15 @@ function Composer({
       }}
     />
 
-    {/* <Modal>
-      <pixiGraphics 
-        draw={(graphics)=>{
-          graphics.clear();
-          graphics.roundRect(0, 0, 400 * scaleConstant, 200 * scaleConstant, 12);
-          graphics.fill({ color: 0x404346, alpha: 1 });
-        }}
-      />
-    </Modal> */}
+    {turnMessage && <>
+      <Modal>
+        <pixiContainer>
+          <pixiText
+            text={turnMessage}
+            style={makeFontStyle({ })}
+          />
+        </pixiContainer>
+      </Modal>
+    </>}
   </>
 }

@@ -105,7 +105,8 @@ export const websocketStatus =[
   "NEXT_EVENT",
   "REQUEST_DRAW_CARD",
   "REQUEST_ATTACK",
-  "REQUEST_END_TURN"
+  "REQUEST_END_TURN",
+  "GAME_END",
 ] as const;
 
 export type WebsocketStatus = (typeof websocketStatus)[number];
