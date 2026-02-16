@@ -17,16 +17,15 @@ import { AttackingStat } from "../components/stat/AttackingStat";
 import { DefendingStat } from "../components/stat/DefendingStat";
 import { Button } from "../components/Button";
 import Modal from "../components/Modal";
-import FloatingMenu from "../components/FloatingMenu";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Ticker, type Container } from "pixi.js";
+import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import { Ticker } from "pixi.js";
 import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/FloatingMenuContext";
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
 import StaticGlow from "../components/StaticGlow";
-import { TipNoteContext, TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
+import { TipNoteContextProvider, useTipNoteContext } from "../context/TipNoteContext";
 import { ModalContextProvider, useModal } from "../context/ModalContext";
 import { BarWiper } from "../components/stat/BarWiper";
-import type { GameCard, PlayerGameInfoClient } from "@/types/game/events";
+import type { GameCard } from "@/types/game/events";
 import { useUpdateEffect } from "react-use";
 import { makeFontStyle } from "../components/font/FontStyles";
 import { ScrollerWindow } from "../components/ScrollerWindow";
@@ -38,6 +37,8 @@ export type GameEngineProps = {
   drawCards: (total:number)=> void,
   cardAttack: (cardIds: Array<string|number>)=> void,
   playerEndTurn: ()=> void,
+  cardDiscarder: (cardIds: Array<string|number>)=> void,
+  surrender: ()=> void,
   players: Array<{
     playerId: string|number,
     username: string,
@@ -47,10 +48,12 @@ export type GameEngineProps = {
     totalHandCards: number,
     totalTurnsPassed: number,
   }>;
+  losePlayers: Array<string>,// id of losing players
   sentinelCards: Array<GameCard>,
   sentinelOwner: string|null,
   turnRemainingTime: number, // in seconds
-  turnMessage?: string
+  turnMessage?: string,
+  tipNote?: string,
 }
 
 export default function Engine(props: GameEngineProps){
@@ -77,11 +80,15 @@ function Composer({
   drawCards,
   cardAttack,
   playerEndTurn,
+  cardDiscarder,
+  surrender,
   players,
+  losePlayers,
   turnRemainingTime,
   sentinelCards,
   sentinelOwner,
   turnMessage,  
+  tipNote,
 }: GameEngineProps){
   const mainPlayer = useMemo(()=>{
     return players.find((p)=>p.playerId === mainPlayerId)!;
@@ -108,7 +115,7 @@ function Composer({
     return currentOpponentToShow.cardsInJail.length > 0 ? currentOpponentToShow.cardsInJail[currentOpponentToShow.cardsInJail.length - 1].card_art : null;
   }, [currentOpponentToShow]);
 
-  // Use effect
+  // Use effect for showing current player automatically when next turn trigger.
   useUpdateEffect(()=>{
     if(!currentActivePlayer) return;
     // Check if current active player belongs to getOtherPlayers
@@ -156,15 +163,51 @@ function Composer({
     return "OPPONENT";
   }, [sentinelOwner, mainPlayerId]);
 
+  // --- Winning Check --- //
+  useEffect(()=>{
+    if(!(losePlayers.length >= (players.length - 1))) return;
 
-  
-  const [app, scaleConstant] = useAppWithScaleConstant();
-  const {openFloatingMenu} = useFloatingMenuContext();
-  const {changeNote, tipNote} = useTipNoteContext();
+    makeModal({
+      children:  <pixiContainer>
+        <pixiText
+          text={`Player ${players.find((p)=>!losePlayers.some((losersId)=>losersId === p.playerId))?.username} wins!`}
+          style={makeFontStyle({ })}
+        />
+      </pixiContainer>,
+      closeButtonCallback: closeModal,
+      backgroundCallback: closeModal,
+    });
+    openModal();
+  }, [losePlayers]);
+
+  const [, scaleConstant] = useAppWithScaleConstant();
+  const {openFloatingMenu, close: closeFloatingMenu} = useFloatingMenuContext();
+  const {changeNote, tipNote: tipNoteLocal} = useTipNoteContext();
   const {makeModal, openModal, closeModal} = useModal();
+  const [attackCalculation, attackCalculationSet] = useState<number|null>(null);
+  const [comboAttackSelection, comboAttackSelectionSet] = useState<Array<string|number>|null>(null);
+  const [triggerAttackAnimation, triggerAttackAnimationSet] = useState(false);
+  const [ discardSelection, discardSelectionSet ] = useState<Array<string|number>|null>(null);
+  const [alreadyDrawn, alreadyDrawnSet] = useState(false); // To prevent multiple draw in one turn due to click or other reasons. Reset every new turn in useEffect below.
+
+  // --- Global Handlers --- //
+  useEffect(()=>{
+    changeNote(tipNote || ""); //In case the props is requesting a tip update.
+  }, [tipNote]);
+  useEffect(()=>{ // Trigger every new turn, to reset internal states in engine
+    discardSelectionSet(null);
+    attackCalculationSet(null);
+    comboAttackSelectionSet(null);
+    triggerAttackAnimationSet(false);
+    alreadyDrawnSet(false); 
+  }, [currentActivePlayer]);
+
   return <>
     <Board
       centerStatus={centerStatus}
+      onClick={()=>{
+        closeFloatingMenu();
+      }}
     />
     <DefendingStat 
       x={ -350 }
@@ -174,8 +217,13 @@ function Composer({
     <AttackingStat 
       x={ 350 }
       y={80}
-      value={null}
-      // effects={"GLOWING_GREEN"}
+      value={attackCalculation}
+      effects={
+        (attackCalculation != null 
+          && (attackCalculation == Infinity 
+            || (attackCalculation > sentinelCards.reduce((acc, card) => acc + card.def, 0))
+          )
+        ) ? "GLOWING_GREEN" : "DEFAULT"}
     />
     <TopBar />
 
@@ -183,11 +231,18 @@ function Composer({
       total: getOtherPlayers.length
     }).map((data, index)=>{
       return <Fragment key={index}>
-        <BarContainer
-          width={data.size}
-          x={data.x}
-          highlight={getOtherPlayers[index].active}
-        />
+        <UtilityContainer
+          onClick={()=>{
+            setOtherPlayerToShowInScreen(getOtherPlayers[index].playerId);
+          }}
+        >
+          <BarContainer
+            width={data.size}
+            x={data.x}
+            highlight={getOtherPlayers[index].active}
+          />  
+        </UtilityContainer>
+        
         {getOtherPlayers[index].active &&
           <BarWiper 
             width={data.size}
@@ -206,6 +261,7 @@ function Composer({
           playerName={`${getOtherPlayers[index].username}`}
           x={data.x+120}
           y={21}
+          status={losePlayers.some((losersId)=>losersId === getOtherPlayers[index].playerId) ? "LOSE" : "NONE"}
         />
       </Fragment>
     })}
@@ -231,6 +287,7 @@ function Composer({
       playerName={`${mainPlayer.username}`}
       x={120}
       y={1080 - 60}
+      status={losePlayers.some((losersId)=>losersId === mainPlayer.playerId) ? "LOSE" : "NONE"}
     />
     <BarContainer
       width={960 + 30}
@@ -241,7 +298,7 @@ function Composer({
       bgColor={0x353535}
     />
     <TipNote 
-      tip={tipNote ? tipNote : ""}
+      tip={tipNoteLocal ? tipNoteLocal : ""}
       x={1920 - 960}
       y={1080 - 70}
     />
@@ -495,98 +552,289 @@ function Composer({
       midCoordinates: 0,
       useCenter: true,
     }).map((horizontalOffset, index) => {
-      return <Fragment key={index}>
-        <UtilityContainer
-          onClick={(graphic)=>{
-            const card = findLabelCardInPixi(graphic!);
-            openFloatingMenu(card, <>
-              <pixiContainer>
-                <Button 
-                  text="Solo Attack"
-                  minWidth={200}
-                />
-                <Button 
-                  y={50}
-                  text="Combo Attack"
-                  minWidth={200}
-                />
-                <Button 
-                  y={100}
-                  text="View Card"
-                  minWidth={200}
-                  onClick={()=>{
-                    openModal();
-                    makeModal({
-                      children: <pixiContainer>
-                        <Card 
-                          src={mainPlayerHandCards[index].card_art}
-                          size={30}
-                          horizontalOffset={-1920/2 + 233}
-                          verticalOffset={1080/2 - 356}
-                        />
-                      </pixiContainer>,
-                      closeButtonCallback: closeModal,
-                      backgroundCallback: closeModal,
-                    })
-                  }}
-                />
-              </pixiContainer>
-            </>)
-          }}
-        >
-          <HoverGlow>
+
+      const IsAttackSelection = useCallback(({children}:PropsWithChildren<{}>)=>{
+        return <>
+          {(comboAttackSelection != null && comboAttackSelection.includes(mainPlayerHandCards[index].id)) ? <>
             <StaticGlow>
-              <Card
-                horizontalOffset={horizontalOffset}
-                verticalOffset={-281}
-                src={mainPlayerHandCards[index].card_art}
-              />
+              {children}
             </StaticGlow>
-            {/* <Card
-              horizontalOffset={horizontalOffset}
-              verticalOffset={-281}
-              src={`/images/card_${"back"}.svg`}
-            /> */}
-            {/* <AttackToSentinelAnimation
-              scaleConstant={scaleConstant}
+          </> : <>
+            {children}
+          </> }
+        </>
+      }, [comboAttackSelection]);
+
+      const IsDiscardSelection = useCallback(({children}:PropsWithChildren<{}>)=>{
+        return <>
+          { (discardSelection != null && discardSelection.includes(mainPlayerHandCards[index].id)) ? <>
+            <StaticGlow color={0xFF3333}>
+              {children}
+            </StaticGlow>
+          </> : <>
+            {children}
+          </> }
+        </>;
+      }, []);
+
+      const IsAttackAnimating = useCallback(({children}:PropsWithChildren<{}>)=>{
+        return <>
+          {triggerAttackAnimation ? <>
+            <AttackToSentinelAnimation>
+              {children}
+            </AttackToSentinelAnimation>
+          </> : <>
+            <HoverGlow>
+              {children}
+            </HoverGlow>
+          </>}
+        </>
+      }, [triggerAttackAnimation]);
+
+      const IsActive = useCallback(({children}:PropsWithChildren<{}>)=>{
+        return <>
+          {(mainPlayer.active && !triggerAttackAnimation) ? <>
+            <UtilityContainer
+              onClick={(graphic)=>{
+                if(discardSelection != null){
+                  discardSelectionSet((prev)=>{
+                    if(prev == null) return prev;
+                    if(prev.includes(mainPlayerHandCards[index].id)){
+                      return prev.filter((id)=>id !== mainPlayerHandCards[index].id);
+                    } 
+                    if(prev.length >= (mainPlayer.totalHandCards - 7)) return prev; // Prevent overselecting below 7 cards in hand after discard
+                    return [...prev, mainPlayerHandCards[index].id];
+                  })
+                  return; // if discard selection is being made, clicking other cards should not trigger attack calculation preview or open floating menu
+                }
+                if(comboAttackSelection != null){
+                  comboAttackSelectionSet((prev)=>{
+                    if(prev == null) return prev;
+                    if(prev.includes(mainPlayerHandCards[index].id)){
+                      const newSelection =  prev.filter((id)=>id !== mainPlayerHandCards[index].id);
+                      attackCalculationSet(Number(newSelection.reduce((acc, id)=>{
+                        const card = mainPlayerHandCards.find((c)=>c.id === id);
+                        if(!card) return acc;
+                        return Number(acc) + Number(card.atk);
+                      }, 0)));
+                      return newSelection;
+                    }
+                    if(prev.length >= 3) return prev;
+                    const newSelection = [...prev, mainPlayerHandCards[index].id];
+                    attackCalculationSet(Number(newSelection.reduce((acc, id)=>{
+                      const card = mainPlayerHandCards.find((c)=>c.id === id);
+                      if(!card) return acc;
+                      return Number(acc) + Number(card.atk);
+                    }, 0)));
+                    return newSelection;
+                  })
+                  return; // if combo attack is being selected, clicking other cards should not trigger attack calculation preview or open floating menu
+                }
+                attackCalculationSet(mainPlayerHandCards[index].atk);
+                const card = findLabelCardInPixi(graphic!);
+                openFloatingMenu(card, <>
+                  <pixiContainer>
+                    <Button 
+                      text="Solo Attack"
+                      minWidth={200}
+                      onClick={()=>{
+                        cardAttack([mainPlayerHandCards[index].id]);
+                        triggerAttackAnimationSet(true);
+                        setTimeout(()=>{
+                          triggerAttackAnimationSet(false);
+                        }, 600);
+                      }}
+                    />
+                    <Button 
+                      y={50}
+                      text="Combo Attack"
+                      minWidth={200}
+                      onClick={()=>{
+                        changeNote("Select up to 3 cards for combo attack");
+                        comboAttackSelectionSet([mainPlayerHandCards[index].id]);
+                        attackCalculationSet(mainPlayerHandCards[index].atk);
+                      }}
+                    />
+                    <Button 
+                      y={100}
+                      text="View Card"
+                      minWidth={200}
+                      onClick={()=>{
+                        openModal();
+                        makeModal({
+                          children: <pixiContainer>
+                            <Card 
+                              src={mainPlayerHandCards[index].card_art}
+                              size={30}
+                              horizontalOffset={-1920/2 + 233}
+                              verticalOffset={1080/2 - 356}
+                            />
+                          </pixiContainer>,
+                          closeButtonCallback: closeModal,
+                          backgroundCallback: closeModal,
+                        })
+                      }}
+                    />
+                  </pixiContainer>
+                </>)
+              }}
+              onMouseEnter={()=>{
+                if(comboAttackSelection != null) return; // if combo attack is being selected, hovering other cards should not trigger attack calculation preview
+                attackCalculationSet(mainPlayerHandCards[index].atk);
+              }}
             >
-              <Card
-                horizontalOffset={horizontalOffset}
-                verticalOffset={-281}
-                src={`/images/card_${"back"}.svg`}
-              />
-            </AttackToSentinelAnimation> */}
-            {/* <Card
-                horizontalOffset={horizontalOffset}
-                verticalOffset={-281}
-                src={`/images/card_${"back"}.svg`}
-              /> */}
-          </HoverGlow>
-        </UtilityContainer>
+              {children}
+            </UtilityContainer>
+          </> : <>
+            {children}
+          </>}
+        </>;
+      }, [mainPlayer.active, triggerAttackAnimation]);
+
+      return <Fragment key={index}>
+        <IsActive>
+          <IsAttackAnimating>
+            <IsAttackSelection>
+              <IsDiscardSelection>
+                <Card
+                  horizontalOffset={horizontalOffset}
+                  verticalOffset={-281}
+                  src={mainPlayerHandCards[index].card_art}
+                />
+              </IsDiscardSelection>
+            </IsAttackSelection>
+          </IsAttackAnimating>
+        </IsActive>
       </Fragment>
     })}
 
-    <Button 
-      useCenterCoordinate
-      x={600}
-      y={30}
-      text="Draw Card"
-      disabled
-      color={0x3D5779}
-      minWidth={200}
-    />
+    { (comboAttackSelection == null && discardSelection == null && mainPlayer.active) && <>
+      <Button 
+        useCenterCoordinate
+        x={600}
+        y={30}
+        text="Draw Card"
+        disabled={mainPlayer.totalCardsInDeck <= 0 || alreadyDrawn}
+        color={0x4DCAFF}
+        minWidth={200}
+        onClick={(graphic)=>{
+          openFloatingMenu(graphic!, <>
+            <Button 
+              text="Draw 1 Card"
+              minWidth={200}
+              onClick={()=>{
+                drawCards(1);
+                if(mainPlayer.totalHandCards + 1 > 7 ){
+                  changeNote("You have drawn more than 7 cards. Please discard down to 7 cards in hand at the end of your turn.");
+                  alreadyDrawnSet(true);
+                  discardSelectionSet([]);
+                }
+              }}
+            />
+            {mainPlayer.totalCardsInDeck >= 2 && <Button
+              y={50}
+              text="Draw 2 Cards"
+              minWidth={200}
+              onClick={()=>{
+                drawCards(2);
+                if(mainPlayer.totalHandCards + 2 > 7 ){
+                  changeNote("You have drawn more than 7 cards. Please discard down to 7 cards in hand at the end of your turn.");
+                  alreadyDrawnSet(true);
+                  discardSelectionSet([]);
+                }
+              }}
+            />}
+            {mainPlayer.totalCardsInDeck >= 3 && <Button
+              y={100}
+              text="Draw 3 Cards"
+              minWidth={200}
+              onClick={()=>{
+                drawCards(3);
+                if(mainPlayer.totalHandCards + 3 > 7 ){
+                  changeNote("You have drawn more than 7 cards. Please discard down to 7 cards in hand at the end of your turn.");
+                  alreadyDrawnSet(true);
+                  discardSelectionSet([]);
+                }
+              }}
+            />}
 
-    <Button 
-      useCenterCoordinate
-      x={600}
-      y={-30}
-      text="End Turn"
-      color={0xFF2222}
-      minWidth={200}
-      onClick={()=>{
-        alert("end turn clicked")
-      }}
-    />
+          </>);
+        }}
+      />
+
+      <Button 
+        useCenterCoordinate
+        x={600}
+        y={-30}
+        text="End Turn"
+        color={0xFF2222}
+        minWidth={200}
+        disabled={mainPlayer.totalHandCards > 7 || triggerAttackAnimation}
+        onClick={()=>{
+          playerEndTurn();
+        }}
+      />
+    </>}
+
+    { (comboAttackSelection != null && discardSelection == null && mainPlayer.active) && <>
+      <Button 
+        useCenterCoordinate
+        x={600}
+        y={30}
+        text="Attack Selected Cards"
+        color={0x3D5779}
+        minWidth={200}
+        onClick={()=>{
+          const playerTotalAttack = Number(comboAttackSelection.reduce((acc, id)=>{
+            const card = mainPlayerHandCards.find((c)=>c.id === id);
+            if(!card) return acc;
+            return Number(acc) + Number(card.atk);
+          }, 0));
+          if(comboAttackSelection.length >= 2 && playerTotalAttack <= 0){
+            changeNote(`You cannot trigger "0" card burst if there are multiple cards with zero attack. Please use only one.`);
+            return;
+          }
+          if(playerTotalAttack <= sentinelCards.reduce((acc, card) => acc + card.def, 0)){
+            changeNote(`Your selected cards' total attack is not higher than the sentinel's total defense`);
+            return;
+          }
+          cardAttack(comboAttackSelection);
+          triggerAttackAnimationSet(true);
+          setTimeout(()=>{
+            triggerAttackAnimationSet(false);
+          }, 600);
+        }}
+      />
+
+      <Button 
+        useCenterCoordinate
+        x={600}
+        y={-30}
+        text="Cancel Combo Attack"
+        color={0xFF2222}
+        minWidth={200}
+        onClick={()=>{
+          comboAttackSelectionSet(null);
+          changeNote(null);
+        }}
+      />
+    </>}
+
+    { (comboAttackSelection==null && discardSelection != null && mainPlayer.active) && <>
+      <Button 
+        useCenterCoordinate
+        x={600}
+        y={30}
+        text="Attack Selected Cards"
+        color={0x3D5779}
+        minWidth={200}
+        disabled={discardSelection.length === 0 || discardSelection.length >= mainPlayer.totalHandCards || mainPlayer.totalHandCards - discardSelection.length > 7}
+        onClick={()=>{
+          cardDiscarder(discardSelection);
+        }}
+      />
+      
+    </>}
 
     {turnMessage && <>
       <Modal>
@@ -598,5 +846,7 @@ function Composer({
         </pixiContainer>
       </Modal>
     </>}
+
+    
   </>
 }

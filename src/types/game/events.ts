@@ -106,6 +106,8 @@ export const websocketStatus =[
   "REQUEST_DRAW_CARD",
   "REQUEST_ATTACK",
   "REQUEST_END_TURN",
+  "REQUEST_DISCARD_CARD",
+  "REQUEST_SURRENDER",
   "GAME_END",
 ] as const;
 

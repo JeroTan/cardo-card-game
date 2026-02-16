@@ -17,10 +17,12 @@ export function UtilityContainer({
 	children,
 	graphicData,
 	onClick,
+	onMouseEnter,
 }:{
 	children?: React.ReactNode,
 	graphicData?: (graphic: Container|Sprite|null)=>void,
 	onClick?: (graphic: Container|Sprite|null)=>void,
+	onMouseEnter?: ()=>void,
 }){
 	const ref = useRef<Container|null>(null);
 
@@ -34,7 +36,12 @@ export function UtilityContainer({
 		ref={ref}
 		{...(onClick ? {
 			eventMode: "dynamic",
+			cursor: "pointer",
 			onClick: ()=>{ onClick(ref.current); },
+		} : {})}
+
+		{...((onMouseEnter) ? {
+			onMouseEnter: onMouseEnter,
 		} : {})}
 	>
 		{/* Utility Container */}

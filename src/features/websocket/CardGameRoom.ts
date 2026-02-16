@@ -326,6 +326,87 @@ export class CardGameRoom extends DurableObject {
 				this.__endTurnTimer();
 				break;
 			}
+			case "REQUEST_DISCARD_CARD":{
+				const { cardsToDiscard } = jsonData.data as { cardsToDiscard: string[] };
+				if(!cardsToDiscard || !Array.isArray(cardsToDiscard) || cardsToDiscard.length === 0){
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: "cardsToDiscard is required and should be a non-empty array",
+					}));
+				}
+				const removeResult = await this.gameProcessLogic.removeFromHand({roomId, cardsToRemove: cardsToDiscard});
+				if(!removeResult.ok){
+					console.error("Error discarding cards from hand:", removeResult.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: removeResult.message,
+					}));
+					return;
+				}
+				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(removeResult.nextEvent, id),
+					}));
+				});
+
+				const jailResult = await this.gameProcessLogic.jailSentinelCards({roomId});
+				if(!jailResult.ok){
+					console.error("Error jailing cards after discarding:", jailResult.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: jailResult.message,
+					}));
+					return;
+				}
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(jailResult.nextEvent, id),
+					}));
+				});
+				break;
+			}
+			case "REQUEST_SURRENDER":{
+				const result = await this.gameProcessLogic.setPlayerLose({roomId, playerId});
+				if(!result.ok){
+					console.error("Error surrendering:", result.message);
+					ws.send(JSON.stringify({
+						type: "ERROR",
+						message: result.message,
+					}));
+					return;
+				}
+				const allWS = Array.from(this.wsPlayerBinderMap.entries());
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(result.nextEvent, id),
+					}));
+				});
+				const gameState = result.gameState;
+				const winnerResult = await this.gameProcessLogic.isThereAWinner({roomId});
+				if(!winnerResult.ok){
+					return this.__endTurnTimer();
+				}
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(winnerResult.nextEvent, id),
+					}));
+				});
+
+				const usernameOfWinner = winnerResult.nextEvent.type === "PLAYER_WIN" ? gameState.playerInfo.find(player=>player.id === (winnerResult.nextEvent as any).playerId)?.username : "unknown";
+
+				allWS.forEach(([, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "GAME_END",
+						message: `Player ${usernameOfWinner} has won the game`
+					}));
+				});  
+				return;
+			}
 		}
 	}
 
@@ -353,7 +434,7 @@ export class CardGameRoom extends DurableObject {
 
 	async __endTurnTimer(){
 		console.log("Setting end turn timer for 60 seconds");
-		this.ctx.storage.setAlarm(Date.now() + 1000 * 3);
+		this.ctx.storage.setAlarm(Date.now() + 1000 * 60);
 	}
 
 	async alarm(){
@@ -491,7 +572,7 @@ export class CardGameRoom extends DurableObject {
 						console.error("Error setting player lose after timer ended with empty deck:", playerLoseResult.message);
 						return;
 					}
-					const allWS = Array.from(this.wsPlayerBinderMap.entries());
+					
 					allWS.forEach(([id, playerWS])=>{
 						playerWS.send(JSON.stringify({
 							type: "NEXT_EVENT",
@@ -571,6 +652,49 @@ export class CardGameRoom extends DurableObject {
 					return;
 				}
 				
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(endTurnResult.nextEvent, id),
+					}));
+				});
+				this.__endTurnTimer();
+			}
+
+			if(isAllowedToEnd.code === "HAND_OVERFLOW"){
+				// We must jail the card for the player and then end his turn
+				const currentPlayerInfo = getCurrentPlayer(gameState);
+				const cardsToJail = cardsToRemoveFromOverflowHand(gameState);
+				const removeFromHandResult = await this.gameProcessLogic.removeFromHand({roomId, cardsToRemove: cardsToJail.map(card=>card.id)});
+				if(!removeFromHandResult.ok){
+					console.error("Error removing cards from hand after timer ended:", removeFromHandResult.message);
+					return;
+				}
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(removeFromHandResult.nextEvent, id),
+					}));
+				});
+
+				const jailResult = await this.gameProcessLogic.jailCards({roomId, cardsToRemove: cardsToJail});
+				if(!jailResult.ok){
+					console.error("Error jailing cards after timer ended:", jailResult.message);
+					return;
+				}
+
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(jailResult.nextEvent, id),
+					}));
+				});
+
+				const endTurnResult = await this.gameProcessLogic.startTurn(roomId);
+				if(!endTurnResult.ok){
+					console.error("Error starting the turn after timer ended:", endTurnResult.message);
+					return;
+				}
 				allWS.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",

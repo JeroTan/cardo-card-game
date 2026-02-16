@@ -1,20 +1,20 @@
 import { Ticker, type Container } from "pixi.js";
 import { useCallback, useId, useRef } from "react";
 import { useEffectOnce } from "react-use";
-import { Animator, curvatureCalculator, makeCoordinatesCenter } from "../utils/Math";
+import { Animator, curvatureCalculator, makeCoordinatesCenter, useAppWithScaleConstant } from "../utils/Math";
 import { findLabelCardInPixi } from "../utils/Card";
 
 export type AttackAnimationProps = {
   children?: React.ReactNode,
-  scaleConstant?: number,
   animationDone?: ()=>void,
 };
 
 export function AttackToSentinelAnimation({
   children,
-  scaleConstant = 1,
   animationDone,
 }: AttackAnimationProps){
+
+  const [, scaleConstants] = useAppWithScaleConstant();
 
   const element = useRef<Container | null>(null);
   const ticker = useRef(new Ticker());
@@ -41,8 +41,8 @@ export function AttackToSentinelAnimation({
 
     // Calculate the location of cards from center
     const currentCardLocationFromCenter = {
-      x: ( cardData.position.x - (1920 * scaleConstant * .5) ) / (scaleConstant ? scaleConstant : 1),
-      y: (1080 * .5) - (cardData.position.y / (scaleConstant ? scaleConstant : 1)),
+      x: ( cardData.position.x - (1920 * scaleConstants * .5) ) / (scaleConstants ? scaleConstants : 1),
+      y: (1080 * .5) - (cardData.position.y / (scaleConstants ? scaleConstants : 1)),
     }
 
     // From center to the x of from, calculate the angle of rotation
@@ -51,7 +51,7 @@ export function AttackToSentinelAnimation({
       ? -baseAngle              // Below center: flip rotation
       : -(baseAngle - Math.PI);    // Above center: subtract 180 degrees
 
-    const targetCenter = makeCoordinatesCenter({scaleConstant, rectHeight: 0, rectWidth: 0, x:0, y:0});
+    const targetCenter = makeCoordinatesCenter({scaleConstant: scaleConstants, rectHeight: 0, rectWidth: 0, x:0, y:0});
   
 
     ticker.current.add((t)=>{

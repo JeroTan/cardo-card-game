@@ -1,13 +1,16 @@
-import { Circle } from "pixi.js";
+import { Circle, Container } from "pixi.js";
 import { makeCoordinatesCenter, useAppWithScaleConstant } from "../utils/Math";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 export default function Board({
-  centerStatus = "NEUTRAL"
+  centerStatus = "NEUTRAL",
+  onClick,
 }:{
   centerStatus?: "NEUTRAL" | "OPPONENT" | "MAIN_PLAYER",
+  onClick?: (container: Container | null) => void,
 }){
   const [app, scaleConstant] = useAppWithScaleConstant();
+  const ref = useRef<Container>(null);
 
   const centerBoardColor = useMemo(()=>{
     switch(centerStatus){
@@ -18,6 +21,13 @@ export default function Board({
   }, [centerStatus]);
 
   return <>
+  <pixiContainer
+    ref={ref}
+    {...(onClick ? {
+			eventMode: "static",
+			onClick: ()=>{ onClick(ref.current); },
+		} : {})}
+  >
     <pixiGraphics
       draw={(graphics) => {
         graphics.clear();
@@ -68,6 +78,8 @@ export default function Board({
 
     {/** Top Drawer */}
     <DrawerGraphics x={-770} y={280} />
+  </pixiContainer>
+
   </>
 }
 

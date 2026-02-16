@@ -1,3 +1,4 @@
+import type { Container, Text } from "pixi.js";
 import { useAppWithScaleConstant } from "../utils/Math";
 import { useCallback, useMemo, useRef, useState } from "react";
 
@@ -12,21 +13,24 @@ export function Button({
   y = 0,
   color = 0x505050,
   textColor = 0xFFFFFF,
+  onMouseEnter,
 }:{
   text?: string,
   minWidth?: number,
   fontSize?: number,
-  onClick?: ()=>void,
+  onClick?: (container: Container | null)=>void,
   disabled?: boolean,
   useCenterCoordinate?: boolean,
   x?: number,
   y?: number,
   color?: number,
   textColor?: number,
+  onMouseEnter?: ()=>void,  
 }){
   const [, scaleConstant] = useAppWithScaleConstant();
   const [isHovered, setIsHovered] = useState(false);
-  const textRef = useRef<any>(null);
+  const textRef = useRef<Text>(null);
+  const containerRef = useRef<Container>(null);
 
   // Padding in pixels (tailwind: y=2, x=4)
   const { scaledFontSize, buttonWidth, buttonHeight } = useMemo(() => {
@@ -57,7 +61,7 @@ export function Button({
 
   const handleClick = useCallback(() => {
     if (!disabled && onClick) {
-      onClick();
+      onClick(containerRef.current);
     }
   }, [disabled, onClick]);
 
@@ -93,11 +97,13 @@ export function Button({
     <pixiContainer
       x={posX}
       y={posY}
+      ref={containerRef}
       eventMode={disabled ? "none" : "static"}
       cursor={disabled ? "default" : "pointer"}
       onClick={handleClick}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
+      onMouseEnter={onMouseEnter}
     >
       <pixiGraphics 
         draw={(graphics)=>{

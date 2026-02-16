@@ -504,6 +504,17 @@ export function isNotSentinelOwnerAllowedToEnd(gameState: GameState){
   const hasAttacking = eventsSinceLastTurn.some(e => e.type === "ATTACKING");
   const hasDrawCard = eventsSinceLastTurn.some(e => e.type === "DRAW_CARD");
   if(!hasAttacking && !hasDrawCard) return {ok: false, code:"NO_ATTACKING_AND_NO_DRAW", message: "Player did not make an attack or draw a card"};
+
+  // Check if the card that was draw is not overflowing from hands
+  if(hasDrawCard){
+    const player = gameState.playerInfo.find(p => p.id === lastStartTurn.playerId);
+    if(!player){
+      return {ok: false, code:"PLAYER_NOT_FOUND", message: "Player not found in game state"};
+    }
+    if(player.cardsInHand.length > 7){
+      return {ok: false, code:"HAND_OVERFLOW", message: "Player has more than 7 cards in hand, must remove cards from hand before ending turn"};
+    }
+  }
   return {ok: true, code:"OK", message: "Player can end turn"};
 }
 
