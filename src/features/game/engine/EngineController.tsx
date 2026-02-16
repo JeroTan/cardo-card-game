@@ -209,14 +209,18 @@ function Composer(){
           const ws = context.ws!;
           ws.getSocket()?.send(JSON.stringify({
             type: "REQUEST_DRAW_CARD",
-            cardToDraw: total,
+            data: {
+              cardToDraw: total,
+            }
           }));
         }}
         cardAttack={(cardIds)=>{
           const ws = context.ws!;
           ws.getSocket()?.send(JSON.stringify({
             type: "REQUEST_ATTACK",
-            attackingCards: cardIds,
+            data:{
+              attackingCards: cardIds,
+            }
           }));
           queue.current.add(()=>{}, {timeout: 600});
         }}
@@ -230,7 +234,9 @@ function Composer(){
           const ws = context.ws!;
           ws.getSocket()?.send(JSON.stringify({
             type: "REQUEST_DISCARD_CARD",
-            cardsToDiscard,
+            data: {
+              cardsToDiscard,
+            }
           })); 
         }}
         surrender={()=>{

@@ -575,14 +575,18 @@ function Composer({
             {children}
           </> }
         </>;
-      }, []);
+      }, [discardSelection]);
 
       const IsAttackAnimating = useCallback(({children}:PropsWithChildren<{}>)=>{
         return <>
           {triggerAttackAnimation ? <>
-            <AttackToSentinelAnimation>
+            {comboAttackSelection && comboAttackSelection.includes(mainPlayerHandCards[index].id) ? <>
+              <AttackToSentinelAnimation>
+                {children}
+              </AttackToSentinelAnimation>
+            </> : <>
               {children}
-            </AttackToSentinelAnimation>
+            </>}
           </> : <>
             <HoverGlow>
               {children}
@@ -781,7 +785,7 @@ function Composer({
         useCenterCoordinate
         x={600}
         y={30}
-        text="Attack Selected Cards"
+        text="Use Combo Attack"
         color={0x3D5779}
         minWidth={200}
         onClick={()=>{
