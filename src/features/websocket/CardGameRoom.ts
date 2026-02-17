@@ -264,7 +264,7 @@ export class CardGameRoom extends DurableObject {
 						type: "NEXT_EVENT",
 						data: convertTurnStateForClient(nextEvent, id),
 					}));
-				});
+				});			
 				
 				// Change the sentinel if the attack is successful
 				const changeSentinelResult = await this.gameProcessLogic.changeSentinel({roomId});
@@ -277,8 +277,7 @@ export class CardGameRoom extends DurableObject {
 					return;
 				}
 
-				const allWSAfterSentinelChange = Array.from(this.wsPlayerBinderMap.entries());
-				allWSAfterSentinelChange.forEach(([id, playerWS])=>{
+				allWS.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
 						data: convertTurnStateForClient(changeSentinelResult.nextEvent, id),
@@ -286,24 +285,27 @@ export class CardGameRoom extends DurableObject {
 				});
 
 				// Jail the card if the attack is successful
-				const jailCardResult = await this.gameProcessLogic.jailSentinelCards({roomId});
+				if(changeSentinelResult.gameState.events.filter(e=>e.type === "START_TURN").length > 1){
+					const jailCardResult = await this.gameProcessLogic.jailSentinelCards({roomId});
 
-				if(!jailCardResult.ok){
-					console.error("Error jailing cards after attack:", jailCardResult.message);
-					ws.send(JSON.stringify({
-						type: "ERROR",
-						message: jailCardResult.message,
-					}));
-					return;
+					if(!jailCardResult.ok){
+						console.error("Error jailing cards after attack:", jailCardResult.message);
+						ws.send(JSON.stringify({
+							type: "ERROR",
+							message: jailCardResult.message,
+						}));
+						return;
+					}
+
+					const allWSAfterJail = Array.from(this.wsPlayerBinderMap.entries());
+					allWSAfterJail.forEach(([id, playerWS])=>{
+						playerWS.send(JSON.stringify({
+							type: "NEXT_EVENT",
+							data: convertTurnStateForClient(jailCardResult.nextEvent, id),
+						}));
+					});
 				}
 
-				const allWSAfterJail = Array.from(this.wsPlayerBinderMap.entries());
-				allWSAfterJail.forEach(([id, playerWS])=>{
-					playerWS.send(JSON.stringify({
-						type: "NEXT_EVENT",
-						data: convertTurnStateForClient(jailCardResult.nextEvent, id),
-					}));
-				});
 				break;
 			}
 			case "REQUEST_END_TURN":{

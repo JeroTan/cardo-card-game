@@ -81,8 +81,23 @@ export default function RoomCreation({
       }
       if(data.type === "NEXT_EVENT"){
         if(!gameIsReady){
-          const newData = data as unknown as {type: "NEXT_EVENT", data: TurnEvent};
-          appendTurnEvent(newData.data);
+          const content = data as unknown as {type: "NEXT_EVENT", data: TurnEvent};
+          appendTurnEvent(content.data);
+          const newData = content.data;
+          if(newData.type === "START_TURN"){
+            setGameStateData(prev=>{
+              if(!prev) return prev;
+              const newGameState = {...prev};
+              newGameState.playerInfo = newGameState.playerInfo.map(p=>{
+                if(p.id === newData.playerId){
+                  return {...p, active: true, turnCount: p.turnCount + 1};
+                }
+                return p;
+              });
+              return newGameState;
+            });
+          }
+          
           updateGameIsReady(true);
           loadingSet(false);
         }

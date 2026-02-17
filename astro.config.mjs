@@ -59,7 +59,11 @@ export default defineConfig({
             alias: import.meta.env.PROD &&  {
                 "react-dom/server": "react-dom/server.edge",
             }
-        }
+        },
+        build: {
+            minify: false,
+            reportCompressedSize: false,
+        },
     },
     server: {
         port: 3001,

@@ -15,7 +15,7 @@ export default function Modal({
   backgroundCallback,
   padding = 40,
 }:ModalProps){
-  const [app, scaleConstant] = useAppWithScaleConstant();
+  const [, scaleConstant] = useAppWithScaleConstant();
   const childrenContainerRef = useRef<Container | null>(null);
   const [modalSize, setModalSize] = useState({ width: 0, height: 0 });
   const [isCloseHovered, setIsCloseHovered] = useState(false);
@@ -30,8 +30,8 @@ export default function Modal({
     }
   }, [children, padding]);
 
-  const modalX = app ? (app.screen.width - modalSize.width) / 2 : 0;
-  const modalY = app ? (app.screen.height - modalSize.height) / 2 : 0;
+  const modalX = ((1920 * scaleConstant) - modalSize.width) / 2;
+  const modalY = ((1080 * scaleConstant) - modalSize.height) / 2;
 
   return <pixiContainer>
     {/** Backdrop */}

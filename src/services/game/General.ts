@@ -330,11 +330,9 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
   }
 
   // Rule 11: START_TURN validation
-  if (receiveEvent.type === "START_TURN") {
-    const lastEvent = events[events.length - 1];
-    
-    // START_TURN should come after GAME_START or after a complete turn
-    if (gameStartCount === 0) {
+  if (receiveEvent.type === "START_TURN") {    
+    // Before starting a new turn, the game must be started (GAME_START must exist)
+    if (!events.some(e => e.type === "GAME_START")) {
       return { valid: false, error: "START_TURN can only appear after GAME_START", event: receiveEvent };
     }
 
@@ -345,14 +343,13 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
     }
 
     // Find the last START_TURN to determine turn order
-    const lastStartTurn = [...events].reverse().find(e => e.type === "START_TURN");
+    const latestStartTurn = [...events].reverse().find(e => e.type === "START_TURN");
     
-    if (lastStartTurn && 'playerId' in lastStartTurn) {
+    if (latestStartTurn && 'playerId' in latestStartTurn) {
       // Get list of active players (not eliminated)
       const lostPlayerIds = events
-        .filter(e => e.type === "PLAYER_LOSE")
-        .map(e => 'playerId' in e ? e.playerId : null)
-        .filter(id => id !== null);
+        .filter(e => e.type === "PLAYER_LOSE" && 'playerId' in e && e.playerId != null)
+        .map(e => 'playerId' in e ? e.playerId : null);
       
       const activePlayers = playerInfo.filter(p => !lostPlayerIds.includes(p.id));
       
@@ -361,7 +358,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
       }
 
       // Find current player index
-      const currentPlayerIndex = activePlayers.findIndex(p => p.id === lastStartTurn.playerId);
+      const currentPlayerIndex = activePlayers.findIndex(p => p.id === latestStartTurn.playerId);
       
       if (currentPlayerIndex === -1) {
         return { valid: false, error: "Previous turn player not found", event: receiveEvent };
@@ -379,16 +376,17 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
         };
       }
 
-      // Check if the previous player was the sentinel owner at the START of their turn
-      // Find the sentinel owner before the last START_TURN
-      const lastStartTurnIndex = events.findIndex(e => e === lastStartTurn);
-      const eventsBeforeLastTurn = events.slice(0, lastStartTurnIndex);
-      const lastSentinelEventBeforeTurn = [...eventsBeforeLastTurn].reverse().find(e => e.type === "CHANGE_SENTINEL");
-      const isSentinelOwner = lastSentinelEventBeforeTurn && 'playerId' in lastSentinelEventBeforeTurn && lastSentinelEventBeforeTurn.playerId === lastStartTurn.playerId;
+      // This to get the events of the latest turn
+      const latestStartTurnIndex = events.findIndex(e => e === latestStartTurn);
+      const eventsSinceLastTurn = events.slice(latestStartTurnIndex + 1);
 
-      // Check if this was the first START_TURN (no sentinel existed before it)
-      const wasFirstTurn = !lastSentinelEventBeforeTurn;
-      const eventsSinceLastTurn = events.slice(lastStartTurnIndex + 1);
+      // This is use to determine if the player is a sentinel owner or not. 
+      const eventsBeforeLastTurn = events.slice(0, latestStartTurnIndex);
+      const lastSentinelEventBeforeTurn = [...eventsBeforeLastTurn].reverse().find(e => e.type === "CHANGE_SENTINEL"); //We get the latest sentinel owner
+      const isSentinelOwner = lastSentinelEventBeforeTurn && 'playerId' in lastSentinelEventBeforeTurn && lastSentinelEventBeforeTurn.playerId === latestStartTurn.playerId;
+
+      // Check if this was the first START_TURN (only 1 START_TURN exists in events)
+      const wasFirstTurn = events.filter(e => e.type === "START_TURN").length === 1;
       
       if (wasFirstTurn) {
         // First turn player MUST attack and establish a sentinel
@@ -400,13 +398,7 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
         }
       }
 
-      if (isSentinelOwner) {
-        // Sentinel owner can skip their turn (START_TURN can follow START_TURN)
-        const validPreviousTypes = ["STARTING_CARDS", "START_TURN", "PLAYER_LOSE"];
-        if (!validPreviousTypes.includes(lastEvent.type)) {
-          return { valid: false, error: `Sentinel owner's START_TURN can only follow ${validPreviousTypes.join(", ")}`, event: receiveEvent };
-        }
-      } else {
+      if (!isSentinelOwner) {
         // Non-sentinel player must have either ATTACKING or DRAW_CARD in their turn
         const hasAttacking = eventsSinceLastTurn.some(e => e.type === "ATTACKING");
         const hasDrawCard = eventsSinceLastTurn.some(e => e.type === "DRAW_CARD");
@@ -421,12 +413,6 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
         if (hasAttacking && !hasChangeSentinel) {
           return { valid: false, error: "CHANGE_SENTINEL must follow ATTACKING", event: receiveEvent };
         }
-      }
-    } else {
-      // First START_TURN after STARTING_CARDS
-      const validPreviousTypes = ["STARTING_CARDS", "PLAYER_LOSE"];
-      if (!validPreviousTypes.includes(lastEvent.type)) {
-        return { valid: false, error: `First START_TURN must follow ${validPreviousTypes.join(", ")}`, event: receiveEvent };
       }
     }
 
@@ -449,7 +435,7 @@ export function isAttackWithinTime(serverState: GameState, interval = 1000*60) {
     return true;
   }
   
-  const elapsedTime = Date.now() - Number(lastStartTurn.timestamp);
+  const elapsedTime = Date.now() -  new Date(lastStartTurn.timestamp).getTime();
   return elapsedTime <= interval;
 }
 

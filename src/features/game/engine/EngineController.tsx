@@ -122,6 +122,20 @@ function Composer(){
                 setTipNote(`The sentinel is ${gameStateData.playerInfo.find((p)=>p.id === sentinelOwner)?.username}. Play your cards to attack and become a new sentinel!`);
               }
             }
+            // Increase turn count for the player whose turn it is
+            context.setGameStateData((prev)=>{
+              if(!prev) return prev;
+              const newData = {...prev!};
+              const playerInfoIndex = newData.playerInfo.findIndex((info)=>info.id === newEvent.playerId);
+              if(playerInfoIndex === -1) return prev;
+              const player = newData.playerInfo[playerInfoIndex];
+              newData.playerInfo[playerInfoIndex] = {
+                ...player,
+                turnCount: player.turnCount + 1,
+              }
+              newData.playerInfo = structuredClone(newData.playerInfo);
+              return newData;
+            });
           }
 
           // For removing cards in the hand of opponents

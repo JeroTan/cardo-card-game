@@ -358,6 +358,7 @@ export class GameProcessLogic {
     const player = playerInfo[playerIndex];
     const attackingCards = player.cardsInHand.filter(card=>attackingCardIds.includes(card.id));
     if(attackingCards.length !== attackingCardIds.length){
+      console.log("Attacking cards in hand:", player.cardsInHand, "Attacking card IDs:", attackingCardIds, "Attacking cards found:", attackingCards);
       return {ok: false, message: "One or more attacking cards are not in the player's hand", gameState, nextEvent: null} as const;
     }
 
