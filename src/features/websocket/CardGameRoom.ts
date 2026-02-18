@@ -102,6 +102,10 @@ export class CardGameRoom extends DurableObject {
 			return;
 		}
 		const jsonData = convertMessageToJSON(message) as WebsocketStatusForRoom<any>;
+		const allWS = this.ctx.getWebSockets().map(ws=>{
+			return [ws.deserializeAttachment().playerId, ws];
+		});
+
 		switch(jsonData.type){
 			case "PLAYER_CONFIRM":{ // Player confirms meaning that concensus of players maybe on premade or custom room are connected
 				const result = await this.ctx.blockConcurrencyWhile(async()=>{
@@ -117,9 +121,7 @@ export class CardGameRoom extends DurableObject {
 
 				// Check if everyone is ready and if yes start the game
 				const isReadyReport = await this.roomLogic.isEveryoneConnectionConfirm(roomId);
-				if(isReadyReport.ok){
-					const allWS = Array.from(this.wsPlayerBinderMap.entries());
-			
+				if(isReadyReport.ok){	
 					await this.ctx.blockConcurrencyWhile(async()=>{
 						await this.gameProcessLogic.createGame(roomId);
 						await this.gameProcessLogic.addInitialPlayersFromServices({
@@ -132,7 +134,7 @@ export class CardGameRoom extends DurableObject {
 						return await this.gameProcessLogic.setGamePreparationReady(roomId);
 					});
 
-					allWS.forEach(([playerId, playerWS])=>{
+					allWS.forEach(([, playerWS])=>{
 						playerWS.send(JSON.stringify({
 							type: "INITIAL_CARD_IS_READY",
 							message: "All players' cards are ready. Starting, please confirm again...",
@@ -159,9 +161,7 @@ export class CardGameRoom extends DurableObject {
 					return;
 				}
 
-				const allWS = Array.from(this.wsPlayerBinderMap.entries());
-
-				allWS.forEach(([playerId, playerWS])=>{
+				allWS.forEach(([, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "EVERYONE_READY",
 						message: "Everyone is ready. Starting the game...",
@@ -207,8 +207,6 @@ export class CardGameRoom extends DurableObject {
 					return;
 				}
 				const nextEvent = result.nextEvent as TurnEvent;
-				// Broadcast the state of how many card is drawn to opponents but send the actual drawn cards to the player himself
-				const allWS = Array.from(this.wsPlayerBinderMap.entries());
 				allWS.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
@@ -297,8 +295,7 @@ export class CardGameRoom extends DurableObject {
 						return;
 					}
 
-					const allWSAfterJail = Array.from(this.wsPlayerBinderMap.entries());
-					allWSAfterJail.forEach(([id, playerWS])=>{
+					allWS.forEach(([id, playerWS])=>{
 						playerWS.send(JSON.stringify({
 							type: "NEXT_EVENT",
 							data: convertTurnStateForClient(jailCardResult.nextEvent, id),
@@ -318,7 +315,6 @@ export class CardGameRoom extends DurableObject {
 					}));
 					return;
 				}
-				const allWS = Array.from(this.wsPlayerBinderMap.entries());
 				allWS.forEach(([playerId, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
@@ -345,7 +341,6 @@ export class CardGameRoom extends DurableObject {
 					}));
 					return;
 				}
-				const allWS = Array.from(this.wsPlayerBinderMap.entries());
 				allWS.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
@@ -380,7 +375,6 @@ export class CardGameRoom extends DurableObject {
 					}));
 					return;
 				}
-				const allWS = Array.from(this.wsPlayerBinderMap.entries());
 				allWS.forEach(([id, playerWS])=>{
 					playerWS.send(JSON.stringify({
 						type: "NEXT_EVENT",
