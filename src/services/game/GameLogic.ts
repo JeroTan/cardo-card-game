@@ -484,7 +484,9 @@ export class GameProcessLogic {
     }
     // Get the last event of CHANGE_SENTINEL but NOT in this START_TURN 
     const lastStartTurnEventIndex = [...gameState.events].reverse().findIndex(event=>event.type === "START_TURN");
-    const lastChangeSentinelEvent = [...gameState.events].reverse().find((event, index)=>event.type === "CHANGE_SENTINEL" && index < lastStartTurnEventIndex) as TurnEvent | undefined;
+    // Slice to get the previous events before the last START_TURN, then find the last CHANGE_SENTINEL event in those events
+    const eventsBeforeLastStartTurn = [...gameState.events].slice(0, gameState.events.length - lastStartTurnEventIndex - 1);
+    const lastChangeSentinelEvent = eventsBeforeLastStartTurn.reverse().find(event=>event.type === "CHANGE_SENTINEL") as TurnEvent | undefined;
     
     if(!lastChangeSentinelEvent || lastChangeSentinelEvent.type !== "CHANGE_SENTINEL"){
       return {ok: false, message: "No sentinel change event found in the current turn", gameState, nextEvent: null} as const;

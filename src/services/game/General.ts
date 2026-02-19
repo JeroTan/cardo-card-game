@@ -174,6 +174,24 @@ export function validateGameEvent(receiveEvent: TurnEvent, serverState: GameStat
       return { valid: false, error: `Not enough cards in deck. Has ${player.cardsInDeck.length}, trying to draw ${drawnCount}`, event: receiveEvent };
     }
 
+    // Check if player is already draw up to 3 cards
+    const startOfTurn = [...events].reverse().find(e => e.type === "START_TURN");
+    if(!startOfTurn){
+      return { valid: false, error: "No START_TURN event found for this turn", event: receiveEvent };
+    }
+    const eventsOfThisTurn = startOfTurn ? events.slice(events.findIndex(e => e === startOfTurn)) : events;
+    const drawnCardsThisTurn = eventsOfThisTurn.reduce((sum, e) => {
+      if (e.type === "DRAW_CARD" && e.playerId === playerId) {
+        const count = typeof e.drawn_cards === "number" ? e.drawn_cards : e.drawn_cards.length; 
+        return sum + count;
+      }
+      return sum;
+    }, 0);
+
+    if (drawnCardsThisTurn + drawnCount > 3) {
+      return { valid: false, error: "Cannot draw more than 3 cards per turn", event: receiveEvent };
+    }
+
     return { valid: true, event: receiveEvent };
   }
 
@@ -451,6 +469,15 @@ export function getCurrentPlayer(gameState: GameState) {
     throw new Error(`Player with id ${playerId} not found in playerInfo`);
   }
   return playerInfo;
+}
+
+export function getCurrentSentinel(gameState: GameState) {
+  const events = gameState.events;
+  const lastSentinelEvent = events.slice().reverse().find(e => e.type === "CHANGE_SENTINEL");
+  if (lastSentinelEvent && 'new_sentinel' in lastSentinelEvent) {
+    return lastSentinelEvent.new_sentinel;
+  }
+  return null; // No sentinel established yet
 }
 
 export function checkIfFirstTurnAndNoSentinelYet (serverState: GameState) {

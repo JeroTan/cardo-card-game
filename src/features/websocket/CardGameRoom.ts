@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
-import type { GameCard, TurnEvent } from "@/types/game/events";
-import { cardsToRemoveFromOverflowHand, checkIfFirstTurnAndNoSentinelYet, convertTurnStateForClient, getCurrentPlayer, isCurrentASentinel, isNotSentinelOwnerAllowedToEnd, validateGameEvent } from "@/services/game/General";
+import type { TurnEvent } from "@/types/game/events";
+import { cardsToRemoveFromOverflowHand, checkIfFirstTurnAndNoSentinelYet, convertTurnStateForClient, getCurrentPlayer, isCurrentASentinel, isNotSentinelOwnerAllowedToEnd } from "@/services/game/General";
 import { RoomLogic } from "@/services/game/RoomLogic";
 import { cleanseDurableObjectStorage, convertMessageToJSON, makeWSServer } from "@/lib/durableObject";
 import type { WebsocketStatusForRoom } from "@/types/game/events";
@@ -25,7 +25,7 @@ export class CardGameRoom extends DurableObject {
     const url = new URL(request.url);
 		const requestType = url.searchParams.get("type");
 		const roomId = url.searchParams.get("roomId");
-		console.log(`CardGameRoom received request for roomId: ${roomId} with type: ${requestType} from durable id: ${this.ctx.id.toString()}`);
+		// console.log(`CardGameRoom received request for roomId: ${roomId} with type: ${requestType} from durable id: ${this.ctx.id.toString()}`);
 
 		if(!requestType){
 			return Response.json({ error: "type is required" }, { status: 400 });
@@ -168,24 +168,27 @@ export class CardGameRoom extends DurableObject {
 					}));
 				});
 				
-				const startTurnResult = await this.gameProcessLogic.startTurn(roomId);
-				if(!startTurnResult.ok){
-					console.error("Error starting the turn:", startTurnResult.message);
-					ws.send(JSON.stringify({
-						type: "ERROR",
-						message: startTurnResult.message,
-					}));
-					return;
+				const checkIfTheresIsNoTurnYet = await this.gameProcessLogic.getGameState(roomId);
+				if(!checkIfTheresIsNoTurnYet || (checkIfTheresIsNoTurnYet && checkIfTheresIsNoTurnYet.events.filter(event => event.type === "START_TURN").length === 0) ){
+					const startTurnResult = await this.gameProcessLogic.startTurn(roomId);
+					if(!startTurnResult.ok){
+						console.error("Error starting the turn:", startTurnResult.message);
+						ws.send(JSON.stringify({
+							type: "ERROR",
+							message: startTurnResult.message,
+						}));
+						return;
+					}
+			
+					allWS.forEach(([playerId, playerWS])=>{
+						// Also Broadcast the starting event to all players to start the game
+						playerWS.send(JSON.stringify({
+							type: "NEXT_EVENT",
+							data: convertTurnStateForClient(startTurnResult.nextEvent, playerId),
+						}));
+					});
+					this.__endTurnTimer();
 				}
-		
-				allWS.forEach(([playerId, playerWS])=>{
-					// Also Broadcast the starting event to all players to start the game
-					playerWS.send(JSON.stringify({
-						type: "NEXT_EVENT",
-						data: convertTurnStateForClient(startTurnResult.nextEvent, playerId),
-					}));
-				});
-				this.__endTurnTimer();
 				break;
 			}
 			case "REQUEST_DRAW_CARD":{
@@ -216,8 +219,6 @@ export class CardGameRoom extends DurableObject {
 				break;
 			}
 			case "REQUEST_ATTACK":{
-				const allWS = Array.from(this.wsPlayerBinderMap.entries());
-
 				const { attackingCards } = jsonData.data as { attackingCards: string[] };
 				if(!attackingCards || !Array.isArray(attackingCards) || attackingCards.length === 0 || attackingCards.length > 3){
 					ws.send(JSON.stringify({
@@ -526,6 +527,23 @@ export class CardGameRoom extends DurableObject {
 		// Since his turn is over then we are the one who should end his turn but let's check also if he is a sentinel or not 
 		const isCurrentPlayerIsSentinel = isCurrentASentinel(gameState);
 		if(isCurrentPlayerIsSentinel){
+			// Check if there's an overflow in hand
+			const cardsToJail = cardsToRemoveFromOverflowHand(gameState);
+			if(cardsToJail.length > 0){
+				const removeFromHandResult = await this.gameProcessLogic.removeFromHand({roomId, cardsToRemove: cardsToJail.map(card=>card.id)});
+				if(!removeFromHandResult.ok){
+					console.error("Error removing cards from hand after timer ended for sentinel:", removeFromHandResult.message);
+					return;
+				}
+				allWS.forEach(([id, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type: "NEXT_EVENT",
+						data: convertTurnStateForClient(removeFromHandResult.nextEvent, id),
+					}));
+				});
+			};
+
+
 			const endTurnResult = await this.gameProcessLogic.startTurn(roomId);
 			if(!endTurnResult.ok){
 				console.error("Error starting the turn after timer ended:", endTurnResult.message);
