@@ -24,7 +24,12 @@ function Composer(){
           acceptButton: false,
           rejectButton: false,
           additionalBody: <>
-            <GameMenu />
+            <div>
+              <GameMenu />
+            </div>
+            <div className="flex justify-center">
+              <p>Don't know how to play? Check out the <a href="/how-to-play" className="underline text-blue-500">How to Play</a> page for more information and guides!</p>
+            </div>
           </>
         }))
       }}
