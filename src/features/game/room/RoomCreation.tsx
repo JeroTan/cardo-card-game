@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type PropsWithChildren } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { useGameEventContext } from "../context/GameEventContext";
 import { useEffectOnce } from "react-use";
 import { useModalContext } from "@/stores/components/ModalContext";
@@ -11,9 +11,11 @@ import type { GameStateClient, TurnEvent } from "@/types/game/events";
 export default function RoomCreation({
   children,
 }:PropsWithChildren<{}>){
-  const {roomId, gameStateData, gameIsReady, appendTurnEvent, setWS, setGameStateData, updateGameIsReady} = useGameEventContext();
+  const {roomId, gameStateData, appendTurnEvent, setWS, setGameStateData} = useGameEventContext();
   const [,modalDispatch] = useModalContext();
   const [loading, loadingSet] = useState(true);
+  const [gameIsReady, updateGameIsReady] = useState(false);
+  const firstEventReceived = useRef(false);
 
   const joinRoom = useCallback(async ()=>{
     modalDispatch(makeLoadingModal({
@@ -66,8 +68,9 @@ export default function RoomCreation({
         }
         const {data: gameState} = await response.json() as {data: GameStateClient};
         setGameStateData(gameState);
-        if(gameState.events.length > 0 && gameState.events.some(e=>e.type === "START_TURN")){
+        if(gameIsReady || gameState.events.length > 0 && gameState.events.some(e=>e.type === "START_TURN")){
           updateGameIsReady(true);
+          firstEventReceived.current = true;
         }
 
         ws.getSocket()?.send(JSON.stringify({
@@ -79,28 +82,28 @@ export default function RoomCreation({
         loadingSet(false);
         modalDispatch(makeCloseModal());
       }
-      if(data.type === "NEXT_EVENT"){
-        if(!gameIsReady){
-          const content = data as unknown as {type: "NEXT_EVENT", data: TurnEvent};
-          appendTurnEvent(content.data);
-          const newData = content.data;
-          if(newData.type === "START_TURN"){
-            setGameStateData(prev=>{
-              if(!prev) return prev;
-              const newGameState = {...prev};
-              newGameState.playerInfo = newGameState.playerInfo.map(p=>{
-                if(p.id === newData.playerId){
-                  return {...p, active: true, turnCount: p.turnCount + 1};
-                }
-                return p;
-              });
-              return newGameState;
+
+      if(data.type === "NEXT_EVENT" && !gameStateData?.events.some(e=>e.type === "START_TURN") && !firstEventReceived.current ){
+        firstEventReceived.current = true;
+        const content = data as unknown as {type: "NEXT_EVENT", data: TurnEvent};
+        appendTurnEvent(content.data);
+        const newData = content.data;
+        if(newData.type === "START_TURN"){
+          setGameStateData(prev=>{
+            if(!prev) return prev;
+            const newGameState = {...prev};
+            newGameState.playerInfo = newGameState.playerInfo.map(p=>{
+              if(p.id === newData.playerId){
+                return {...p, active: true, turnCount: p.turnCount + 1};
+              }
+              return p;
             });
-          }
-          
-          updateGameIsReady(true);
-          loadingSet(false);
+            return newGameState;
+          });
         }
+        
+        updateGameIsReady(true);
+        loadingSet(false);
       }
     });
   }, [gameStateData, gameIsReady]);

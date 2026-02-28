@@ -228,7 +228,7 @@ export class CardGameRoom extends DurableObject {
 					return;
 				}	
 				
-				const attackResult = await this.gameProcessLogic.attackWithCards({roomId, playerId, attackingCardIds: attackingCards});
+				const attackResult = await this.gameProcessLogic.attackWithCards({roomId, attackingCardIds: attackingCards});
 				if(!attackResult.ok){
 					console.error("Error attacking with cards:", attackResult.message);
 					ws.send(JSON.stringify({
@@ -465,7 +465,6 @@ export class CardGameRoom extends DurableObject {
 			const playerInfo = getCurrentPlayer(gameState);
 			const attackResult = await this.gameProcessLogic.attackWithCards({
 				roomId,
-				playerId: playerInfo.id,
 				attackingCardIds: [playerInfo.cardsInHand[0].id], 
 				forceOutOfTime: true,
 			})

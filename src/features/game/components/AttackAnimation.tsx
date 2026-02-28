@@ -1,27 +1,40 @@
 import { Ticker, type Container } from "pixi.js";
 import { useCallback, useId, useRef } from "react";
-import { useEffectOnce } from "react-use";
+import { useEffectOnce, useUpdateEffect } from "react-use";
 import { Animator, curvatureCalculator, makeCoordinatesCenter, useAppWithScaleConstant } from "../utils/Math";
 import { findLabelCardInPixi } from "../utils/Card";
 
 export type AttackAnimationProps = {
   children?: React.ReactNode,
   animationDone?: ()=>void,
+  active?: boolean,
 };
 
 export function AttackToSentinelAnimation({
   children,
   animationDone,
+  active = false,
 }: AttackAnimationProps){
 
   const [, scaleConstants] = useAppWithScaleConstant();
 
   const element = useRef<Container | null>(null);
   const ticker = useRef(new Ticker());
+  const currentCardLocationFromCenter = useRef({x: 0, y: 0});
 
   useEffectOnce(()=>{
+    if(!active) return;
     startAnimation();
   });
+
+  useUpdateEffect(()=>{
+    if(!active) {
+      stopAnimation();
+      return;
+    }
+    startAnimation();
+  }, [active]);
+  
 
   const startAnimation = useCallback(()=>{
     if(element.current == null || ticker.current == null) return;
@@ -40,14 +53,15 @@ export function AttackToSentinelAnimation({
     ]);
 
     // Calculate the location of cards from center
-    const currentCardLocationFromCenter = {
+    currentCardLocationFromCenter.current = {
       x: ( cardData.position.x - (1920 * scaleConstants * .5) ) / (scaleConstants ? scaleConstants : 1),
       y: (1080 * .5) - (cardData.position.y / (scaleConstants ? scaleConstants : 1)),
     }
+    const curFromCenter = currentCardLocationFromCenter.current;
 
     // From center to the x of from, calculate the angle of rotation
-    const baseAngle = Math.atan2(currentCardLocationFromCenter.y, currentCardLocationFromCenter.x) + Math.PI / 2;
-    const finalRotationPoint = currentCardLocationFromCenter.y < 0 
+    const baseAngle = Math.atan2(curFromCenter.y, curFromCenter.x) + Math.PI / 2;
+    const finalRotationPoint = curFromCenter.y < 0 
       ? -baseAngle              // Below center: flip rotation
       : -(baseAngle - Math.PI);    // Above center: subtract 180 degrees
 
@@ -101,12 +115,28 @@ export function AttackToSentinelAnimation({
       ticker.current.stop();
     }
   }, []);
+
+  const stopAnimation = useCallback(()=>{
+    if(ticker.current){
+      ticker.current.stop();
+    }
+    // Reset card position and rotation
+    if(element.current == null) return;
+    const container = element.current;
+    const cardData = findLabelCardInPixi(container);
+    if(cardData == null) return;
+    cardData.rotation = 0;
+    cardData.position.set(
+      currentCardLocationFromCenter.current.x, 
+      currentCardLocationFromCenter.current.y
+    );
+  }, []);
   
-  return <>
+  return active ? <>
     <pixiContainer
       ref={element}
     >
       {children}
-    </pixiContainer>
-  </>
+    </pixiContainer> 
+  </>: children;
 }

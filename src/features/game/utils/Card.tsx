@@ -18,11 +18,13 @@ export function UtilityContainer({
 	graphicData,
 	onClick,
 	onMouseEnter,
+	disable = false,
 }:{
 	children?: React.ReactNode,
 	graphicData?: (graphic: Container|Sprite|null)=>void,
 	onClick?: (graphic: Container|Sprite|null)=>void,
 	onMouseEnter?: ()=>void,
+	disable?: boolean,
 }){
 	const ref = useRef<Container|null>(null);
 
@@ -32,7 +34,7 @@ export function UtilityContainer({
 		graphicData?.(container.children.length > 0 ? container.children[0] : container);
 	}, [ref.current]);
 	
-	return <pixiContainer
+	return !disable ? <pixiContainer
 		ref={ref}
 		{...(onClick ? {
 			eventMode: "dynamic",
@@ -46,5 +48,5 @@ export function UtilityContainer({
 	>
 		{/* Utility Container */}
 		{children}
-	</pixiContainer>
+	</pixiContainer> : children;
 }
