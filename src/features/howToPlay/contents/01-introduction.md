@@ -6,7 +6,7 @@ CARDO is an exciting card game where strategy meets simplicity. Your goal is to 
 
 ## Game Overview
 
-- **Players:** 2-10 players
+- **Players:** 2-4 players
 - **Deck Size:** Exactly 50 cards
 - **Starting Hand:** 5 cards
 - **Game Type:** Elimination-based, shared-sentinel mechanics
