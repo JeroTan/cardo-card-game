@@ -89,7 +89,10 @@ export class CardGameRoom extends DurableObject {
 					}));
 				}
 				return response;
-			} 
+			}
+			case "JOIN_CUSTOM_PRE_ROOM":{
+
+			}
 		}
 
 		return Response.json({message: "Invalid request"}, {status: 400});
@@ -168,8 +171,8 @@ export class CardGameRoom extends DurableObject {
 					}));
 				});
 				
-				const checkIfTheresIsNoTurnYet = await this.gameProcessLogic.getGameState(roomId);
-				if(!checkIfTheresIsNoTurnYet || (checkIfTheresIsNoTurnYet && checkIfTheresIsNoTurnYet.events.filter(event => event.type === "START_TURN").length === 0) ){
+				const gameState = await this.gameProcessLogic.getGameState(roomId);
+				if(!gameState || (gameState && gameState.events.filter(event => event.type === "START_TURN").length === 0) ){
 					const startTurnResult = await this.gameProcessLogic.startTurn(roomId);
 					if(!startTurnResult.ok){
 						console.error("Error starting the turn:", startTurnResult.message);
@@ -749,5 +752,42 @@ export class CardGameRoom extends DurableObject {
 
 	async __premadeRoom(roomId: string, playerIds: string[]){
 		await this.roomLogic.setPreMadeRoom(roomId, playerIds.map(id=>({id})));
+	}
+
+	async __createCustomRoom(roomId: string, roomName: string = "Custom Room", inviteType: "INVITE_ONLY" | "OPEN"){
+		await this.roomLogic.createRoom(roomId, roomName, inviteType);
+	}
+
+	async __updateCustomRoom({roomId, roomName, inviteType}: {roomId: string, roomName?: string, inviteType?: "INVITE_ONLY" | "OPEN"}){
+		await this.roomLogic.updateRoom(roomId, {name: roomName, joinCondition: inviteType});
+	}
+
+	async __setRoomOwner(roomId: string, playerId: string){
+		await this.roomLogic.setRoomOwner(roomId, playerId);
+	}
+	
+	async __inviteAPlayer(roomId: string, playerInfo: {id: string, username: string}[]){
+		await this.roomLogic.inviteToRoom(roomId, playerInfo);
+	}
+
+	async __joinCustomRoom(roomId: string, playerInfo: {id: string, username: string}){
+		await this.roomLogic.joinRoom(roomId, [playerInfo]);
+	}
+
+	async __removePlayerFromRoom(roomId: string, playerId: string){
+		await this.roomLogic.removePlayerFromRoom(roomId, playerId);
+	}
+
+	async __setPlayerReadyOnCustom(roomId: string, playerId: string){
+		await this.roomLogic.playerReadyOnCustomRoom(roomId, playerId);
+	}
+
+	async __setPlayerNotReadyOnCustom(roomId: string, playerId: string){
+		await this.roomLogic.playerNotReadyOnCustomRoom(roomId, playerId);
+	}
+
+	async __getRoomState(roomId: string){
+		const roomState = await this.roomLogic.getRoomInfo(roomId);
+		return roomState;
 	}
 }

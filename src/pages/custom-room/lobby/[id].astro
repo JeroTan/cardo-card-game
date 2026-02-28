@@ -1,0 +1,24 @@
+---
+import PagePlate from '@/layouts/PagePlate.astro';
+import CustomRoomCreation from '@/features/game/room/CustomRoomCreation';
+import { getPlayerOnSession } from '@/services/game/MatchmakingLogic';
+
+const { playerId } = getPlayerOnSession(Astro.cookies);
+const roomId = Astro.params.id;
+
+if (!playerId) {
+  return Astro.redirect('/');
+}
+
+if (!roomId) {
+  return Astro.redirect('/custom-room');
+}
+---
+
+<PagePlate title="CARDO - Room Lobby">
+  <CustomRoomCreation 
+    client:load 
+    userId={playerId}
+    roomId={roomId}
+  />
+</PagePlate>

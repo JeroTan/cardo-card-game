@@ -49,7 +49,15 @@ export default function GameMenu (){
         </div>
         VS Bot
       </GameMenuOption>
-      <GameMenuOption>
+      <GameMenuOption
+        onClick={()=>{
+          modalDispatch(makeLoadingModal({
+            title: "Making a room. . .",
+            message: "Please wait while we create a custom room for you.",
+          }));
+          location.href = "/custom-room";
+        }}
+      >
         <div className="flex justify-center mb-2">
           <Box className="size-14 aspect-square" />
         </div>
