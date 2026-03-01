@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Users, Plus, LogIn, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,37 +16,27 @@ export default function CustomRoomDashboard({ userId, username }: CustomRoomDash
   const [isCreating, setIsCreating] = useState(false);
   const [showJoinInput, setShowJoinInput] = useState(false);
 
-  const handleCreateRoom = async () => {
+  const handleCreateRoom  = useCallback(async () => {
     setIsCreating(true);
-    try {
-      const { promiseResponse } = ApiCreateCustomRoom({
-        roomName: `Custom Room ${Date.now().toString().slice(-6)}`,
-        type: 'OPEN',
-      });
-      const response = await promiseResponse;
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error((error as any)?.message || 'Failed to create room');
-      }
-
-      const data = await response.json() as { roomId: string };
+    ApiCreateCustomRoom({
+      roomName: `Custom Room ${Date.now().toString().slice(-6)}`,
+      type: 'OPEN',
+    }).s200((data: { roomId: string })=>{
       toast.success('Room created!');
-      
-      // Redirect to lobby
       window.location.href = `/custom-room/lobby/${data.roomId}`;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create room');
-      console.error('Create room error:', error);
+    }).sOthers((error)=>{
+      toast.error(error ? JSON.stringify(error) : 'Failed to create room');
+    }).sAfter(()=>{
       setIsCreating(false);
-    }
-  };
+    });
+  }, []);
 
-  const handleJoinSuccess = (roomId: string) => {
+
+  const handleJoinSuccess = useCallback((roomId: string) => {
     // Redirect to lobby
     window.location.href = `/custom-room/lobby/${roomId}`;
-  };
-
+  }, []);
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
       <div className="w-full max-w-2xl space-y-6">

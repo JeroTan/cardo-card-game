@@ -15,6 +15,11 @@ export function WSJoinRoom(roomId:string){
   return ws;
 }
 
+export function WSJoinRoomLobbyByCode(code:string){
+  const ws = new WebSocketNative(location.origin + `/api/game/room/${code}/join-lobby`);
+  return ws;
+}
+
 export const ApiCheckRoom = defineApiResolve({
   input: z.string(),
   handler: async (data)=>{
@@ -55,12 +60,12 @@ export const ApiUpdateCustomRoom = defineApiResolve({
   onZodError,
 });
 
-export const ApiJoinRoomByCode = defineApiResolve({
+export const ApiJoinCustomRoom = defineApiResolve({
   input: z.object({
-    code: z.string().length(6),
+    roomId: z.string(),
   }),
   handler: async (data)=>{
-    return apiClient().path('/game/room/join').data(JSON.stringify(data)).post().request();
+    return apiClient().path(`/game/room/${data.roomId}/join-lobby`).get().request();
   },
   onZodError,
 });

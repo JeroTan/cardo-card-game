@@ -1,6 +1,6 @@
 import type { CardGameRoom } from "@/features/websocket/CardGameRoom";
 import type { MatchmakingPlayer } from "@/features/websocket/MatchmakingPlayer";
-import { makeWSResponse, stabRequest, stabRequestBody } from "@/lib/durableObject";
+import { makeWSResponse, stabRequest } from "@/lib/durableObject";
 import type { CardService } from "@/services/card";
 import type { CardPackService } from "@/services/cardPack";
 import { convertRoomStateForClient, generateRoomId } from "@/services/game/General";
@@ -126,7 +126,6 @@ export class CardGameController {
 		try{
 			await stub.__createCustomRoom(roomId, roomName, type);
 			await stub.__inviteAPlayer(roomId, [{id: userId, username}]);
-			await stub.__joinCustomRoom(roomId, {id: userId, username: username});
 			await stub.__setRoomOwner(roomId, userId);
 			return Response.json({roomId, message: "Room created successfully"}, {status: 200});
 		}catch(error){
@@ -151,25 +150,32 @@ export class CardGameController {
 		}
 	}
 
-	async joinRoomByCode({code, userId, username, env}: {code: string, userId: string, username: string, env: Env}){
-		if(!code || !userId || !username){
-			return Response.json({message: "Code, user ID and username are required"}, {status: 400});
+	async joinCustomRoom({roomId, userId, username, env, request}: {roomId: string, userId: string, username: string, env: Env, request: Request}){
+		if(!roomId || !userId || !username){
+			return Response.json({message: "Room ID, user ID and username are required"}, {status: 400});
+		}
+		const { CARD_GAME_ROOM } = env;
+		// Use roomId as the identifier to find the room
+		const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(`${roomId}`)) as DurableObjectStub<CardGameRoom>;
+
+		// Check if it is a websocket request
+		const upgradeHeader = request.headers.get("Upgrade");
+		if(!upgradeHeader || upgradeHeader.toLowerCase() !== "websocket"){
+			return Response.json({message: "This endpoint only accepts websocket requests"}, {status: 400});
 		}
 
-		const { CARD_GAME_ROOM } = env;
-		// Use code as the identifier to find the room
-		const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(`code:${code}`)) as DurableObjectStub<CardGameRoom>;
-
 		try{
-			const [url, setBody, constructRequest] = stabRequestBody();
-			setBody({userId, username});
+			console.log(`Found stub for room ID ${roomId}, sending join request...`);
+			const [url, constructRequest] = stabRequest(request);
 			url.searchParams.set("type", "JOIN_CUSTOM_PRE_ROOM");
-			url.searchParams.set("code", code);
-			
-			const response = await stub.fetch(...constructRequest());
+			url.searchParams.set("roomId", roomId);
+			url.searchParams.set("playerId", userId);
+			url.searchParams.set("playerUsername", username);
+			const rawResponse = await stub.fetch(...constructRequest());
+			const response = makeWSResponse(rawResponse);
 			return response;
 		}catch(error){
-			console.error("Error joining room by code:", error);
+			console.error("Error joining room by ID:", error);
 			return Response.json({message: "Failed to join room"}, {status: 500});
 		}
 	}
@@ -221,10 +227,10 @@ export class CardGameController {
 		const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(roomId)) as DurableObjectStub<CardGameRoom>;
 
 		try{
-			const [url, setBody, constructRequest] = stabRequestBody();
-			setBody({difficulty: difficulty || "MEDIUM"});
+			const [url, constructRequest] = stabRequest();
 			url.searchParams.set("type", "ADD_BOT_PLAYER");
 			url.searchParams.set("roomId", roomId);
+			url.searchParams.set("difficulty", difficulty || "MEDIUM");
 			
 			const response = await stub.fetch(...constructRequest());
 			return response;

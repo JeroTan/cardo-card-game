@@ -417,10 +417,14 @@ class OpenJoinHandler implements JoinHandler {
     const roomPlayers = this.roomInfo.players;
     const updatedRoomInfo:RoomInfo = { 
       ...this.roomInfo,
-      players: [...roomPlayers, ...this.players.map(player=>({
+      players: [...roomPlayers.filter((roomPlayer)=> !this.players.some(p => p.id === roomPlayer.id)), ...this.players.map(player=>{
+        const existingPlayer = roomPlayers.find(p=>p.id === player.id);
+        return {
         ...player,
+        ...(existingPlayer ? {...existingPlayer} : {}),
         status: "JOINED" as const,
-      }))],
+      }
+      })],
     };
     return {ok: true, message: "Players have joined the room", roomInfo: updatedRoomInfo} as const; 
   }

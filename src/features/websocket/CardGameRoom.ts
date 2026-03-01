@@ -7,6 +7,7 @@ import type { WebsocketStatusForRoom } from "@/types/game/events";
 import { CardPackService } from "@/services/cardPack";
 import { CardService } from "@/services/card";
 import { GameProcessLogic } from "@/services/game/GameLogic";
+import type { LobbyWSMessage } from "@/types/game/room";
 
 export class CardGameRoom extends DurableObject {
 	private wsPlayerBinderMap = new Map<string, WebSocket>(); // Map to bind playerId with their WebSocket connection 
@@ -21,7 +22,7 @@ export class CardGameRoom extends DurableObject {
 	} 
 
 	async fetch(request: Request): Promise<Response> {
-		// We need to check first if the request has player id to proceed with matchmaking
+		// We need to check first if the request has player id to proceed with the game
     const url = new URL(request.url);
 		const requestType = url.searchParams.get("type");
 		const roomId = url.searchParams.get("roomId");
@@ -91,7 +92,54 @@ export class CardGameRoom extends DurableObject {
 				return response;
 			}
 			case "JOIN_CUSTOM_PRE_ROOM":{
+				const playerId = url.searchParams.get("playerId");
+				const playerUsername = url.searchParams.get("playerUsername");
 
+				if(!playerId || !playerUsername){
+					console.warn("JOIN_CUSTOM_PRE_ROOM request missing playerId or playerUsername");
+					return Response.json({ error: "playerId and playerUsername are required" }, { status: 400 });
+				}
+
+				// Check if player is already in the room before adding
+				const currentState = await this.__getRoomState(roomId);
+				if(!currentState.ok){
+					console.error("Error getting room state:", currentState.message);
+					return Response.json({error: currentState.message}, {status: 404});
+				}
+
+				const isAlreadyInRoom = currentState.roomInfo.players.some(p => p.id === playerId);
+				
+				if (!isAlreadyInRoom) {
+					await this.__joinCustomRoom(roomId, {id: playerId, username: playerUsername});
+				}
+
+				const roomInfoResult = await this.__getRoomState(roomId);
+				if(!roomInfoResult.ok){
+					console.error("Error getting room state after joining custom room:", roomInfoResult.message);
+					return Response.json({error: roomInfoResult.message}, {status: 404});	
+				}
+
+				// Make Websocket
+				const {response, server} = makeWSServer(this.ctx);
+				server.serializeAttachment({ playerId, roomId });
+				this.wsPlayerBinderMap.set(playerId, server);
+
+				const allWS = this.ctx.getWebSockets().map((ws)=>{
+					return [ws.deserializeAttachment().playerId, ws];
+				});
+
+				server.send(JSON.stringify({
+					type: "JOINED_ROOM",
+					message: `Player ${playerUsername} has joined the room`,
+				}));
+				allWS.forEach(([, playerWS])=>{
+					playerWS.send(JSON.stringify({
+						type:"PLAYER_JOINED",
+						player:roomInfoResult.roomInfo.players.find(p => p.id === playerId),
+					} as LobbyWSMessage));
+				});
+
+				return response;
 			}
 		}
 
@@ -415,10 +463,25 @@ export class CardGameRoom extends DurableObject {
 			console.warn("WebSocket closed without proper attachment");
 			return;
 		}
+
 		const { playerId, roomId } = ws.deserializeAttachment() as { playerId: string, roomId: string };
+		const wsAll = Array.from(this.wsPlayerBinderMap.entries());
+
+		// check what kind of room is it
+		const gameInfoResult = await this.__getGameState(roomId);
+		if(!gameInfoResult || gameInfoResult.status == "waiting"){
+			wsAll.forEach(([, playerWS])=>{
+				playerWS.send(JSON.stringify({
+					type: "PLAYER_LEAVE",
+					playerId: playerId,
+				} as LobbyWSMessage));
+			});
+			return;
+		}
+
+		// This one is if the game already started
 		this.roomLogic.playerDisconnected(roomId, playerId);
 		this.wsPlayerBinderMap.delete(playerId);
-		const wsAll = Array.from(this.wsPlayerBinderMap.entries());
 		wsAll.forEach(([, playerWS])=>{
 			playerWS.send(JSON.stringify({
 				type: "DISCONNECTED",

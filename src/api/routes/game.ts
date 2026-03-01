@@ -1,5 +1,4 @@
 import  { CardGameController } from "@/controller/game";
-import { getTemporaryUser, getUserAuthInformation, setTemporaryUser } from "@/lib/authentication/userAuth";
 import { typedAstroCookies, typedEnv, typedUrlData } from "@/lib/elysia";
 import { getPlayerOnSession } from "@/services/game/MatchmakingLogic";
 import type Elysia from "elysia";
@@ -92,31 +91,19 @@ export function GameRoutes({
         },
       })
 
-      app.post("/room/join", async ({body, env, astroCookies})=>{
+      app.get("/room/:id/join-lobby", async ({params, env, astroCookies, request})=>{
         const {playerId, playerUsername} = getPlayerOnSession(astroCookies);
-        return await gameController.joinRoomByCode({
-          code: body.code,
+        // For direct room ID join (not by code)
+        return await gameController.joinCustomRoom({
+          roomId: params.id,
           userId: playerId,
           username: playerUsername,
           env,
+          request,
         });
       }, {
         detail:{
-          summary: "Join a room by code",
-          tags: ["Game Room", "Lobby"],
-        },
-        body: t.Object({
-          code: t.String({minLength: 6, maxLength: 6}),
-        }),
-      })
-
-      app.post("/room/:id/join", async ({params, env, astroCookies})=>{
-        const {playerId, playerUsername} = getPlayerOnSession(astroCookies);
-        // For direct room ID join (not by code)
-        return Response.json({roomId: params.id, message: "Use websocket endpoint instead"}, {status: 200});
-      }, {
-        detail:{
-          summary: "Join room by ID",
+          summary: "Join room lobby by ID",
           tags: ["Game Room", "Lobby"],
         },
         params: t.Object({

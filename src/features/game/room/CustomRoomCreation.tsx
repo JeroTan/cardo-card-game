@@ -1,147 +1,82 @@
-import { useState, useEffect, useRef } from 'react';
-import { Play, Check, Users, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Play, Check, Users, Loader2, Edit2, Lock, LockOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Empty, EmptyHeader, EmptyTitle, EmptyMedia } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-toastify';
 import RoomCodeDisplay from './components/RoomCodeDisplay';
 import PlayerListItem from './components/PlayerListItem';
 import AddBotButton from './components/AddBotButton';
 import type { RoomInfo, LobbyWSMessage, PlayerRoomInfo } from '@/types/game/room';
-import { ApiCreateCustomRoom, ApiUpdateCustomRoom, ApiToggleReadyState, ApiRemovePlayerFromRoom, ApiGetCustomRoomState } from '@/api/client/game';
+import { ApiUpdateCustomRoom, ApiToggleReadyState, ApiRemovePlayerFromRoom, ApiGetCustomRoomState, WSJoinRoomLobbyByCode } from '@/api/client/game';
+import { useEffectOnce } from 'react-use';
+import RoomLoading from './components/RoomLoading';
+import type { WebSocketNative } from '@jsarmyknife/native--http';
 
 interface CustomRoomCreationProps {
-  userId: string;
-  roomId?: string; // If provided, join existing room; otherwise create new
+  userId: string,
+  roomId: string,
 }
 
-export default function CustomRoomCreation({ userId, roomId: initialRoomId }: CustomRoomCreationProps) {
-  const [state, setState] = useState<'creating' | 'lobby'>('creating');
+export default function CustomRoomCreation({
+  userId,
+  roomId,
+}: CustomRoomCreationProps) {
   const [lobbyInfo, setLobbyInfo] = useState<RoomInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
 
-  const currentPlayer = lobbyInfo?.players.find(p => p.id === userId);
-  const isCreator = currentPlayer?.owner ?? false;
-  const allPlayersReady = lobbyInfo?.players.every(p => p.status === 'READY_FOR_CUSTOM_ROOM' || p.owner) ?? false;
-  const canStart = isCreator && allPlayersReady && (lobbyInfo?.players.length ?? 0) >= 2;
-
-  // Create or join room on mount
-  useEffect(() => {
-    if (initialRoomId) {
-      // Join existing room
-      joinRoom(initialRoomId);
-    } else {
-      // Create new room
-      createRoom();
-    }
-  }, [initialRoomId]);
-
-  // WebSocket connection
-  useEffect(() => {
-    if (!lobbyInfo) return;
-
-    connectWebSocket(lobbyInfo.id);
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [lobbyInfo?.id]);
-
-  const fetchRoomState = async (roomId: string) => {
-    try {
-      const { promiseResponse } = ApiGetCustomRoomState(roomId);
-      const response = await promiseResponse;
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch room state');
-      }
-
-      const result = await response.json() as { data: RoomInfo };
-      setLobbyInfo(result.data);
-    } catch (error) {
+  useEffectOnce(()=>{
+    ApiGetCustomRoomState(roomId)
+    .s200((result: { data: {roomInfo: RoomInfo} }) => {
+      setLobbyInfo(result.data.roomInfo);
+    })
+    .sOthers((error) => {
       console.error('Fetch room state error:', error);
       toast.error('Failed to fetch room state');
-    }
-  };
+    });
+  });
+  
+  return <>
+    {!lobbyInfo ? <>
+      <RoomLoading />
+    </> : <>
+      <Composer
+        userId={userId}
+        lobbyInfo={lobbyInfo}
+        roomId={roomId}
+      />
+    </>} 
+  </>
+}
 
-  const createRoom = async () => {
-    setIsLoading(true);
-    try {
-      const { promiseResponse } = ApiCreateCustomRoom({
-        roomName: `Custom Room ${Date.now().toString().slice(-6)}`,
-        type: 'OPEN',
-      });
-      const response = await promiseResponse;
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error((error as any)?.message || 'Failed to create room');
-      }
+export function Composer({ 
+  lobbyInfo: InitialLobbyInfo,
+  userId,
+  roomId
+}: {
+  lobbyInfo: RoomInfo,
+}& CustomRoomCreationProps) {
+  const [isStarting, setIsStarting] = useState(false);
+  const wsRef = useRef<WebSocketNative>(null);
 
-      const data = await response.json() as { roomId: string; message: string };
-      // Fetch the full room state after creation
-      await fetchRoomState(data.roomId);
-      setState('lobby');
-      toast.success('Room created successfully!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create room');
-      console.error('Create room error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [lobbyInfo, setLobbyInfo] = useState<RoomInfo>(InitialLobbyInfo);
+  const [editingName, setEditingName] = useState(false);
+  const [roomName, setRoomName] = useState(InitialLobbyInfo.name);
+  const [roomType, setRoomType] = useState<'OPEN' | 'INVITE_ONLY'>(
+    InitialLobbyInfo.joinCondition === 'MATCHMAKING' ? 'OPEN' : InitialLobbyInfo.joinCondition
+  );
 
-  const joinRoom = async (roomId: string) => {
-    setIsLoading(true);
-    try {
-      // Fetch the room state
-      await fetchRoomState(roomId);
-      setState('lobby');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to join room');
-      console.error('Join room error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const currentPlayer = useMemo(() => lobbyInfo?.players.find(p => p.id === userId), [lobbyInfo?.players, userId]);
+  const isCreator = useMemo(() => currentPlayer?.owner ?? false, [currentPlayer?.owner]);
+  const allPlayersReady = useMemo(() => lobbyInfo?.players.every(p => p.status === 'READY_FOR_CUSTOM_ROOM' || p.owner) ?? false, [lobbyInfo?.players]);
+  const canStart = useMemo(() => isCreator && allPlayersReady && (lobbyInfo?.players.length ?? 0) >= 2, [isCreator, allPlayersReady, lobbyInfo?.players.length]);
 
-  const connectWebSocket = (roomId: string) => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}/api/websocket?roomId=${roomId}&playerId=${userId}`);
-
-    ws.onopen = () => {
-      console.log('WebSocket connected to lobby');
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message: LobbyWSMessage = JSON.parse(event.data);
-        handleWebSocketMessage(message);
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      toast.error('Connection error');
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-    };
-
-    wsRef.current = ws;
-  };
-
-  const handleWebSocketMessage = (message: LobbyWSMessage) => {
+  const handleWebSocketMessage = useCallback((message: LobbyWSMessage) => {
     switch (message.type) {
       case 'PLAYER_JOINED':
         setLobbyInfo(prev => {
@@ -211,109 +146,214 @@ export default function CustomRoomCreation({ userId, roomId: initialRoomId }: Cu
         setLobbyInfo(message.lobby);
         break;
     }
-  };
+  }, [userId]);
 
-  const handleToggleReady = async () => {
+  const connectWebSocket = useCallback((roomId: string) => {
+    const ws = WSJoinRoomLobbyByCode(roomId);
+    ws.open();
+
+    ws.receiver((event) => {
+      try {
+        const message: LobbyWSMessage = JSON.parse(event.data);
+        handleWebSocketMessage(message);
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    });
+
+    ws.getSocket()?.addEventListener('error', (error) => {
+      console.error('WebSocket error:', error);
+      toast.error('Connection error');
+    });
+
+    ws.getSocket()?.addEventListener('close', () => {
+      console.log('WebSocket disconnected');
+    });
+
+    wsRef.current = ws;
+  }, [handleWebSocketMessage]);
+
+  const handleToggleReady = useCallback(() => {
     if (!lobbyInfo) return;
 
     const isReady = currentPlayer?.status === 'READY_FOR_CUSTOM_ROOM';
 
-    try {
-      const { promiseResponse } = ApiToggleReadyState({ roomId: lobbyInfo.id, ready: !isReady });
-      const response = await promiseResponse;
+    ApiToggleReadyState({ roomId: lobbyInfo.id, ready: !isReady })
+      .s200(() => {
+        // Ready state will be updated via WebSocket
+      })
+      .sOthers((error) => {
+        toast.error('Failed to update ready state');
+        console.error('Toggle ready error:', error);
+      });
+  }, [lobbyInfo, currentPlayer?.status]);
 
-      if (!response.ok) {
-        throw new Error('Failed to toggle ready state');
-      }
-    } catch (error) {
-      toast.error('Failed to update ready state');
-      console.error('Toggle ready error:', error);
-    }
-  };
-
-  const handleUpdateRoom = async (roomName?: string, type?: 'OPEN' | 'INVITE_ONLY') => {
+  const handleUpdateRoom = useCallback((roomName?: string, type?: 'OPEN' | 'INVITE_ONLY') => {
     if (!lobbyInfo || !isCreator) return;
 
-    try {
-      const { promiseResponse } = ApiUpdateCustomRoom({ 
-        roomId: lobbyInfo.id, 
-        roomName, 
-        type 
+    ApiUpdateCustomRoom({ 
+      roomId: lobbyInfo.id, 
+      roomName, 
+      type 
+    })
+      .s200(() => {
+        // Room state will be updated via WebSocket
+        toast.success('Room updated successfully');
+        setEditingName(false);
+      })
+      .sOthers((error) => {
+        toast.error('Failed to update room');
+        console.error('Update room error:', error);
       });
-      const response = await promiseResponse;
+  }, [lobbyInfo, isCreator]);
 
-      if (!response.ok) {
-        throw new Error('Failed to update room');
-      }
-
-      // Fetch updated room state
-      await fetchRoomState(lobbyInfo.id);
-      toast.success('Room updated successfully');
-    } catch (error) {
-      toast.error('Failed to update room');
-      console.error('Update room error:', error);
+  const handleSaveRoomName = useCallback(() => {
+    if (roomName.trim() && roomName !== lobbyInfo?.name) {
+      handleUpdateRoom(roomName.trim(), undefined);
+    } else {
+      setEditingName(false);
     }
-  };
+  }, [roomName, lobbyInfo?.name, handleUpdateRoom]);
 
-  const handleStartGame = async () => {
+  const handleRoomTypeChange = useCallback((type: 'OPEN' | 'INVITE_ONLY') => {
+    setRoomType(type);
+    handleUpdateRoom(undefined, type);
+  }, [handleUpdateRoom]);
+
+  const handleStartGame = useCallback(async () => {
     if (!lobbyInfo || !canStart) return;
 
     setIsStarting(true);
     toast.info('Starting game...');
     // Game start is handled by the Durable Object, WebSocket will notify us
     setIsStarting(false);
-  };
+  }, [lobbyInfo, canStart]);
 
-  const handleRemovePlayer = async (playerId: string) => {
+  const handleRemovePlayer = useCallback((playerId: string) => {
     if (!lobbyInfo) return;
 
-    try {
-      const { promiseResponse } = ApiRemovePlayerFromRoom({ roomId: lobbyInfo.id, targetPlayerId: playerId });
-      const response = await promiseResponse;
+    ApiRemovePlayerFromRoom({ roomId: lobbyInfo.id, targetPlayerId: playerId })
+      .s200(() => {
+        // Player will be removed via WebSocket update
+      })
+      .sOthers((error) => {
+        toast.error('Failed to remove player');
+        console.error('Remove player error:', error);
+      });
+  }, [lobbyInfo]);
 
-      if (!response.ok) {
-        throw new Error('Failed to remove player');
-      }
-    } catch (error) {
-      toast.error('Failed to remove player');
-      console.error('Remove player error:', error);
-    }
-  };
-
-  const handleLeave = () => {
+  const handleLeave = useCallback(() => {
     if (wsRef.current) {
-      wsRef.current.close();
+      wsRef.current.close?.();
     }
     window.location.href = '/';
-  };
+  }, []);
 
-  // Loading state
-  if (isLoading || !lobbyInfo) {
-    return (
-      <Card className="w-full max-w-3xl mx-auto">
-        <CardHeader>
-          <Skeleton className="h-8 w-48" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
+  // WebSocket connection
+  useEffectOnce(() => {
+    if (!lobbyInfo) return;
+
+    connectWebSocket(lobbyInfo.id);
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  });
+
+  // Sync room name and type when lobby info changes
+  useEffect(() => {
+    if (lobbyInfo) {
+      setRoomName(lobbyInfo.name);
+      if (lobbyInfo.joinCondition !== 'MATCHMAKING') {
+        setRoomType(lobbyInfo.joinCondition);
+      }
+    }
+  }, [lobbyInfo.name, lobbyInfo.joinCondition]);
 
   // Lobby UI
+  // return <>Hello World</>
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-2xl">
           <Users className="h-6 w-6" />
-          Game Lobby
+          {editingName && isCreator ? (
+            <div className="flex items-center gap-2 flex-1">
+              <Input
+                value={roomName}
+                onChange={(e) => setRoomName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveRoomName();
+                  if (e.key === 'Escape') {
+                    setEditingName(false);
+                    setRoomName(lobbyInfo.name);
+                  }
+                }}
+                className="text-xl"
+                autoFocus
+              />
+              <Button size="sm" onClick={handleSaveRoomName}>
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setEditingName(false);
+                  setRoomName(lobbyInfo.name);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <>
+              {lobbyInfo.name}
+              {isCreator && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingName(true)}
+                  className="ml-2"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
+            </>
+          )}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Room Settings (Creator Only) */}
+        {isCreator && (
+          <div className="space-y-3 p-4 rounded-lg border bg-muted/20">
+            <Label>Room Type</Label>
+            <Select value={roomType} onValueChange={handleRoomTypeChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OPEN">
+                  <div className="flex items-center gap-2">
+                    <LockOpen className="h-4 w-4" />
+                    Open - Anyone can join
+                  </div>
+                </SelectItem>
+                <SelectItem value="INVITE_ONLY">
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    Invite Only - Requires code
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Room Code Display */}
         <RoomCodeDisplay code={lobbyInfo.id} roomId={lobbyInfo.id} />
 
@@ -328,13 +368,7 @@ export default function CustomRoomCreation({ userId, roomId: initialRoomId }: Cu
           {lobbyInfo.players.map((player) => (
             <PlayerListItem
               key={player.id}
-              player={{
-                id: player.id,
-                username: player.username,
-                isReady: player.status === 'READY_FOR_CUSTOM_ROOM',
-                isCreator: player.owner,
-                isBot: false,
-              }}
+              player={player}
               currentUserId={userId}
               isCurrentUserCreator={isCreator}
               onRemove={handleRemovePlayer}
