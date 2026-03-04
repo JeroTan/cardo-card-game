@@ -1,12 +1,17 @@
 import {GlowFilter} from "pixi-filters";
 import { useFocusContext } from "../context/FocusContext";
-import { useId, useRef } from "react";
+import { useId, useRef, type PropsWithChildren } from "react";
 import { Container, Ticker } from "pixi.js";
 import { useUpdateEffect } from "react-use";
 import { curvatureCalculator } from "../utils/Math";
 import { round } from "lodash";
 
-export default function HoverGlow({children}:{children?: React.ReactNode}) {
+export default function HoverGlow({
+  children, 
+  active = false
+}:PropsWithChildren<{
+  active?: boolean,
+}>) {
   const {currentFocus, setFocus, clearFocus} = useFocusContext();
   const id = useId();
   const element = useRef<Container | null>(null);
@@ -70,7 +75,7 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
     }
   }, [currentFocus]);
 
-  return <pixiContainer
+  return active ? <pixiContainer
     eventMode="dynamic"
     onPointerOver={()=>{
       if(element.current){
@@ -90,5 +95,5 @@ export default function HoverGlow({children}:{children?: React.ReactNode}) {
     ref={element}
   >
     {children}
-  </pixiContainer>
+  </pixiContainer> : children;
 }

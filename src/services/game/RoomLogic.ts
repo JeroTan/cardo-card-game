@@ -34,6 +34,36 @@ export class RoomLogic {
       expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expires in 24 hours
     } as RoomInfo);
   }
+  async updateRoom(roomId: string, roomInfo: Partial<Pick<RoomInfo, "name" | "joinCondition">>){
+    const existingRoomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!existingRoomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    const updatedRoomInfo: RoomInfo = {
+      ...existingRoomInfo,  
+      ...roomInfo,
+    }
+    await this.storage.put(roomId, updatedRoomInfo);
+    return {ok: true, message: "Room has been updated", roomInfo: updatedRoomInfo} as const;
+  }
+
+  async setRoomOwner(roomId: string, playerId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    const updatedRoomInfo: RoomInfo = {
+      ...roomInfo,
+      players: roomInfo.players.map(player=>{
+        return {
+          ...player,
+          owner: player.id === playerId,
+        }
+      }),
+    }
+    await this.storage.put(roomId, updatedRoomInfo);
+    return {ok: true, message: "Room owner has been set", roomInfo: updatedRoomInfo} as const;
+  }
 
   async inviteToRoom(roomId: string, playerInfo: Pick<PlayerRoomInfo, "id" | "username">[]){
     const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
@@ -47,11 +77,76 @@ export class RoomLogic {
         ...playerInfo.map(player=>({
           ...player,
           status: "INVITED" as const,
+          owner: false,
         })),
+        
       ],
     }
     await this.storage.put(roomId, updatedRoomInfo);
     return {ok: true, message: "Players have been invited to the room", roomInfo: updatedRoomInfo} as const;
+  }
+
+  async removePlayerFromRoom(roomId: string, playerId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    const updatedRoomInfo: RoomInfo = {
+      ...roomInfo,
+      players: roomInfo.players.filter(player=>player.id !== playerId),
+    }
+    await this.storage.put(roomId, updatedRoomInfo);
+    return {ok: true, message: "Player has been removed from the room", roomInfo: updatedRoomInfo} as const;
+  }
+
+  async playerReadyOnCustomRoom(roomId: string, playerId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    const updatedRoomInfo: RoomInfo = {
+      ...roomInfo,
+      players: roomInfo.players.map(player=>{
+        if(player.id === playerId){
+          return {
+            ...player,
+            status: "READY_FOR_CUSTOM_ROOM" as const,
+          }
+        }
+        return player;
+      }),
+    }
+    await this.storage.put(roomId, updatedRoomInfo);
+    return {ok: true, message: "Player is ready", roomInfo: updatedRoomInfo} as const;
+  }
+
+  async playerNotReadyOnCustomRoom(roomId: string, playerId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    const updatedRoomInfo: RoomInfo = {
+      ...roomInfo,
+      players: roomInfo.players.map(player=>{
+        if(player.id === playerId){
+          return {
+            ...player,
+            status: "JOINED" as const,
+          }
+        }
+        return player;
+      }),
+    }
+    await this.storage.put(roomId, updatedRoomInfo);
+    return {ok: true, message: "Player is unready", roomInfo: updatedRoomInfo} as const;
+  }
+
+  async getRoomInfo(roomId: string){
+    const roomInfo = await this.storage.get(roomId) as RoomInfo | undefined;
+    if(!roomInfo){
+      return {ok: false, message: "Room not found", roomInfo: null} as const;
+    }
+    return {ok: true, message: "Room info retrieved", roomInfo} as const;
   }
 
   async joinRoom(roomId: string, playerInfo: Pick<PlayerRoomInfo, "id" | "username">[]){
@@ -225,7 +320,6 @@ export class RoomLogic {
     return {ok: true, message: "Room exists", roomInfo} as const;
   }
 
-
   clearRoom(roomId: string){
     this.storage.delete(roomId);
   }
@@ -323,10 +417,14 @@ class OpenJoinHandler implements JoinHandler {
     const roomPlayers = this.roomInfo.players;
     const updatedRoomInfo:RoomInfo = { 
       ...this.roomInfo,
-      players: [...roomPlayers, ...this.players.map(player=>({
+      players: [...roomPlayers.filter((roomPlayer)=> !this.players.some(p => p.id === roomPlayer.id)), ...this.players.map(player=>{
+        const existingPlayer = roomPlayers.find(p=>p.id === player.id);
+        return {
         ...player,
+        ...(existingPlayer ? {...existingPlayer} : {}),
         status: "JOINED" as const,
-      }))],
+      }
+      })],
     };
     return {ok: true, message: "Players have joined the room", roomInfo: updatedRoomInfo} as const; 
   }

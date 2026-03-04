@@ -17,7 +17,7 @@ import { AttackingStat } from "../components/stat/AttackingStat";
 import { DefendingStat } from "../components/stat/DefendingStat";
 import { Button } from "../components/Button";
 import Modal from "../components/Modal";
-import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Ticker } from "pixi.js";
 import FloatingMenuContextProvider, { useFloatingMenuContext } from "../context/FloatingMenuContext";
 import { findLabelCardInPixi, UtilityContainer } from "../utils/Card";
@@ -35,7 +35,7 @@ export type GameEngineProps = {
   mainPlayerId: string|number, //player id
   mainPlayerHandCards: Array<GameCard>,
   drawCards: (total:number)=> void,
-  cardAttack: (cardIds: Array<string|number>)=> void,
+  cardAttack: (cardIds: Array<string|number>, hasAnimation:boolean)=> void,
   playerEndTurn: ()=> void,
   cardDiscarder: (cardIds: Array<string|number>)=> void,
   surrender: ()=> void,
@@ -52,7 +52,7 @@ export type GameEngineProps = {
   sentinelCards: Array<GameCard>,
   sentinelOwner: string|null,
   turnRemainingTime: number, // in seconds
-  turnMessage?: string,
+  shortModalMessage?: string,
   tipNote?: string,
 }
 
@@ -87,7 +87,7 @@ function Composer({
   turnRemainingTime,
   sentinelCards,
   sentinelOwner,
-  turnMessage,  
+  shortModalMessage,  
   tipNote,
 }: GameEngineProps){
   const mainPlayer = useMemo(()=>{
@@ -163,6 +163,10 @@ function Composer({
     return "OPPONENT";
   }, [sentinelOwner, mainPlayerId]);
 
+  const isMainPlayerSentinel = useMemo(()=>{
+    return sentinelOwner === mainPlayerId;
+  }, [sentinelOwner, mainPlayerId]);
+
   // --- Winning Check --- //
   useEffect(()=>{
     if(!(losePlayers.length >= (players.length - 1))) return;
@@ -180,7 +184,6 @@ function Composer({
     openModal();
   }, [losePlayers]);
 
-  const [, scaleConstant] = useAppWithScaleConstant();
   const {openFloatingMenu, close: closeFloatingMenu} = useFloatingMenuContext();
   const {changeNote, tipNote: tipNoteLocal} = useTipNoteContext();
   const {makeModal, openModal, closeModal} = useModal();
@@ -192,6 +195,7 @@ function Composer({
 
   // --- Global Handlers --- //
   useEffect(()=>{
+    console.log("Tip Note Updated:", tipNote);
     changeNote(tipNote || ""); //In case the props is requesting a tip update.
   }, [tipNote]);
   useEffect(()=>{ // Trigger every new turn, to reset internal states in engine
@@ -200,6 +204,7 @@ function Composer({
     comboAttackSelectionSet(null);
     triggerAttackAnimationSet(false);
     alreadyDrawnSet(false); 
+    closeFloatingMenu();
   }, [currentActivePlayer]);
 
   return <>
@@ -212,7 +217,7 @@ function Composer({
     <DefendingStat 
       x={ -350 }
       y={-80}
-      value={sentinelCards.length > 0 ? sentinelCards.reduce((acc, card) => acc + card.def, 0) : null}
+      value={sentinelCards.length > 0 ? (sentinelCards.reduce((acc, card) => acc + card.def, 0) == 0 ? Infinity : sentinelCards.reduce((acc, card) => acc + card.def, 0)) : null}
     />
     <AttackingStat 
       x={ 350 }
@@ -223,6 +228,7 @@ function Composer({
           && (attackCalculation == Infinity 
             || (attackCalculation > sentinelCards.reduce((acc, card) => acc + card.def, 0))
           )
+          && !(sentinelCards.reduce((acc, card) => acc + card.def, 0) == 0 && attackCalculation == Infinity)
         ) ? "GLOWING_GREEN" : "DEFAULT"}
     />
     <TopBar />
@@ -298,27 +304,16 @@ function Composer({
       bgColor={0x353535}
     />
     <TipNote 
-      tip={tipNoteLocal ? tipNoteLocal : ""}
+      tip={tipNoteLocal || ""}
       x={1920 - 960}
       y={1080 - 70}
     />
 
     {/** Opponent's Deck */}
-    <UtilityContainer
-      onClick={(graphic)=>{
-        const card = findLabelCardInPixi(graphic!);
-        openFloatingMenu(card, <>
-           <pixiGraphics
-              draw={(graphics)=>{
-                graphics.clear();
-                graphics.roundRect(0, 0, 200 * scaleConstant, 100 * scaleConstant, 12);
-                graphics.fill({ color: 0x404346, alpha: 1 });
-              }}
-            />
-        </>);
-      }}
-    >
-      <HoverGlow>
+    <UtilityContainer>
+      <HoverGlow
+        active={mainPlayer.active}
+      >
         <Pile
           topCard={"/images/card_back.svg"}
           horizontalOffset={-771}
@@ -354,7 +349,9 @@ function Composer({
                           openModal();
                         }}
                       >
-                        <HoverGlow>
+                        <HoverGlow
+                          active={true}
+                        >
                           <Card 
                             src={card.card_art}
                             notCenter
@@ -373,7 +370,9 @@ function Composer({
           openJailCards();
         }}
       >
-        <HoverGlow>
+        <HoverGlow
+          active={true}
+        >
           <Pile 
             topCard={opponentJailTopCard}
             pileSize={currentOpponentToShow.cardsInJail.length}
@@ -385,21 +384,10 @@ function Composer({
     </>}
     
     {/** Main Player's Deck */}
-    <UtilityContainer
-      onClick={(graphic)=>{
-        const card = findLabelCardInPixi(graphic!);
-        openFloatingMenu(card, <>
-           <pixiGraphics
-              draw={(graphics)=>{
-                graphics.clear();
-                graphics.roundRect(0, 0, 200 * scaleConstant, 100 * scaleConstant, 12);
-                graphics.fill({ color: 0x404346, alpha: 1 });
-              }}
-            />
-        </>);
-      }}
-    >
-      <HoverGlow>
+    <UtilityContainer>
+      <HoverGlow
+        active={mainPlayer.active}
+      >
         <Pile
           topCard={"/images/card_back.svg"}
           horizontalOffset={771}
@@ -435,7 +423,9 @@ function Composer({
                           openModal();
                         }}
                       >
-                        <HoverGlow>
+                        <HoverGlow
+                          active={true}
+                        >
                           <Card 
                             src={card.card_art}
                             notCenter
@@ -454,7 +444,9 @@ function Composer({
           openJailCards();
         }}
       >
-        <HoverGlow>
+        <HoverGlow
+          active={true}
+        >
           <Pile 
             topCard={mainPlayerJailTopCard}
             pileSize={mainPlayer.cardsInJail.length}
@@ -502,7 +494,7 @@ function Composer({
             </>);
           }}
         >
-          <HoverGlow>
+          <HoverGlow active={true}>
             <Card
               horizontalOffset={horizontalOffset}
               verticalOffset={0}
@@ -544,7 +536,7 @@ function Composer({
       </Fragment>
     })}
 
-    {/** Main Player's Card */}
+        {/** Main Player's Card */}
     {locateCardXFromCenter({
       howMany: mainPlayerHandCards.length,
       gap: 50,
@@ -553,165 +545,155 @@ function Composer({
       useCenter: true,
     }).map((horizontalOffset, index) => {
 
-      const IsAttackSelection = useCallback(({children}:PropsWithChildren<{}>)=>{
-        return <>
-          {(comboAttackSelection != null && comboAttackSelection.includes(mainPlayerHandCards[index].id)) ? <>
-            <StaticGlow>
-              {children}
-            </StaticGlow>
-          </> : <>
-            {children}
-          </> }
-        </>
-      }, [comboAttackSelection]);
-
-      const IsDiscardSelection = useCallback(({children}:PropsWithChildren<{}>)=>{
-        return <>
-          { (discardSelection != null && discardSelection.includes(mainPlayerHandCards[index].id)) ? <>
-            <StaticGlow color={0xFF3333}>
-              {children}
-            </StaticGlow>
-          </> : <>
-            {children}
-          </> }
-        </>;
-      }, [discardSelection]);
-
-      const IsAttackAnimating = useCallback(({children}:PropsWithChildren<{}>)=>{
-        return <>
-          {triggerAttackAnimation ? <>
-            {comboAttackSelection && comboAttackSelection.includes(mainPlayerHandCards[index].id) ? <>
-              <AttackToSentinelAnimation>
-                {children}
-              </AttackToSentinelAnimation>
-            </> : <>
-              {children}
-            </>}
-          </> : <>
-            <HoverGlow>
-              {children}
-            </HoverGlow>
-          </>}
-        </>
-      }, [triggerAttackAnimation]);
-
-      const IsActive = useCallback(({children}:PropsWithChildren<{}>)=>{
-        return <>
-          {(mainPlayer.active && !triggerAttackAnimation) ? <>
-            <UtilityContainer
-              onClick={(graphic)=>{
-                if(discardSelection != null){
-                  discardSelectionSet((prev)=>{
-                    if(prev == null) return prev;
-                    if(prev.includes(mainPlayerHandCards[index].id)){
-                      return prev.filter((id)=>id !== mainPlayerHandCards[index].id);
-                    } 
-                    if(prev.length >= (mainPlayer.totalHandCards - 7)) return prev; // Prevent overselecting below 7 cards in hand after discard
-                    return [...prev, mainPlayerHandCards[index].id];
-                  })
-                  return; // if discard selection is being made, clicking other cards should not trigger attack calculation preview or open floating menu
-                }
-                if(comboAttackSelection != null){
-         
-                  if(comboAttackSelection.includes(mainPlayerHandCards[index].id)){
-                    if(comboAttackSelection.length === 1)  return; // There must be at least 1 card selected for combo attack
-                    const newSelection = comboAttackSelection.filter((id)=>id !== mainPlayerHandCards[index].id);
-                    attackCalculationSet(prev=>prev ? prev - Number(mainPlayerHandCards[index].atk) : 0);
-                    comboAttackSelectionSet(newSelection);
-                    return;
-                  }
-                  if(comboAttackSelection.length >= 3) return; // Prevent selecting more than 3 cards for combo attack
-                  attackCalculationSet(prev=>prev ? prev + Number(mainPlayerHandCards[index].atk) : Number(mainPlayerHandCards[index].atk));
-                  const newSelection = [...comboAttackSelection, mainPlayerHandCards[index].id];
-                  comboAttackSelectionSet(newSelection);
-                  return; // if combo attack is being selected, clicking other cards should not trigger attack calculation preview or open floating menu
-                }
-
-                attackCalculationSet(mainPlayerHandCards[index].atk);
-                const card = findLabelCardInPixi(graphic!);
-                openFloatingMenu(card, <>
-                  <pixiContainer>
-                    <Button 
-                      text={`${mainPlayer.totalTurnsPassed >= 1 ? "Solo Attack" : "Declare Sentinel"}`}
-                      minWidth={mainPlayer.totalTurnsPassed >= 1 ? 200 : 300}
-                      onClick={()=>{
-                        cardAttack([mainPlayerHandCards[index].id]);
-                        triggerAttackAnimationSet(true);
-                        setTimeout(()=>{
-                          triggerAttackAnimationSet(false);
-                        }, 600);
-                      }}
-                    />
-                    {mainPlayer.totalTurnsPassed >= 1 && <>
-                      <Button 
-                        y={50}
-                        text="Combo Attack"
-                        minWidth={200}
-                        onClick={()=>{
-                          changeNote("Select up to 3 cards for combo attack");
-                          comboAttackSelectionSet([mainPlayerHandCards[index].id]);
-                          attackCalculationSet(mainPlayerHandCards[index].atk);
-                          closeFloatingMenu();
-                        }}
-                      />
-                    </>}
-                    <Button 
-                      y={mainPlayer.totalTurnsPassed >= 1 ? 100 : 50}
-                      text="View Card"
-                      minWidth={mainPlayer.totalTurnsPassed >= 1 ? 200 : 300}
-                      onClick={()=>{
-                        openModal();
-                        makeModal({
-                          children: <pixiContainer>
-                            <Card 
-                              src={mainPlayerHandCards[index].card_art}
-                              size={30}
-                              horizontalOffset={-1920/2 + 233}
-                              verticalOffset={1080/2 - 356}
-                            />
-                          </pixiContainer>,
-                          closeButtonCallback: closeModal,
-                          backgroundCallback: closeModal,
-                        })
-                      }}
-                    />
-                  </pixiContainer>
-                </>)
-              }}
-              onMouseEnter={()=>{
-                if(comboAttackSelection != null) return; // if combo attack is being selected, hovering other cards should not trigger attack calculation preview
-                attackCalculationSet(mainPlayerHandCards[index].atk);
-              }}
-            >
-              {children}
-            </UtilityContainer>
-          </> : <>
-            {children}
-          </>}
-        </>;
-      }, [
-        mainPlayer.active, 
-        mainPlayer.totalTurnsPassed,
-        triggerAttackAnimation, 
-        mainPlayerHandCards[index],
-        discardSelection,
-        comboAttackSelection
-      ]);
 
       return <Fragment key={index}>
-        <IsActive>
-          <IsAttackAnimating>
-            <IsAttackSelection>
-              <IsDiscardSelection>
-                <Card
-                  horizontalOffset={horizontalOffset}
-                  verticalOffset={-281}
-                  src={mainPlayerHandCards[index].card_art}
+        <UtilityContainer
+          disable={
+            !mainPlayer.active ||
+            triggerAttackAnimation
+          }
+          onClick={(graphic)=>{
+            // This is specific only to discard selection
+            if(discardSelection != null){
+              discardSelectionSet((prev)=>{
+                if(prev == null) return prev;
+                if(prev.includes(mainPlayerHandCards[index].id)){
+                  return prev.filter((id)=>id !== mainPlayerHandCards[index].id);
+                } 
+                if(prev.length >= (mainPlayer.totalHandCards - 7)) return prev; // Prevent over-selecting below 7 cards in hand after discard
+                return [...prev, mainPlayerHandCards[index].id];
+              })
+              return;
+            }
+
+            // This is specific only to combo attack selection
+            if(comboAttackSelection != null){
+               if(comboAttackSelection.includes(mainPlayerHandCards[index].id)){
+                if(comboAttackSelection.length === 1)  return; // There must be at least 1 card selected for combo attack
+                const newSelection = comboAttackSelection.filter((id)=>id !== mainPlayerHandCards[index].id);
+                attackCalculationSet(prev=>prev ? prev - Number(mainPlayerHandCards[index].atk) : 0);
+                comboAttackSelectionSet(newSelection);
+                return;
+              }
+              if(comboAttackSelection.length >= 3) return; // Prevent selecting more than 3 cards for combo attack
+              attackCalculationSet(prev=>prev ? prev + Number(mainPlayerHandCards[index].atk) : Number(mainPlayerHandCards[index].atk));
+              const newSelection = [...comboAttackSelection, mainPlayerHandCards[index].id];
+              comboAttackSelectionSet(newSelection);
+
+              return;
+            }
+
+            //If click on card
+            if(!isMainPlayerSentinel)
+              attackCalculationSet(mainPlayerHandCards[index].atk == 0 ? Infinity : mainPlayerHandCards[index].atk);
+
+            // Open floating menu for card actions
+            const card = findLabelCardInPixi(graphic!);
+            openFloatingMenu(card, <>
+              <pixiContainer>
+                {!isMainPlayerSentinel && <Button 
+                  text={`${sentinelOwner != null ? "Solo Attack" : "Declare Sentinel"}`}
+                  minWidth={sentinelOwner != null ? 200 : 300}
+                  onClick={()=>{
+                    setTimeout(()=>{
+                      closeFloatingMenu();
+                    }, 1);
+                    if(!sentinelOwner){
+                      cardAttack([mainPlayerHandCards[index].id], false);
+                      changeNote("You have declared the card as sentinel! You may now end the turn.");
+                      return;
+                    }
+                    cardAttack([mainPlayerHandCards[index].id], true);
+                    comboAttackSelectionSet([mainPlayerHandCards[index].id]);
+                    triggerAttackAnimationSet(true);
+                    setTimeout(()=>{
+                      triggerAttackAnimationSet(false);
+                      changeNote("You have made a solo attack! You may now end the turn.");
+                    }, 600);
+                  }}
+                  disabled={
+                    sentinelCards.length > 0 &&
+                    ( 
+                      (mainPlayerHandCards[index].atk <= sentinelCards.reduce((acc, card) => acc + card.def, 0) && mainPlayerHandCards[index].atk != 0) 
+                      || (mainPlayerHandCards[index].atk == 0 && sentinelCards.reduce((acc, card) => acc + card.def, 0) == 0)
+                    )
+                  }
                 />
-              </IsDiscardSelection>
-            </IsAttackSelection>
-          </IsAttackAnimating>
-        </IsActive>
+                }
+                {(!isMainPlayerSentinel && sentinelOwner != null) && <>
+                  <Button 
+                    y={50}
+                    text="Combo Attack"
+                    minWidth={200}
+                    onClick={()=>{
+                      changeNote("Select up to 3 cards for combo attack");
+                      comboAttackSelectionSet([mainPlayerHandCards[index].id]);
+                      attackCalculationSet(mainPlayerHandCards[index].atk);
+                      closeFloatingMenu();
+                      setTimeout(()=>{
+                        closeFloatingMenu();
+                      }, 1);
+                    }}
+                  />
+                </>}
+                <Button 
+                  y={sentinelOwner != null ? (!isMainPlayerSentinel ? 100 : undefined) : (!isMainPlayerSentinel ? 50 : undefined)}
+                  text="View Card"
+                  minWidth={sentinelOwner != null ? 200 : 300}
+                  onClick={()=>{
+                    openModal();
+                    makeModal({
+                      children: <pixiContainer>
+                        <Card 
+                          src={mainPlayerHandCards[index].card_art}
+                          size={30}
+                          horizontalOffset={-1920/2 + 233}
+                          verticalOffset={1080/2 - 356}
+                        />
+                      </pixiContainer>,
+                      closeButtonCallback: closeModal,
+                      backgroundCallback: closeModal,
+                    })
+                  }}
+                />
+              </pixiContainer>
+            </>);
+          }}
+          onMouseEnter={()=>{
+            if(comboAttackSelection != null || isMainPlayerSentinel) return; // if combo attack is being selected, hovering other cards should not trigger attack calculation preview
+            attackCalculationSet( mainPlayerHandCards[index].atk == 0 ? Infinity : mainPlayerHandCards[index].atk );
+          }}
+        >
+          <HoverGlow active={
+            mainPlayer.active &&
+            !triggerAttackAnimation &&
+            ( !comboAttackSelection?.includes(mainPlayerHandCards[index].id)) &&
+            ( !discardSelection?.includes(mainPlayerHandCards[index].id))
+          }>
+            {/* This one is for combo attack selection */}
+            <StaticGlow
+              active={comboAttackSelection?.includes(mainPlayerHandCards[index].id)}
+            >
+              {/* This one is for discard selection */}
+              <StaticGlow
+                active={discardSelection?.includes(mainPlayerHandCards[index].id)}  
+              >
+                <AttackToSentinelAnimation
+                  active={triggerAttackAnimation && (comboAttackSelection?.includes(mainPlayerHandCards[index].id) ? true : false)  }
+                >
+                  <Card
+                    horizontalOffset={horizontalOffset}
+                    verticalOffset={-281}
+                    src={mainPlayerHandCards[index].card_art}
+                  />
+                </AttackToSentinelAnimation>
+                
+              </StaticGlow>
+              
+            </StaticGlow>
+          </HoverGlow>
+        </UtilityContainer>
+       
       </Fragment>
     })}
 
@@ -725,15 +707,19 @@ function Composer({
         color={0x4DCAFF}
         minWidth={200}
         onClick={(graphic)=>{
+          changeNote("Select how many cards to draw");
           openFloatingMenu(graphic!, <>
             <Button 
               text="Draw 1 Card"
               minWidth={200}
               onClick={()=>{
                 drawCards(1);
+                alreadyDrawnSet(true);
+                setTimeout(()=>{
+                  closeFloatingMenu();
+                }, 1);
                 if(mainPlayer.totalHandCards + 1 > 7 ){
                   changeNote("You have drawn more than 7 cards. Please discard down to 7 cards in hand at the end of your turn.");
-                  alreadyDrawnSet(true);
                   discardSelectionSet([]);
                 }
               }}
@@ -744,9 +730,12 @@ function Composer({
               minWidth={200}
               onClick={()=>{
                 drawCards(2);
+                alreadyDrawnSet(true);
+                setTimeout(()=>{
+                  closeFloatingMenu();
+                }, 1);
                 if(mainPlayer.totalHandCards + 2 > 7 ){
                   changeNote("You have drawn more than 7 cards. Please discard down to 7 cards in hand at the end of your turn.");
-                  alreadyDrawnSet(true);
                   discardSelectionSet([]);
                 }
               }}
@@ -757,9 +746,12 @@ function Composer({
               minWidth={200}
               onClick={()=>{
                 drawCards(3);
+                alreadyDrawnSet(true);
+                setTimeout(()=>{
+                  closeFloatingMenu();
+                }, 1);
                 if(mainPlayer.totalHandCards + 3 > 7 ){
                   changeNote("You have drawn more than 7 cards. Please discard down to 7 cards in hand at the end of your turn.");
-                  alreadyDrawnSet(true);
                   discardSelectionSet([]);
                 }
               }}
@@ -768,7 +760,6 @@ function Composer({
           </>);
         }}
       />
-
       <Button 
         useCenterCoordinate
         x={600}
@@ -781,9 +772,20 @@ function Composer({
           playerEndTurn();
         }}
       />
+      {mainPlayer.totalCardsInDeck <= 0 && <Button 
+        useCenterCoordinate
+        x={600}
+        y={-90}
+        text="Surrender"
+        color={0xFF2222}
+        minWidth={200}
+        onClick={()=>{
+          surrender();
+        }}
+      />}
     </>}
 
-    { (comboAttackSelection != null && discardSelection == null && mainPlayer.active) && <>
+    { (!triggerAttackAnimation && comboAttackSelection != null && discardSelection == null && mainPlayer.active) && <>
       <Button 
         useCenterCoordinate
         x={600}
@@ -791,6 +793,12 @@ function Composer({
         text="Combo Attack"
         color={0x3D5779}
         minWidth={200}
+        disabled={
+          comboAttackSelection.length === 0 ||
+          attackCalculation == null ||
+          attackCalculation <= sentinelCards.reduce((acc, card) => acc + card.def, 0) ||
+          (attackCalculation == Infinity && sentinelCards.reduce((acc, card) => acc + card.def, 0) == 0)
+        }
         onClick={()=>{
           const playerTotalAttack = Number(comboAttackSelection.reduce((acc, id)=>{
             const card = mainPlayerHandCards.find((c)=>c.id === id);
@@ -805,7 +813,7 @@ function Composer({
             changeNote(`Your selected cards' total attack is not higher than the sentinel's total defense`);
             return;
           }
-          cardAttack(comboAttackSelection);
+          cardAttack(comboAttackSelection, true);
           triggerAttackAnimationSet(true);
           setTimeout(()=>{
             triggerAttackAnimationSet(false);
@@ -827,7 +835,7 @@ function Composer({
       />
     </>}
 
-    { (comboAttackSelection==null && discardSelection != null && mainPlayer.active) && <>
+    { (!triggerAttackAnimation && comboAttackSelection==null && discardSelection != null && mainPlayer.active) && <>
       <Button 
         useCenterCoordinate
         x={600}
@@ -843,11 +851,20 @@ function Composer({
       
     </>}
 
-    {turnMessage && <>
+    {/* <Button 
+      x={100}
+      y={1080 - 150}
+      text="Debug Button"
+      onClick={()=>{
+        cardAttack(mainPlayerHandCards.map((card)=>card.id).slice(0, 2));
+      }}
+    /> */}
+
+    {shortModalMessage && <>
       <Modal>
         <pixiContainer>
           <pixiText
-            text={turnMessage}
+            text={shortModalMessage}
             style={makeFontStyle({ })}
           />
         </pixiContainer>

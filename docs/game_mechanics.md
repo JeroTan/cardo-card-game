@@ -53,7 +53,7 @@ Cardo uses a fixed stat pairing:
 A deck can contain:
 
 - Total: **50 cards**
-- Max **5 copies** of each card value (0–9)
+- Each card value (0–9) has a fixed 5 cards in the deck
 
 ---
 

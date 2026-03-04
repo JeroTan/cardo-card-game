@@ -10,6 +10,12 @@ export default function HeaderNotAuthNavigation(){
       </Button>
     </div>
     <div>
+      <Button asChild variant={"ghost"} className="hover:brightness-120 py-1 px-3 mr-2">
+        <a href="/how-to-play" className="">
+          How to Play
+        </a>
+      </Button>
+ 
     </div>
   </>
 }

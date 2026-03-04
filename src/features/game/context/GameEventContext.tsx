@@ -14,8 +14,6 @@ export type GameEventContextType = {
     playerId: string,
     newPlayerInfo: PlayerGameInfoClient,
   })=>void,
-  gameIsReady: boolean,
-  updateGameIsReady: (isReady: boolean)=>void,
 }
 
 export const GameEventContext = createContext<GameEventContextType>(null!);
@@ -24,7 +22,6 @@ export function GameEventContextProvider({children, roomId=""}:PropsWithChildren
   const roomIdRef = useRef(roomId);
   const ws = useRef<WebSocketNative>(null);
   const [gameStateData, setGameStateData] = useState<GameStateClient | null>(null);
-  const [gameIsReady, setGameIsReady] = useState(false);  
   const updateWS = useCallback((newWS: WebSocketNative)=>{
     ws.current = newWS;
   }, []);
@@ -68,8 +65,6 @@ export function GameEventContextProvider({children, roomId=""}:PropsWithChildren
     setGameStateData: setGameStateData,
     appendTurnEvent,
     updatePlayerInfo,
-    gameIsReady,
-    updateGameIsReady: setGameIsReady,
   }}>
     {children}
   </GameEventContext.Provider>

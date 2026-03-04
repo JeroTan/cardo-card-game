@@ -21,28 +21,6 @@ export default function FloatingMenu({
   const contentRef = useRef<Container|null>(null);
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
 
-  const drawBackground = useCallback((g: Graphics) => {
-    g.clear();
-    g.roundRect(
-      -padding,
-      -padding,
-      bounds.width + padding * 2,
-      bounds.height + padding * 2,
-      8 * scaleConstant
-    );
-    g.fill({ color: fill, alpha: 0.95 });
-    g.stroke({ color: 0x333333, width: 1, alpha: 0.5 });
-
-    // Apply drop shadow filter
-    const dropShadow = new DropShadowFilter({
-      offset: { x: 0, y: 4 * scaleConstant },
-      blur: 8 * scaleConstant,
-      color: 0x000000,
-      alpha: 0.4,
-    });
-    g.filters = [dropShadow];
-  }, [bounds, fill, padding, scaleConstant]);
-
   useEffect(()=>{
     if(!contentRef.current) return;
     const content = contentRef.current;
@@ -50,7 +28,6 @@ export default function FloatingMenu({
     // Get bounds of children and update state to trigger redraw
     const contentBounds = content.getBounds();
     setBounds({ width: contentBounds.width, height: contentBounds.height });
-
   }, [children]);
 
   useEffect(()=>{
@@ -72,7 +49,29 @@ export default function FloatingMenu({
     onPointerLeave={()=>onPointerLeave?.(thisRef.current!)}
     onPointerOut={()=>onPointerLeave?.(thisRef.current!)}
   >
-    <pixiGraphics draw={drawBackground} />
+    <pixiGraphics 
+      draw={(g: Graphics) => {
+        g.clear();
+        g.roundRect(
+          -padding,
+          -padding,
+          bounds.width + padding * 2,
+          bounds.height + padding * 2,
+          8 * scaleConstant
+        );
+        g.fill({ color: fill, alpha: 0.95 });
+        g.stroke({ color: 0x333333, width: 1, alpha: 0.5 });
+
+        // Apply drop shadow filter
+        const dropShadow = new DropShadowFilter({
+          offset: { x: 0, y: 4 * scaleConstant },
+          blur: 8 * scaleConstant,
+          color: 0x000000,
+          alpha: 0.4,
+        });
+        g.filters = [dropShadow];
+      }} 
+    />
     <pixiContainer ref={contentRef}>
       {children}
     </pixiContainer>

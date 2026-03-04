@@ -341,7 +341,7 @@ export class GameProcessLogic {
     return {ok: true, message: "Game is ready to start", gameState, nextEvent: null} as const;
   }
 
-  async attackWithCards({roomId, playerId, attackingCardIds, forceOutOfTime = false}: {roomId: string, playerId: string, attackingCardIds: string[], forceOutOfTime?: boolean}){
+  async attackWithCards({roomId, attackingCardIds, forceOutOfTime = false}: {roomId: string, attackingCardIds: string[], forceOutOfTime?: boolean}){
     // For this we need to check if the attacking cards are in the player's hand, if not then it's an invalid event
     const gameState = await this.getGameState(roomId);
     if(!gameState){
@@ -351,7 +351,13 @@ export class GameProcessLogic {
     if(playerInfo.length === 0){
       return {ok: false, message: "No players in the game", gameState, nextEvent: null} as const;
     }
-    const playerIndex = playerInfo.findIndex(player=>player.id === playerId);
+
+    const lastStartTurnEvent = [...gameState.events].reverse().find(event=>event.type === "START_TURN") as TurnEvent | undefined;
+    if(!lastStartTurnEvent || lastStartTurnEvent.type !== "START_TURN"){
+      return {ok: false, message: "No START_TURN event found, cannot determine current player", gameState, nextEvent: null} as const;
+    }
+
+    const playerIndex = playerInfo.findIndex(player=>player.id === lastStartTurnEvent.playerId);
     if(playerIndex === -1){
       return {ok: false, message: "Player not found in the game", gameState, nextEvent: null} as const;
     }
@@ -369,7 +375,7 @@ export class GameProcessLogic {
 
     const newEventResult = validateGameEvent({
       type: "ATTACKING",
-      playerId,
+      playerId: lastStartTurnEvent.playerId,
       card_used: attackingCards,
       timestamp: new Date().toISOString(),
     }, gameState);

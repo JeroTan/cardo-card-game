@@ -15,6 +15,11 @@ export function WSJoinRoom(roomId:string){
   return ws;
 }
 
+export function WSJoinRoomLobbyByCode(code:string){
+  const ws = new WebSocketNative(location.origin + `/api/game/room/${code}/join-lobby`);
+  return ws;
+}
+
 export const ApiCheckRoom = defineApiResolve({
   input: z.string(),
   handler: async (data)=>{
@@ -30,3 +35,78 @@ export const ApiGetGameState = defineApiResolve({
   },
   onZodError,
 })
+
+// Custom room lobby APIs
+export const ApiCreateCustomRoom = defineApiResolve({
+  input: z.object({
+    roomName: z.string().min(1).max(50),
+    type: z.enum(["OPEN", "INVITE_ONLY"]).default("OPEN"),
+  }),
+  handler: async (data)=>{
+    return apiClient().path('/game/room/create').data(JSON.stringify(data)).post().request();
+  },
+  onZodError,
+});
+
+export const ApiUpdateCustomRoom = defineApiResolve({
+  input: z.object({
+    roomId: z.string(),
+    roomName: z.string().min(1).max(50).optional(),
+    type: z.enum(["OPEN", "INVITE_ONLY"]).optional(),
+  }),
+  handler: async (data)=>{
+    return apiClient().path(`/game/room/${data.roomId}/update`).data(JSON.stringify({ roomName: data.roomName, type: data.type })).post().request();
+  },
+  onZodError,
+});
+
+export const ApiJoinCustomRoom = defineApiResolve({
+  input: z.object({
+    roomId: z.string(),
+  }),
+  handler: async (data)=>{
+    return apiClient().path(`/game/room/${data.roomId}/join-lobby`).get().request();
+  },
+  onZodError,
+});
+
+export const ApiRemovePlayerFromRoom = defineApiResolve({
+  input: z.object({
+    roomId: z.string(),
+    targetPlayerId: z.string(),
+  }),
+  handler: async (data)=>{
+    return apiClient().path(`/game/room/${data.roomId}/remove-player`).data(JSON.stringify({ targetPlayerId: data.targetPlayerId })).post().request();
+  },
+  onZodError,
+});
+
+export const ApiToggleReadyState = defineApiResolve({
+  input: z.object({
+    roomId: z.string(),
+    ready: z.optional(z.boolean()),
+  }),
+  handler: async (data)=>{
+    return apiClient().path(`/game/room/${data.roomId}/ready?ready=${data.ready}`).get().request();
+  },
+  onZodError,
+});
+
+export const ApiAddBotPlayer = defineApiResolve({
+  input: z.object({
+    roomId: z.string(),
+    difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).optional(),
+  }),
+  handler: async (data)=>{
+    return apiClient().path(`/game/room/${data.roomId}/add-bot`).data(JSON.stringify({ difficulty: data.difficulty })).post().request();
+  },
+  onZodError,
+});
+
+export const ApiGetCustomRoomState = defineApiResolve({
+  input: z.string(),
+  handler: async (data)=>{
+    return apiClient().path(`/game/room/${data}/custom-room-state`).get().request();
+  },
+  onZodError,
+});

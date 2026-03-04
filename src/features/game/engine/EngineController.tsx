@@ -9,9 +9,9 @@ import { getWSObject } from "../utils/websocket";
 import PQueue from 'p-queue';
 
 export function EngineController(){
-  const {gameStateData, gameIsReady} = useGameEventContext();
+  const {gameStateData} = useGameEventContext();
   return <>
-    {(gameIsReady && gameStateData != null) && <Composer />}
+    {( gameStateData != null) && <Composer />}
   </>
 }
 
@@ -25,7 +25,7 @@ function Composer(){
 
   const queue = useRef(new PQueue({concurrency: 1})); // Queue to process incoming events sequentially
 
-  const [turnMessage, setTurnMessage] = useState<string>("");
+  const [shortModalMessage, setShortModalMessage] = useState<string>("");
   const [tipNote, setTipNote] = useState<string>("");
 
   const currentActivePlayerId = useMemo(()=>{
@@ -49,7 +49,7 @@ function Composer(){
 
   const currentSentinelCard = useMemo(()=>{
     // Find the latest CHANGE_SENTINEL event in the current turn
-    const currentTurnEvents = gameStateData.events.reverse().find((event)=>{
+    const currentTurnEvents = [...gameStateData.events].reverse().find((event)=>{
       return event.type === "CHANGE_SENTINEL";
     });
     if(!currentTurnEvents) return [];
@@ -57,18 +57,18 @@ function Composer(){
   }, [gameStateData.events]);
 
   const sentinelOwner = useMemo(()=>{
-    const currentTurnEvents = gameStateData.events.reverse().find((event)=>{
+    const currentTurnEvents = [...gameStateData.events].reverse().find((event)=>{
       return event.type === "CHANGE_SENTINEL";
     });
     if(!currentTurnEvents) return null;
     return currentTurnEvents.playerId;
   }, [gameStateData.events]);
 
-  const changeTurnMessage = useCallback((message: string)=>{
-    setTurnMessage(message);
+  const changeShortModalMessage = useCallback((message: string, duration: number = 2000)=>{
+    setShortModalMessage(message);
     setTimeout(()=>{
-      setTurnMessage("");
-    }, 2000);
+      setShortModalMessage("");
+    }, duration);
   }, []);
 
   const playersForEngine = useMemo(()=>{
@@ -95,9 +95,8 @@ function Composer(){
 
 
 
-
   useEffectOnce(()=>{
-    changeTurnMessage(`${
+    changeShortModalMessage(`${
       currentActivePlayerId === mainPlayer.id ? "It's your" : `${gameStateData.playerInfo.find((p)=>p.id === currentActivePlayerId)?.username}'s`} turn!`
     );
     setTipNote(
@@ -114,29 +113,32 @@ function Composer(){
           const newEvent = reformData.data;
           context.appendTurnEvent(newEvent);
 
-          // if(newEvent.type === "START_TURN"){
-          //   if(sentinelOwner){
-          //     if(sentinelOwner === mainPlayer.id){
-          //       setTipNote(`You are a sentinel! You don't need to declare a new one. Just skip turn or draw cards if you want.`);
-          //     }else{
-          //       setTipNote(`The sentinel is ${gameStateData.playerInfo.find((p)=>p.id === sentinelOwner)?.username}. Play your cards to attack and become a new sentinel!`);
-          //     }
-          //   }
-          //   // Increase turn count for the player whose turn it is
-          //   context.setGameStateData((prev)=>{
-          //     if(!prev) return prev;
-          //     const newData = {...prev!};
-          //     const playerInfoIndex = newData.playerInfo.findIndex((info)=>info.id === newEvent.playerId);
-          //     if(playerInfoIndex === -1) return prev;
-          //     const player = newData.playerInfo[playerInfoIndex];
-          //     newData.playerInfo[playerInfoIndex] = {
-          //       ...player,
-          //       turnCount: player.turnCount + 1,
-          //     }
-          //     newData.playerInfo = structuredClone(newData.playerInfo);
-          //     return newData;
-          //   });
-          // }
+          if(newEvent.type === "START_TURN"){
+            if(newEvent.playerId === mainPlayer.id){
+              setTipNote(`It's your turn!`);
+            }else{
+              setTipNote(`It's your opponent's turn!`);
+            }
+            changeShortModalMessage(`${newEvent.playerId === mainPlayer.id ? "It's your" : `${gameStateData.playerInfo.find((p)=>p.id === newEvent.playerId)?.username}'s`} turn!`, 1000);
+            // Increase turn count for the player whose turn it is
+            context.setGameStateData((prev)=>{
+              if(!prev) return prev;
+              const newData = {...prev!};
+              const playerInfoIndex = newData.playerInfo.findIndex((info)=>info.id === newEvent.playerId);
+              if(playerInfoIndex === -1) return prev;
+              const player = newData.playerInfo[playerInfoIndex];
+              newData.playerInfo[playerInfoIndex] = {
+                ...player,
+                turnCount: player.turnCount + 1,
+              }
+              newData.playerInfo = structuredClone(newData.playerInfo);
+              return newData;
+            });
+          }
+
+          if(newEvent.type === "CHANGE_SENTINEL"){
+            changeShortModalMessage(`${mainPlayer.id === newEvent.playerId ? "You are" : `${gameStateData.playerInfo.find((p)=>p.id === newEvent.playerId)?.username} is`} the new Sentinel`, 1000);
+          }
 
           // For removing cards in the hand of opponents
           if(newEvent.type == "REMOVE_FROM_HAND"){
@@ -228,7 +230,12 @@ function Composer(){
             }
           }));
         }}
-        cardAttack={(cardIds)=>{
+        cardAttack={(cardIds, hasAnimation)=>{
+          queue.current.add(async ()=>{
+            if(hasAnimation){
+              await new Promise((resolve)=>setTimeout(resolve, 600)); // small delay for the animation to play before the state updates
+            }
+          });
           const ws = context.ws!;
           ws.getSocket()?.send(JSON.stringify({
             type: "REQUEST_ATTACK",
@@ -236,7 +243,6 @@ function Composer(){
               attackingCards: cardIds,
             }
           }));
-          // queue.current.add(()=>{}, {timeout: 600});
         }}
         playerEndTurn={()=>{
           const ws = context.ws!;
@@ -264,7 +270,8 @@ function Composer(){
         turnRemainingTime={turnRemainingTime}
         sentinelCards={currentSentinelCard}
         sentinelOwner={sentinelOwner}
-        turnMessage={turnMessage}
+        shortModalMessage={shortModalMessage}
+        tipNote={tipNote}
       />
     </TurnBaseContextProvider>
   </>

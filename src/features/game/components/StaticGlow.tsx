@@ -4,10 +4,12 @@ import type { PropsWithChildren } from "react";
 export default function StaticGlow({
   children,
   color = 0x4DCAFF,
+  active = false,
 }:PropsWithChildren<{
   color?: number,
+  active?: boolean,
 }>){
-  return <>
+  return active ? <>
     <pixiContainer
       filters={[new GlowFilter({
         distance: 5,
@@ -18,5 +20,5 @@ export default function StaticGlow({
     >
       {children}
     </pixiContainer>
-  </>
+  </> : children;
 }

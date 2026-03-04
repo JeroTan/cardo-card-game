@@ -26,6 +26,15 @@ export const clientEndpointsForClient = [
   "/game/find-match",
   "/game/room/{roomId}" as `/game/room/${string|number}`,
   "/game/room/{roomId}/check" as `/game/room/${string|number}/check`,
+  "/game/room/{roomId}/game-state" as `/game/room/${string|number}/game-state`,
+  
+  // Custom room lobby endpoints
+  "/game/room/create",
+  "/game/room/join",
+  "/game/room/{roomId}/join" as `/game/room/${string|number}/join`,
+  "/game/room/{roomId}/remove-player" as `/game/room/${string|number}/remove-player`,
+  "/game/room/{roomId}/ready" as `/game/room/${string|number}/ready`,
+  "/game/room/{roomId}/add-bot" as `/game/room/${string|number}/add-bot`,
 
 ];
 type ClientClientEndpoint = typeof clientEndpointsForClient[number];
