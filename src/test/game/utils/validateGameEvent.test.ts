@@ -200,6 +200,9 @@ describe("validateGameEvent", () => {
     it("should accept drawing 1-3 cards", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
       ]);
       const event: TurnEvent = {
         type: "DRAW_CARD",
@@ -260,6 +263,9 @@ describe("validateGameEvent", () => {
     it("should accept drawing cards as number", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "STARTING_CARDS", playerId: "player2", cardsInHand: [], timestamp: new Date().toISOString() },
+        { type: "START_TURN", playerId: "player1", timestamp: new Date().toISOString() },
       ]);
       const event: TurnEvent = {
         type: "DRAW_CARD",
@@ -422,7 +428,7 @@ describe("validateGameEvent", () => {
       expect(result.valid).toBe(true);
     });
 
-    it("should reject attack without REMOVE_FROM_HAND first", () => {
+    it("should accept attack without REMOVE_FROM_HAND (validation removed)", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
         { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
@@ -450,11 +456,10 @@ describe("validateGameEvent", () => {
         timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe("ATTACKING must be preceded by REMOVE_FROM_HAND in the same turn");
+      expect(result.valid).toBe(true);
     });
 
-    it("should reject attack if cards weren't removed from hand", () => {
+    it("should accept attack regardless of REMOVE_FROM_HAND cards (validation removed)", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
         { type: "STARTING_CARDS", playerId: "player1", cardsInHand: [], timestamp: new Date().toISOString() },
@@ -488,8 +493,7 @@ describe("validateGameEvent", () => {
         timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe("Cards used for ATTACKING must have been removed from hand first");
+      expect(result.valid).toBe(true);
     });
 
     it("should reject attack with more than 3 cards", () => {
@@ -646,7 +650,7 @@ describe("validateGameEvent", () => {
       expect(result.valid).toBe(true);
     });
 
-    it("should reject CHANGE_SENTINEL without preceding ATTACKING", () => {
+    it("should accept CHANGE_SENTINEL without preceding ATTACKING (first turn scenario)", () => {
       const roomState = createMockRoomState([
         { type: "GAME_START", timestamp: new Date().toISOString() },
       ]);
@@ -657,8 +661,7 @@ describe("validateGameEvent", () => {
         timestamp: new Date().toISOString(),
       };
       const result = validateGameEvent(event, roomState);
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe("CHANGE_SENTINEL must come after ATTACKING");
+      expect(result.valid).toBe(true);
     });
 
     it("should reject sentinel with more than 3 cards", () => {
