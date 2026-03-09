@@ -7,7 +7,7 @@
 		"check": "astro check",
 		"test": "vitest",
 		"build": "astro check && vitest run && astro build",
-		"wrangler-dev": "astro build && wrangler dev",
+		"wrangler-dev": "astro build && wrangler dev -- --ip 0.0.0.0 --port 8787",
 		"deploy-development": "npx wrangler@latest deploy --env=\"development\" && npx wrangler d1 execute cardo-db-development --file=db/card-db-schema.sql",
 		"deploy-staging": "npx wrangler@latest deploy --env=\"staging\"",
 		"deploy-production": "npx wrangler@latest deploy --env=\"production\"",

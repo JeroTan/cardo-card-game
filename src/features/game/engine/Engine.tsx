@@ -536,7 +536,7 @@ function Composer({
       </Fragment>
     })}
 
-        {/** Main Player's Card */}
+    {/** Main Player's Card */}
     {locateCardXFromCenter({
       howMany: mainPlayerHandCards.length,
       gap: 50,
@@ -544,7 +544,6 @@ function Composer({
       midCoordinates: 0,
       useCenter: true,
     }).map((horizontalOffset, index) => {
-
 
       return <Fragment key={index}>
         <UtilityContainer
