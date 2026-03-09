@@ -195,12 +195,9 @@ function Composer({
 
   // --- Global Handlers --- //
   useEffect(()=>{
-    console.log("Tip Note Updated:", tipNote);
     changeNote(tipNote || ""); //In case the props is requesting a tip update.
   }, [tipNote]);
   useEffect(()=>{ // Trigger every new turn, to reset internal states in engine
-    console.log("New Turn Started, resetting engine states");
-    console.log("Current Active Player:", currentActivePlayer);
     discardSelectionSet(null);
     attackCalculationSet(null);
     comboAttackSelectionSet(null);
@@ -569,16 +566,26 @@ function Composer({
 
             // This is specific only to combo attack selection
             if(comboAttackSelection != null){
-               if(comboAttackSelection.includes(mainPlayerHandCards[index].id)){
+              if(comboAttackSelection.includes(mainPlayerHandCards[index].id)){
                 if(comboAttackSelection.length === 1)  return; // There must be at least 1 card selected for combo attack
                 const newSelection = comboAttackSelection.filter((id)=>id !== mainPlayerHandCards[index].id);
-                attackCalculationSet(prev=>prev ? prev - Number(mainPlayerHandCards[index].atk) : 0);
+                const playerTotalAttack = Number(newSelection.reduce((acc, id)=>{
+                  const card = mainPlayerHandCards.find((c)=>c.id === id);
+                  if(!card) return acc;
+                  return Number(acc) + Number(card.atk);
+                }, 0));
+                attackCalculationSet(playerTotalAttack);
                 comboAttackSelectionSet(newSelection);
                 return;
               }
               if(comboAttackSelection.length >= 3) return; // Prevent selecting more than 3 cards for combo attack
-              attackCalculationSet(prev=>prev ? prev + Number(mainPlayerHandCards[index].atk) : Number(mainPlayerHandCards[index].atk));
               const newSelection = [...comboAttackSelection, mainPlayerHandCards[index].id];
+              const playerTotalAttack = Number(newSelection.reduce((acc, id)=>{
+                  const card = mainPlayerHandCards.find((c)=>c.id === id);
+                  if(!card) return acc;
+                  return Number(acc) + Number(card.atk);
+                }, 0));
+              attackCalculationSet(playerTotalAttack);
               comboAttackSelectionSet(newSelection);
 
               return;
@@ -609,6 +616,7 @@ function Composer({
                     triggerAttackAnimationSet(true);
                     setTimeout(()=>{
                       triggerAttackAnimationSet(false);
+                      comboAttackSelectionSet(null);
                       changeNote("You have made a solo attack! You may now end the turn.");
                     }, 600);
                   }}
@@ -770,6 +778,10 @@ function Composer({
         minWidth={200}
         disabled={mainPlayer.totalHandCards > 7 || triggerAttackAnimation}
         onClick={()=>{
+          if( (sentinelOwner != mainPlayer.playerId) && (!alreadyDrawn || sentinelOwner != mainPlayer.playerId) ){
+            changeNote("You cannot end turn yet! You must draw or declare an attack first.");
+            return;
+          }
           playerEndTurn();
         }}
       />
@@ -818,6 +830,8 @@ function Composer({
           triggerAttackAnimationSet(true);
           setTimeout(()=>{
             triggerAttackAnimationSet(false);
+            comboAttackSelectionSet(null);
+            changeNote("You have made a combo attack! You may now end the turn.");
           }, 600);
         }}
       />
