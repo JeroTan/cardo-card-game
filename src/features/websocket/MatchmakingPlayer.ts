@@ -4,7 +4,8 @@ import { DurableObject } from "cloudflare:workers";
 import type { CardGameRoom } from "./CardGameRoom";
 
 export class MatchmakingPlayer extends DurableObject {
-  private wsPlayerBinderMap = new Map<string, WebSocket>(); // Map to bind playerId with their WebSocket connection 
+  // Commented wsPlayerBinderMap because it is inconsistent
+  // private wsPlayerBinderMap = new Map<string, WebSocket>(); // Map to bind playerId with their WebSocket connection 
   public matchMaker: MatchmakingLogic;
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -28,18 +29,22 @@ export class MatchmakingPlayer extends DurableObject {
     this.ctx.acceptWebSocket(server);
 
     // If yes add it to the matchmaking queue and wait for opponent
-    await this.matchMaker.addPlayer(playerId);
-    this.wsPlayerBinderMap.set(playerId, server);
-    // Serialize the websocket with playerId for later use
-    server.serializeAttachment({ playerId });
+    await this.ctx.blockConcurrencyWhile(async ()=>{
+      await this.matchMaker.addPlayer(playerId);
+      // Serialize the websocket with playerId for later use
+      server.serializeAttachment({ playerId });
+    })
+    
 
     server.send(JSON.stringify({
       type: "JOINED_QUEUE",
       message: "You have joined the matchmaking queue. Waiting for an opponent...",
     }));
 
-    // Find a match for the player`
-    this.__findMatch(server);
+    // Find a match for the player
+    await this.ctx.blockConcurrencyWhile(async ()=>{
+      await this.__findMatch(server);
+    });
 
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -51,7 +56,6 @@ export class MatchmakingPlayer extends DurableObject {
     }
     const playerId = ws.deserializeAttachment()?.playerId as string;
     this.matchMaker.removePlayer(playerId);
-    this.wsPlayerBinderMap.delete(playerId);
   }
 
   webSocketError(ws: WebSocket, error: unknown): void | Promise<void> {
@@ -64,9 +68,11 @@ export class MatchmakingPlayer extends DurableObject {
     const matchReport = await this.matchMaker.isMatchReadyFor(playerId);
     if(matchReport.ok){
       const roomId = generateRoomId();
-
+      const allWS = this.ctx.getWebSockets().map(ws=>{
+        return [ws.deserializeAttachment().playerId, ws] as [ string, WebSocket ];
+      });
       matchReport.players.forEach(async (player)=>{
-        const playerWS = this.wsPlayerBinderMap.get(player.playerId);
+        const playerWS = allWS.find(([id, ws])=>id === player.playerId)?.[1];
         const { CARD_GAME_ROOM } = this.env;
         const stub = CARD_GAME_ROOM.get(CARD_GAME_ROOM.idFromName(roomId)) as DurableObjectStub<CardGameRoom>;
         await stub.__premadeRoom(roomId, matchReport.players.map(player=>player.playerId));
@@ -80,7 +86,6 @@ export class MatchmakingPlayer extends DurableObject {
 
         // Remove players from matchmaking queue
         this.matchMaker.removePlayer(player.playerId);
-        this.wsPlayerBinderMap.delete(player.playerId);
       });
 
     }else{
