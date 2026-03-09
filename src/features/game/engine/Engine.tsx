@@ -199,13 +199,15 @@ function Composer({
     changeNote(tipNote || ""); //In case the props is requesting a tip update.
   }, [tipNote]);
   useEffect(()=>{ // Trigger every new turn, to reset internal states in engine
+    console.log("New Turn Started, resetting engine states");
+    console.log("Current Active Player:", currentActivePlayer);
     discardSelectionSet(null);
     attackCalculationSet(null);
     comboAttackSelectionSet(null);
     triggerAttackAnimationSet(false);
     alreadyDrawnSet(false); 
     closeFloatingMenu();
-  }, [currentActivePlayer]);
+  }, [currentActivePlayer.playerId]);
 
   return <>
     <Board
