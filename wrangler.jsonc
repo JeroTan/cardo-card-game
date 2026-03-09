@@ -35,6 +35,7 @@
 	],
 	"ai": {
 		"binding": "AI",
+		"remote": true,
 	},
 	"durable_objects": {
 		"bindings": [
@@ -167,6 +168,7 @@
 			
 			"ai": {
 				"binding": "AI",
+				"remote": true,
 			},
 		},
 		"production": {
@@ -211,6 +213,7 @@
 			
 			"ai": {
 				"binding": "AI",
+				"remote": true,
 			},
 		},
 		
