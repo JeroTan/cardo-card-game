@@ -778,7 +778,7 @@ function Composer({
         minWidth={200}
         disabled={mainPlayer.totalHandCards > 7 || triggerAttackAnimation}
         onClick={()=>{
-          if( (sentinelOwner != mainPlayer.playerId) && (!alreadyDrawn || sentinelOwner != mainPlayer.playerId) ){
+          if( (sentinelOwner != mainPlayer.playerId) && !(alreadyDrawn || sentinelOwner == mainPlayer.playerId) ){
             changeNote("You cannot end turn yet! You must draw or declare an attack first.");
             return;
           }
